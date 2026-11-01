@@ -17,7 +17,8 @@ button{background:linear-gradient(180deg,#3fd68b,#17a057);color:#fff;font-weight
 button:hover{filter:brightness(1.1)}button:active{transform:scale(.97)}
 button:disabled{opacity:.5;cursor:not-allowed;filter:none}
 .hidden{display:none!important}
-#game-screen, #icefield-screen{background:linear-gradient(180deg,#1a1026,#0c0814);border-radius:18px;padding:18px;border:1px solid rgba(212,162,76,.3);box-shadow:0 18px 50px rgba(0,0,0,.6)}
+
+#game-hub, #game-screen, #icefield-screen{background:linear-gradient(180deg,#1a1026,#0c0814);border-radius:18px;padding:18px;border:1px solid rgba(212,162,76,.3);box-shadow:0 18px 50px rgba(0,0,0,.6)}
 
 .history-container{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .history-bar{display:flex;gap:8px;overflow-x:auto;padding:4px 0;flex-grow:1;scrollbar-width:none}
@@ -28,6 +29,8 @@ button:disabled{opacity:.5;cursor:not-allowed;filter:none}
 .hist-mid{background:#2a1244;color:#c58cff;border:1px solid #6b2fb3}
 .hist-high{background:#43240c;color:#ffc24d;border:1px solid #b9771a;box-shadow:0 0 12px rgba(255,194,77,.35)}
 .btn-history-more{background:#2b2036;color:#fff;width:auto;padding:6px 14px;font-size:14px;border-radius:999px;margin:0;box-shadow:none}
+.btn-back{background:linear-gradient(180deg,#64748b,#475569);margin-bottom:12px;box-shadow:none}
+
 .provably-fair-box{background:#0d0814;padding:10px 14px;border-radius:10px;font-size:12px;color:#9a90ad;margin-bottom:10px;border:1px dashed rgba(212,162,76,.3);text-align:left;word-break:break-all}
 .game-canvas-container{position:relative;aspect-ratio:500/260;background:radial-gradient(120% 120% at 0% 100%,#3b1236 0,#170c24 55%,#0a0610 100%);border-radius:14px;overflow:hidden;border:1px solid rgba(212,162,76,.35);box-shadow:inset 0 0 50px rgba(0,0,0,.65)}
 .rays{position:absolute;left:0;bottom:0;width:0;height:0}
@@ -52,16 +55,23 @@ button:disabled{opacity:.5;cursor:not-allowed;filter:none}
 .game-thumbnail:hover{transform:scale(1.03)}
 .game-thumbnail-ice{background:linear-gradient(135deg,#1e3a8a,#0284c7 60%,#38bdf8);box-shadow:0 8px 24px rgba(2,132,199,.4)}
 
-/* --- STYLES ICEFIELD --- */
-.icefield-grid{display:flex;flex-direction:column-reverse;gap:8px;margin:15px 0;background:#0d0814;padding:15px;border-radius:12px;border:1px solid rgba(56,189,248,.3)}
-.ice-row{display:flex;gap:6px;justify-content:center}
+/* --- STYLES ICEFIELD DE DROITE À GAUCHE AVEC YÉTI --- */
+.icefield-mult-header{display:flex;gap:6px;justify-content:flex-end;margin-bottom:8px;padding-right:35px}
+.ice-mult-col{flex:1;text-align:center;font-size:12px;font-weight:bold;color:#38bdf8;background:#0d0814;padding:4px;border-radius:4px;border:1px solid rgba(56,189,248,.2)}
+.icefield-grid{display:flex;flex-direction:column;gap:6px;margin:10px 0;background:#0d0814;padding:15px;border-radius:12px;border:1px solid rgba(56,189,248,.3)}
+.ice-row{display:flex;gap:6px;align-items:center}
+.ice-row-label{width:30px;font-size:12px;color:#94a3b8;font-weight:bold;text-align:right}
+.ice-tiles-container{display:flex;gap:6px;flex:1;flex-direction:row-reverse} /* DE DROITE À GAUCHE */
 .ice-tile{flex:1;height:45px;background:linear-gradient(180deg,#1e293b,#0f172a);border:1px solid #334155;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:18px;transition:all .15s}
 .ice-tile.active-row{border-color:#38bdf8;box-shadow:0 0 10px rgba(56,189,248,.4);background:linear-gradient(180deg,#0284c7,#0369a1)}
 .ice-tile.active-row:hover{transform:scale(1.04);filter:brightness(1.2)}
 .ice-tile.success{background:linear-gradient(180deg,#22c55e,#15803d)!important;border-color:#4ade80!important}
 .ice-tile.broken{background:linear-gradient(180deg,#ef4444,#b91c1c)!important;border-color:#f87171!important;animation:shake .4s}
+.ice-tile.trap-revealed{background:rgba(239, 68, 68, 0.4)!important;border:2px dashed #f87171!important}
 .ice-tile.disabled{opacity:.4;cursor:not-allowed}
-.ice-mult-badge{font-size:12px;color:#38bdf8;font-weight:bold;margin-bottom:4px;text-align:right}
+
+.yeti-char{font-size:22px;animation:bounceYeti .5s infinite alternate}
+@keyframes bounceYeti{0%{transform:translateY(0)}100%{transform:translateY(-4px)}}
 
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes shake{0%,100%{transform:none}20%{transform:translate(-6px,3px)}40%{transform:translate(5px,-4px)}60%{transform:translate(-4px,-2px)}80%{transform:translate(3px,3px)}}
@@ -96,7 +106,7 @@ ul{padding-left:20px;text-align:left}
             </div>
         </div>
 
-        <!-- 2. LOBBY PRINCIPAL -->
+        <!-- 2. LOBBY PRINCIPAL / ATTENTE -->
         <div id="lobby" class="hidden card">
             <h2>Salon d'attente</h2>
             <p>Code de la room : <b id="displayCode" style="color: #38bdf8;"></b></p>
@@ -104,34 +114,44 @@ ul{padding-left:20px;text-align:left}
             <ul id="playersList"></ul>
 
             <div id="adminControls" class="hidden" style="margin-top: 20px;">
-                <p style="color: #eab308; font-weight: bold;">Espace Admin : Choisis le jeu à ouvrir</p>
-                <div class="game-thumbnail" onclick="launchGame('Crash Out')">
-                    ✈️ Crash Out (Style Aviator)
-                </div>
-                <div class="game-thumbnail game-thumbnail-ice" onclick="launchGame('Icefield')">
-                    🧊 Icefield (Traversée de Glace)
-                </div>
+                <p style="color: #eab308; font-weight: bold;">Espace Admin : Lancer la session globale</p>
+                <button onclick="startSession()" style="background: #22c55e; font-size: 18px;">Lancer la partie 🚀</button>
             </div>
 
             <div id="playerWaitingGame" class="hidden" style="margin-top: 20px; text-align: center; color: #94a3b8;">
-                <p>L'administrateur va bientôt lancer un jeu...</p>
+                <p>L'administrateur va bientôt lancer la partie...</p>
             </div>
         </div>
 
-        <!-- 3. SALON DE SÉLECTION DU JEU -->
-        <div id="game-lobby-screen" class="hidden card" style="text-align: center;">
-            <h2>🎮 Salon des Jeux</h2>
-            <p>Jeu ouvert par l'hôte : <b id="gameTitleName" style="color: #c084fc;"></b></p>
-            <div class="game-thumbnail" style="margin: 20px auto; max-width: 300px;" onclick="joinGameTable()">
-                Entrer dans la table 🚀
+        <!-- 3. HUB DE SÉLECTION DES JEUX (Accessible tout le temps) -->
+        <div id="game-hub" class="hidden card" style="text-align: center;">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <button id="musicBtn" class="btn-history-more" onclick="toggleMusic()" title="Musique on/off">🎵</button>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+
+            <h2>🎮 Centre des Jeux</h2>
+            <p style="color: #94a3b8;">Choisis ton jeu pour participer à la compétition commune !</p>
+            
+            <div class="game-thumbnail" onclick="switchGame('Crash Out')">
+                ✈️ Crash Out (Style Aviator)
+            </div>
+            <div class="game-thumbnail game-thumbnail-ice" onclick="switchGame('Icefield')">
+                🧊 Icefield (Traversée du Yéti)
+            </div>
+
+            <div class="card" style="margin-top: 20px; background: #0f172a;">
+                <h4 style="margin-top:0;">🏆 Leaderboard Global :</h4>
+                <ul id="hubPlayersList"></ul>
             </div>
         </div>
 
         <!-- 4. ÉCRAN DE JEU AVIATOR PRO -->
         <div id="game-screen" class="hidden">
+            <button class="btn-back" onclick="returnToHub()">⬅️ Retour au choix des jeux</button>
             <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
                 <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
-                <button id="musicBtn" class="btn-history-more" onclick="toggleMusic()" title="Musique on/off">🎵</button>
                 <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
             </div>
 
@@ -202,44 +222,40 @@ ul{padding-left:20px;text-align:left}
 
                 <div id="liveCashoutPreview" style="margin-top: 8px; font-size: 15px; color: #38bdf8; font-weight: bold;"></div>
             </div>
-
-            <div class="card" style="margin-top: 15px; background: #0f172a;">
-                <h4 style="margin-top:0;">🏆 Leaderboard & Participants :</h4>
-                <ul id="gamePlayersList"></ul>
-            </div>
         </div>
 
-        <!-- 5. ÉCRAN DE JEU ICEFIELD -->
+        <!-- 5. ÉCRAN DE JEU ICEFIELD AVEC YÉTI -->
         <div id="icefield-screen" class="hidden">
+            <button class="btn-back" onclick="returnToHub()">⬅️ Retour au choix des jeux</button>
             <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
                 <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
                 <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
             </div>
 
-            <h3 style="margin: 5px 0; color: #38bdf8;">🧊 Icefield - Traversée de Glace</h3>
-            <p id="iceStatusText" style="font-size: 14px; color: #94a3b8; margin: 5px 0;">Configure ta mise et le nombre de blocs par ligne !</p>
+            <h3 style="margin: 5px 0; color: #38bdf8;">🧊 Icefield - La Traversée du Yéti</h3>
+            <p id="iceStatusText" style="font-size: 14px; color: #94a3b8; margin: 5px 0;">Choisis tes blocs et guide le Yéti de droite à gauche !</p>
 
-            <div class="icefield-grid" id="iceGrid"></div>
-
-            <div class="bet-control-box">
-                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <div class="bet-control-box" style="margin-bottom: 10px;">
+                <div style="display: flex; gap: 10px;">
                     <div style="flex: 1;">
                         <label style="font-size: 12px; color: #94a3b8; text-align: left; display: block;">Blocs par ligne (2 - 10) :</label>
-                        <input type="number" id="iceColsInput" value="3" min="2" max="10" style="margin: 4px 0;">
+                        <input type="number" id="iceColsInput" value="3" min="2" max="10" oninput="onColsChange()" style="margin: 4px 0;">
                     </div>
                     <div style="flex: 1.5;">
                         <label style="font-size: 12px; color: #94a3b8; text-align: left; display: block;">Mise :</label>
                         <input type="number" id="iceBetAmount" value="50" min="1" style="margin: 4px 0;">
                     </div>
                 </div>
-
-                <button id="iceStartBtn" onclick="startIcefieldGame()">Lancer la traversée 🧊</button>
-                <button id="iceCashoutBtn" class="btn-cashout hidden" onclick="cashoutIcefield()">ENCAISSER (CASH OUT)</button>
             </div>
 
-            <div class="card" style="margin-top: 15px; background: #0f172a;">
-                <h4 style="margin-top:0;">🏆 Leaderboard :</h4>
-                <ul id="icePlayersList"></ul>
+            <!-- EN-TÊTE DES MULTIPLICATEURS -->
+            <div class="icefield-mult-header" id="iceMultHeader"></div>
+            <!-- GRILLE DE DROITE À GAUCHE -->
+            <div class="icefield-grid" id="iceGrid"></div>
+
+            <div style="display: flex; gap: 10px;">
+                <button id="iceStartBtn" onclick="startIcefieldGame()" style="background: #22c55e;">Lancer la traversée 🧊</button>
+                <button id="iceCashoutBtn" class="btn-cashout hidden" onclick="cashoutIcefield()">ENCAISSER</button>
             </div>
         </div>
     </div>
@@ -271,7 +287,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const show = (id, on = true) => $(id).classList.toggle('hidden', !on);
 
-const S = { code:null, phase:'waiting', gameName: 'Crash Out', balance:1000, bet:0, nextBet:0, cashed:false,
+const S = { code:null, phase:'waiting', balance:1000, bet:0, nextBet:0, cashed:false,
             history:[], target:1, shown:1, t0:0, smoke:[], wasConnected:false, iceState: null };
 
 /* ---------- Audio ---------- */
@@ -358,7 +374,7 @@ const sound = name => Snd.play(name);
 const startAudio = () => { Snd.unlock(); Snd.startMusic(); };
 const toggleMusic = () => { $('musicBtn').textContent = Snd.toggle() ? '🎵' : '🔇'; };
 
-/* ---------- Handlers UI ---------- */
+/* ---------- Navigation & Hub ---------- */
 function createRoom() {
   const playerName = $('createName').value.trim();
   if (!playerName) return alert('Entre un pseudo !');
@@ -369,17 +385,23 @@ function joinRoom() {
   if (!playerName || !roomCode) return alert('Remplis ton pseudo et le code !');
   socket.emit('join-room', { roomCode, playerName });
 }
-const launchGame = gameName => socket.emit('launch-game-lobby', { roomCode: S.code, gameName });
-function joinGameTable() {
-  socket.emit('join-game-table', { roomCode: S.code });
-  show('game-lobby-screen', false);
-  if (S.gameName === 'Icefield') {
+function startSession() {
+  socket.emit('start-session', { roomCode: S.code });
+}
+
+function switchGame(gameName) {
+  show('game-hub', false);
+  if (gameName === 'Crash Out') {
+    show('game-screen');
+  } else if (gameName === 'Icefield') {
     show('icefield-screen');
     renderIcefieldGrid();
-  } else {
-    show('game-screen');
   }
-  startAudio();
+}
+function returnToHub() {
+  show('game-screen', false);
+  show('icefield-screen', false);
+  show('game-hub');
 }
 
 /* ---------- Actions Crash ---------- */
@@ -389,7 +411,7 @@ const setMaxBet = () => { $('betAmount').value = S.balance; };
 const cancelBet = () => { sound('cancel'); socket.emit('cancel-next-bet', { roomCode: S.code }); };
 
 function handleMainAction() {
-  if (S.phase === 'ended' || S.phase === 'waiting') return;
+  if (S.phase === 'ended') return;
   if (S.phase === 'playing' && S.bet > 0 && !S.cashed) return socket.emit('cash-out', { roomCode: S.code });
   if (S.phase === 'betting' ? S.bet > 0 : S.nextBet > 0) return;
   const amount = parseInt($('betAmount').value);
@@ -398,7 +420,16 @@ function handleMainAction() {
   socket.emit('place-bet', { roomCode: S.code, amount, autoCashOut: $('autoCashOutInput').value });
 }
 
-/* ---------- Actions Icefield ---------- */
+/* ---------- Actions Icefield (Yéti) ---------- */
+function calculateLocalMult(cols, step) {
+  const probaPerStep = (cols - 1) / cols;
+  return parseFloat((0.98 / Math.pow(probaPerStep, step)).toFixed(2));
+}
+
+function onColsChange() {
+  renderIcefieldGrid();
+}
+
 function startIcefieldGame() {
   const amount = parseInt($('iceBetAmount').value);
   const cols = parseInt($('iceColsInput').value);
@@ -417,40 +448,79 @@ function cashoutIcefield() {
 }
 
 function renderIcefieldGrid() {
-  const grid = $('iceGrid');
-  grid.innerHTML = '';
   const cols = S.iceState ? S.iceState.cols : (parseInt($('iceColsInput').value) || 3);
   const currentStep = S.iceState ? S.iceState.currentStep : 0;
   const active = S.iceState ? S.iceState.active : false;
   const path = S.iceState ? S.iceState.path : [];
+  const revealedTraps = S.iceState ? S.iceState.revealedTraps : [];
+
+  // 1. Rendu de l'en-tête des multiplicateurs (de droite à gauche)
+  const header = $('iceMultHeader');
+  header.innerHTML = '';
+  for (let row = 0; row < 8; row++) {
+    const colDiv = document.createElement('div');
+    colDiv.className = 'ice-mult-col';
+    colDiv.textContent = 'x' + calculateLocalMult(cols, row + 1);
+    header.appendChild(colDiv);
+  }
+
+  // 2. Rendu de la grille (lignes de bas en haut, colonnes de droite à gauche)
+  const grid = $('iceGrid');
+  grid.innerHTML = '';
 
   for (let row = 7; row >= 0; row--) {
     const rowDiv = document.createElement('div');
     rowDiv.className = 'ice-row';
 
-    const multVal = S.iceState ? S.iceState.multipliers[row] : null;
+    const label = document.createElement('div');
+    label.className = 'ice-row-label';
+    label.textContent = `R${row+1}`;
+    rowDiv.appendChild(label);
+
+    const tilesContainer = document.createElement('div');
+    tilesContainer.className = 'ice-tiles-container';
 
     for (let col = 0; col < cols; col++) {
       const tile = document.createElement('div');
       tile.className = 'ice-tile';
 
-      if (row < currentStep) {
+      const isPassed = row < currentStep;
+      const isCurrent = row === currentStep && active;
+      const trapIdx = revealedTraps[row];
+
+      if (isPassed) {
         if (path[row] === col) {
           tile.classList.add('success');
-          tile.textContent = '🧊';
+          // Affichage du Yéti sur la dernière case réussie
+          if (row === currentStep - 1) {
+            tile.innerHTML = '<span class="yeti-char">🧌</span>';
+          } else {
+            tile.textContent = '🧊';
+          }
+        } else if (trapIdx === col) {
+          tile.classList.add('trap-revealed');
+          tile.textContent = '💣';
         } else {
           tile.classList.add('disabled');
+          tile.textContent = '❄️';
         }
-      } else if (row === currentStep && active) {
+      } else if (isCurrent) {
         tile.classList.add('active-row');
-        tile.textContent = '❓';
+        // Yéti prêt à sauter sur la ligne actuelle
+        if (row === 0 && currentStep === 0) {
+          tile.innerHTML = '<span class="yeti-char">🧌</span>';
+        } else {
+          tile.textContent = '❓';
+        }
         tile.onclick = () => stepIcefield(col);
       } else {
         tile.classList.add('disabled');
+        tile.textContent = '❄️';
       }
 
-      rowDiv.appendChild(tile);
+      tilesContainer.appendChild(tile);
     }
+    rowDiv.appendChild(tilesContainer);
     grid.appendChild(rowDiv);
   }
 
@@ -460,9 +530,9 @@ function renderIcefieldGrid() {
   if (active && currentStep > 0) {
     const currentMult = S.iceState.multipliers[currentStep - 1];
     const gain = Math.floor(S.bet * currentMult);
-    $('iceStatusText').textContent = `Étape ${currentStep}/8 - Multiplicateur actuel : x${currentMult} (Gain : ${gain} 🪙)`;
+    $('iceStatusText').textContent = `Étape ${currentStep}/8 - Multiplicateur : x${currentMult} (Gain : ${gain} 🪙)`;
   } else if (!active) {
-    $('iceStatusText').textContent = 'Prêt ? Choisis tes paramètres et lance la traversée !';
+    $('iceStatusText').textContent = 'Choisis tes blocs et guide le Yéti de droite à gauche !';
   }
 }
 
@@ -488,10 +558,10 @@ function renderButtons() {
 }
 
 function renderPlayers(room) {
-  const lobby = $('playersList'), game = $('gamePlayersList'), iceList = $('icePlayersList');
+  const lobby = $('playersList'), game = $('gamePlayersList'), hubList = $('hubPlayersList');
   lobby.innerHTML = '';
   if (game) game.innerHTML = '';
-  if (iceList) iceList.innerHTML = '';
+  if (hubList) hubList.innerHTML = '';
 
   const avg = room.players.reduce((s, p) => s + p.stats.totalProfit, 0) / (room.players.length || 1);
   let admin = false;
@@ -507,10 +577,10 @@ function renderPlayers(room) {
     const sign = p.stats.totalProfit >= 0 ? '+' : '';
 
     const gi = document.createElement('li');
-    gi.innerHTML = `<b>${esc(p.name)}</b> - ${st || 'En attente'} | Profit: <span class="${p.stats.totalProfit >= avg ? 'text-green' : 'text-red'}">${sign}${p.stats.totalProfit} 🪙</span> (Solde: ${p.balance} 🪙)`;
+    gi.innerHTML = `<b>${esc(p.name)}</b> - ${st || 'Actif'} | Profit: <span class="${p.stats.totalProfit >= avg ? 'text-green' : 'text-red'}">${sign}${p.stats.totalProfit} 🪙</span> (Solde: ${p.balance} 🪙)`;
 
     if (game) game.appendChild(gi);
-    if (iceList) iceList.appendChild(gi.cloneNode(true));
+    if (hubList) hubList.appendChild(gi.cloneNode(true));
 
     if (p.id === socket.id) {
       Object.assign(S, { balance: p.balance, bet: p.bet, nextBet: p.nextBet, cashed: p.cashedOut, iceState: p.iceState });
@@ -519,16 +589,22 @@ function renderPlayers(room) {
     }
   });
 
-  if (room.status === 'waiting') { show('adminControls', admin); show('playerWaitingGame', !admin); }
-  if (room.selectedGame === 'Icefield') renderIcefieldGrid();
+  if (room.status === 'waiting') {
+    show('adminControls', admin);
+    show('playerWaitingGame', !admin);
+  } else {
+    show('adminControls', false);
+    show('playerWaitingGame', false);
+  }
+  renderIcefieldGrid();
 }
 
 function sync(room) {
-  S.gameName = room.selectedGame || 'Crash Out';
   if (['betting', 'playing', 'crashed'].includes(room.status) && S.phase !== 'ended') S.phase = room.status;
   if (room.currentHash) $('currentHashDisplay').textContent = room.currentHash;
   renderPlayers(room); renderButtons();
 }
+
 function enterLobby(room) {
   S.code = room.code;
   show('auth-screen', false); show('lobby');
@@ -542,10 +618,12 @@ socket.on('joined-success', enterLobby);
 socket.on('update-room', sync);
 socket.on('error-message', alert);
 
-socket.on('navigate-to-game', d => {
-  S.gameName = d.gameName;
-  show('lobby', false); show('game-lobby-screen');
-  $('gameTitleName').textContent = d.gameName;
+socket.on('navigate-to-hub', d => {
+  show('lobby', false);
+  show('game-screen', false);
+  show('icefield-screen', false);
+  show('game-hub');
+  sync(d.room);
 });
 
 socket.on('timer-update', d => {
@@ -555,18 +633,15 @@ socket.on('timer-update', d => {
 
 socket.on('icefield-result', d => {
   if (d.success) {
-    if (d.completed || d.cashout) {
-      sound('win');
-      alert(d.message);
-    }
+    sound('win');
+    if (d.completed || d.cashout) alert(d.message);
   } else {
-    sound('crash');
-    alert(d.message);
+    sound('crash'); // Craquement de glace et bruit de crash
   }
 });
 
 socket.on('betting-phase', d => {
-  if (S.phase === 'ended' || S.gameName !== 'Crash Out') return;
+  if (S.phase === 'ended') return;
   S.phase = 'betting'; S.cashed = false;
   sound('start');
   $('currentHashDisplay').textContent = d.hash;
@@ -575,19 +650,19 @@ socket.on('betting-phase', d => {
 });
 
 socket.on('playing-phase-started', room => {
-  if (S.phase === 'ended' || S.gameName !== 'Crash Out') return;
+  if (S.phase === 'ended') return;
   S.phase = 'playing'; sound('takeoff');
   $('gameStatusText').textContent = "L'avion décolle ! Bon vol ✈️";
   sync(room);
 });
 
 socket.on('multiplier-update', d => {
-  if (S.phase === 'ended' || S.gameName !== 'Crash Out') return;
+  if (S.phase === 'ended') return;
   $('multiplierBox').textContent = d.multiplier.toFixed(2) + 'x';
 });
 
 socket.on('game-crashed', d => {
-  if (S.phase === 'ended' || S.gameName !== 'Crash Out') return;
+  if (S.phase === 'ended') return;
   S.phase = 'crashed';
   sound('crash');
   $('multiplierBox').textContent = d.multiplier.toFixed(2) + 'x (CRASH !)';
@@ -608,8 +683,8 @@ socket.on('game-session-ended', d => {
   show('gameOverModal');
 });
 
-Object.assign(window, { createRoom, joinRoom, launchGame, joinGameTable, setBet, multiplyBet, setMaxBet,
-                        handleMainAction, cancelBet, toggleMusic, startIcefieldGame, stepIcefield, cashoutIcefield });
+Object.assign(window, { createRoom, joinRoom, startSession, switchGame, returnToHub, setBet, multiplyBet, setMaxBet,
+                        handleMainAction, cancelBet, toggleMusic, startIcefieldGame, stepIcefield, cashoutIcefield, onColsChange });
 })();
 </script>
 </body>
