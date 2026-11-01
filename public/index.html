@@ -5,104 +5,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Crash P2P - Aviator Pro Ultimate</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #090d16; color: #fff; margin: 0; padding: 20px; text-align: center; }
-        .container { max-width: 650px; margin: 0 auto; }
-        .card { background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 15px; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-        input, select, button { display: block; width: 100%; margin: 10px 0; padding: 12px; border-radius: 8px; border: none; box-sizing: border-box; font-size: 16px; }
-        button { background: #22c55e; color: white; font-weight: bold; cursor: pointer; transition: background 0.2s; }
-        button:hover { background: #16a34a; }
-        button:disabled { opacity: 0.6; cursor: not-allowed; }
-        .hidden { display: none !important; }
-
-        #game-screen { background: #111827; border-radius: 16px; padding: 20px; border: 1px solid #374151; }
-
-        .history-container { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-        .history-bar { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0; flex-grow: 1; scrollbar-width: none; }
-        .history-bar::-webkit-scrollbar { display: none; }
-        .history-pill { padding: 5px 12px; border-radius: 12px; font-size: 13px; font-weight: bold; white-space: nowrap; cursor: pointer; display: inline-block; }
-        .hist-low { background: #1e293b; color: #38bdf8; border: 1px solid #334155; }
-        .hist-mid { background: #3b0764; color: #c084fc; border: 1px solid #7e22ce; }
-        .hist-high { background: #831843; color: #f472b6; border: 1px solid #be185d; }
-        .btn-history-more { background: #334155; color: #fff; width: auto; padding: 6px 12px; font-size: 14px; border-radius: 12px; margin: 0; cursor: pointer; }
-        .btn-history-more:hover { background: #475569; }
-
-        .provably-fair-box { background: #0f172a; padding: 10px 14px; border-radius: 8px; font-size: 12px; color: #94a3b8; margin-bottom: 10px; border: 1px dashed #334155; text-align: left; word-break: break-all; }
-
-        .game-canvas-container {
-            position: relative;
-            height: 240px;
-            background: linear-gradient(135deg, #1f2937 0%, #0b0f19 100%);
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid #374151;
-        }
-
-        .game-svg { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
-
-        .multiplier-display {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            font-size: 42px;
-            font-weight: 900;
-            color: #38bdf8;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
-            z-index: 10;
-        }
-        .crashed-text { color: #ef4444 !important; }
-
-        .bet-control-box { background: #1f2937; padding: 15px; border-radius: 10px; margin-top: 15px; border: 1px solid #374151; }
-        .btn-cashout { background: #eab308 !important; color: #000 !important; font-size: 18px; font-weight: 900; }
-        .btn-cashout:hover { background: #ca8a04 !important; }
-        .btn-cancel { background: #ef4444 !important; margin-top: 5px; }
-
-        .quick-bet-row { display: flex; gap: 6px; margin-bottom: 8px; }
-        .quick-btn { background: #334155; color: #cbd5e1; padding: 6px 10px; font-size: 13px; border-radius: 6px; border: none; cursor: pointer; flex: 1; margin: 0; }
-        .quick-btn:hover { background: #475569; color: #fff; }
-
-        .stats-badge { background: #0f172a; padding: 10px; border-radius: 8px; font-size: 13px; margin-top: 10px; border: 1px solid #334155; display: flex; justify-content: space-around; }
-        .text-green { color: #22c55e; font-weight: bold; }
-        .text-red { color: #ef4444; font-weight: bold; }
-
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.85);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-        }
-        .modal-content {
-            background: #1e293b;
-            padding: 25px;
-            border-radius: 16px;
-            width: 90%;
-            max-width: 480px;
-            max-height: 80vh;
-            overflow-y: auto;
-            text-align: center;
-            border: 1px solid #374151;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-        }
-        .full-history-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-            max-height: 350px;
-            overflow-y: auto;
-            padding: 15px 5px;
-        }
-
-        .game-thumbnail { background: linear-gradient(135deg, #7c3aed, #db2777); padding: 20px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; font-size: 20px; box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4); transition: transform 0.2s; }
-        .game-thumbnail:hover { transform: scale(1.02); }
-
-        ul { padding-left: 20px; text-align: left; }
-    </style>
+*{box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:radial-gradient(1100px 560px at 50% -8%,#3a1530 0,#150d22 45%,#07060d 100%) fixed;color:#efe9dc;margin:0;padding:18px;text-align:center;min-height:100vh}
+.container{max-width:680px;margin:0 auto}
+h1{font-size:32px;margin:6px 0 18px;letter-spacing:1px;background:linear-gradient(90deg,#f6dc9a,#d4a24c 50%,#f0707a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.card{background:linear-gradient(160deg,rgba(44,26,52,.9),rgba(18,12,28,.92));border:1px solid rgba(212,162,76,.22);padding:20px;border-radius:16px;margin-bottom:14px;text-align:left;box-shadow:0 12px 32px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.06)}
+input,select,button{display:block;width:100%;margin:10px 0;padding:13px;border-radius:10px;border:1px solid rgba(212,162,76,.2);font-size:16px;font-family:inherit}
+input,select{background:#0d0814;color:#fff;outline:none;transition:border .2s,box-shadow .2s}
+input:focus,select:focus{border-color:#d4a24c;box-shadow:0 0 0 3px rgba(212,162,76,.22)}
+button{background:linear-gradient(180deg,#3fd68b,#17a057);color:#fff;font-weight:700;cursor:pointer;border:0;transition:transform .12s,filter .2s;box-shadow:0 6px 18px rgba(34,197,94,.28)}
+button:hover{filter:brightness(1.1)}button:active{transform:scale(.97)}
+button:disabled{opacity:.5;cursor:not-allowed;filter:none}
+.hidden{display:none!important}
+#game-screen{background:linear-gradient(180deg,#1a1026,#0c0814);border-radius:18px;padding:18px;border:1px solid rgba(212,162,76,.3);box-shadow:0 18px 50px rgba(0,0,0,.6)}
+.history-container{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.history-bar{display:flex;gap:8px;overflow-x:auto;padding:4px 0;flex-grow:1;scrollbar-width:none}
+.history-bar::-webkit-scrollbar{display:none}
+.history-pill{padding:5px 12px;border-radius:999px;font-size:13px;font-weight:700;white-space:nowrap;cursor:pointer;display:inline-block;transition:transform .15s}
+.history-pill:hover{transform:translateY(-2px)}
+.hist-low{background:#12202e;color:#5cc8ff;border:1px solid #1f4660}
+.hist-mid{background:#2a1244;color:#c58cff;border:1px solid #6b2fb3}
+.hist-high{background:#43240c;color:#ffc24d;border:1px solid #b9771a;box-shadow:0 0 12px rgba(255,194,77,.35)}
+.btn-history-more{background:#2b2036;color:#fff;width:auto;padding:6px 14px;font-size:14px;border-radius:999px;margin:0;box-shadow:none}
+.provably-fair-box{background:#0d0814;padding:10px 14px;border-radius:10px;font-size:12px;color:#9a90ad;margin-bottom:10px;border:1px dashed rgba(212,162,76,.3);text-align:left;word-break:break-all}
+.game-canvas-container{position:relative;aspect-ratio:500/260;background:radial-gradient(120% 120% at 0% 100%,#3b1236 0,#170c24 55%,#0a0610 100%);border-radius:14px;overflow:hidden;border:1px solid rgba(212,162,76,.35);box-shadow:inset 0 0 50px rgba(0,0,0,.65)}
+.rays{position:absolute;left:0;bottom:0;width:0;height:0}
+.rays::before{content:"";position:absolute;width:1000px;height:1000px;left:-500px;top:-500px;background:repeating-conic-gradient(rgba(255,214,140,.05) 0 7deg,transparent 7deg 14deg);animation:spin 60s linear infinite}
+.game-svg{width:100%;height:100%;position:absolute;inset:0}
+.multiplier-display{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:clamp(44px,13vw,80px);font-weight:900;font-variant-numeric:tabular-nums;color:#5cc8ff;text-shadow:0 0 24px currentColor,0 4px 12px rgba(0,0,0,.8);z-index:10;pointer-events:none;white-space:nowrap}
+.crashed-text{color:#ff4d5e!important}
+#boom{opacity:0;transform-box:fill-box;transform-origin:center}
+#boom.go{animation:boom .7s ease-out}
+.shake{animation:shake .5s}
+@keyframes boom{0%{transform:scale(.1);opacity:1}100%{transform:scale(2.6);opacity:0}}
+@keyframes shake{0%,100%{transform:none}20%{transform:translate(-6px,3px)}40%{transform:translate(5px,-4px)}60%{transform:translate(-4px,-2px)}80%{transform:translate(3px,3px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{50%{box-shadow:0 0 0 8px rgba(251,191,36,0)}}
+.bet-control-box{background:linear-gradient(180deg,#241731,#150d1f);padding:15px;border-radius:12px;margin-top:15px;border:1px solid rgba(212,162,76,.25)}
+#actionBtn{font-size:18px;padding:16px;letter-spacing:.4px}
+.btn-cashout{background:linear-gradient(180deg,#ffd45c,#e09a10)!important;color:#2a1700!important;font-size:20px!important;font-weight:900;box-shadow:0 0 0 0 rgba(251,191,36,.6);animation:pulse 1s infinite}
+.btn-cancel{background:linear-gradient(180deg,#f0566a,#c02338)!important;margin-top:5px;box-shadow:none}
+.quick-bet-row{display:flex;gap:6px;margin-bottom:8px}
+.quick-btn{background:#2b2036;color:#e6d9bf;padding:8px 10px;font-size:13px;border-radius:8px;border:1px solid rgba(212,162,76,.2);flex:1;margin:0;box-shadow:none}
+.quick-btn:hover{background:#3a2b49}
+.stats-badge{background:#0d0814;padding:10px;border-radius:10px;font-size:13px;margin-top:10px;border:1px solid rgba(212,162,76,.2);display:flex;justify-content:space-around;gap:6px;flex-wrap:wrap}
+.text-green{color:#3fd68b;font-weight:700}.text-red{color:#ff5d6e;font-weight:700}
+.modal-overlay{position:fixed;inset:0;background:rgba(5,3,10,.88);backdrop-filter:blur(4px);display:flex;justify-content:center;align-items:center;z-index:9999}
+.modal-content{background:linear-gradient(160deg,#2c1a34,#140d1d);padding:25px;border-radius:18px;width:90%;max-width:480px;max-height:80vh;overflow-y:auto;text-align:center;border:1px solid rgba(212,162,76,.4);box-shadow:0 20px 60px rgba(0,0,0,.7)}
+.full-history-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-height:350px;overflow-y:auto;padding:15px 5px}
+.game-thumbnail{background:linear-gradient(135deg,#8a1c3c,#d4562a 60%,#f0a63a);padding:22px;border-radius:14px;cursor:pointer;text-align:center;font-weight:800;font-size:20px;box-shadow:0 8px 24px rgba(212,86,42,.4);transition:transform .2s}
+.game-thumbnail:hover{transform:scale(1.03)}
+ul{padding-left:20px;text-align:left}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
 </head>
 <body>
     <div class="container">
@@ -175,20 +130,36 @@
                 🔒 <b>Provably Fair Hash (SHA-256) :</b> <span id="currentHashDisplay" style="color: #38bdf8;">En attente...</span>
             </div>
 
-            <div class="game-canvas-container">
+            <div class="game-canvas-container" id="stage">
+                <div class="rays"></div>
                 <div id="multiplierBox" class="multiplier-display">1.00x</div>
-
-                <svg class="game-svg" viewBox="0 0 500 240" preserveAspectRatio="none">
-                    <path id="curveArea" d="M 0 240 L 0 240 L 500 240 Z" fill="rgba(239, 68, 68, 0.15)" />
-                    <path id="flightCurve" d="M 0 240 Q 250 240, 500 240" fill="none" stroke="#ef4444" stroke-width="3" />
-
-                    <g id="planeGroup" transform="translate(0, 240)">
-                        <g transform="scale(0.9) rotate(-25)">
-                            <path d="M-15 0 L15 -3 L25 -12 L22 -15 L10 -6 L-10 -6 L-20 -15 L-23 -12 L-13 -3 Z" fill="#ef4444" />
-                            <path d="M-5 -6 L5 -6 L8 -18 L5 -21 L0 -18 L-5 -21 L-8 -18 Z" fill="#f87171" />
-                            <circle cx="5" cy="-10" r="2" fill="#38bdf8" />
+                <svg class="game-svg" viewBox="0 0 500 260">
+                    <defs>
+                        <linearGradient id="gBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#d3dbe8"/><stop offset="1" stop-color="#7f8fa8"/></linearGradient>
+                        <linearGradient id="gWing" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a9b8cf"/><stop offset="1" stop-color="#506178"/></linearGradient>
+                        <linearGradient id="gCurve" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="500" y2="0"><stop offset="0" stop-color="#ff4d5e" stop-opacity=".15"/><stop offset="1" stop-color="#ffb347"/></linearGradient>
+                        <linearGradient id="gArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4d5e" stop-opacity=".4"/><stop offset="1" stop-color="#ff4d5e" stop-opacity="0"/></linearGradient>
+                        <radialGradient id="gFlame"><stop offset="0" stop-color="#fffbc4"/><stop offset=".45" stop-color="#ff9d3c"/><stop offset="1" stop-color="#ff3c2f" stop-opacity="0"/></radialGradient>
+                        <radialGradient id="gBoom"><stop offset="0" stop-color="#fff"/><stop offset=".3" stop-color="#ffd24d"/><stop offset=".7" stop-color="#ff4d2f"/><stop offset="1" stop-color="#ff4d2f" stop-opacity="0"/></radialGradient>
+                        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                    </defs>
+                    <g stroke="rgba(255,255,255,.06)"><path d="M0 60H500M0 120H500M0 180H500M0 240H500M100 0V260M200 0V260M300 0V260M400 0V260"/></g>
+                    <path id="curveArea" fill="url(#gArea)"/>
+                    <path id="flightCurve" fill="none" stroke="url(#gCurve)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+                    <g id="trail"></g>
+                    <g id="planeGroup" transform="translate(24 236)">
+                        <g transform="scale(1.05)">
+                            <ellipse id="flame" cx="-46" cy="0" rx="4" ry="3.4" fill="url(#gFlame)"/>
+                            <path d="M-30 -3 L-44 -24 L-35 -24 L-12 -4Z" fill="#c81e3a"/>
+                            <path d="M-4 3 L-26 27 L-15 27 L18 4Z" fill="url(#gWing)"/>
+                            <rect x="2" y="9" width="17" height="7" rx="3.5" fill="#5b6b82"/><rect x="2" y="9" width="5" height="7" rx="2.5" fill="#cfd8e6"/>
+                            <path d="M-38 -5 Q-34 -10 -12 -10 L24 -9 Q42 -6 48 1 Q42 8 24 9 L-12 9 Q-34 9 -38 4Z" fill="url(#gBody)" stroke="#8da0ba" stroke-width=".6"/>
+                            <path d="M-36 3 L44 3" stroke="#c81e3a" stroke-width="2.2"/>
+                            <g fill="#38bdf8"><circle cx="-18" cy="-3" r="1.7"/><circle cx="-10" cy="-3" r="1.7"/><circle cx="-2" cy="-3" r="1.7"/><circle cx="6" cy="-3" r="1.7"/><circle cx="14" cy="-3" r="1.7"/></g>
+                            <path d="M28 -8 Q40 -6 45 -1 L30 -1Z" fill="#1d3a8a"/>
                         </g>
                     </g>
+                    <circle id="boom" cx="0" cy="0" r="30" fill="url(#gBoom)"/>
                 </svg>
             </div>
 
@@ -605,28 +576,7 @@
             updateUI(room);
         });
 
-        socket.on('multiplier-update', (data) => {
-            if (gamePhase === 'ended') return;
-            currentMultiplierVal = data.multiplier;
-            document.getElementById('multiplierBox').innerText = currentMultiplierVal.toFixed(2) + 'x';
-
-            let progress = Math.min((currentMultiplierVal - 1) / 10, 1);
-            let posX = progress * 400 + 20;
-            let posY = 240 - (Math.pow(progress, 1.3) * 180 + 20);
-
-            let pathData = `M 0 240 Q ${posX / 2} 240, ${posX} ${posY}`;
-            let areaData = `M 0 240 L 0 240 L ${posX} ${posY} L ${posX} 240 Z`;
-
-            document.getElementById('flightCurve').setAttribute('d', pathData);
-            document.getElementById('curveArea').setAttribute('d', areaData);
-            document.getElementById('planeGroup').setAttribute('transform', `translate(${posX}, ${posY})`);
-
-            if (myActiveBet > 0 && !hasCashedOut) {
-                let potentialWin = Math.floor(myActiveBet * currentMultiplierVal);
-                document.getElementById('liveCashoutPreview').innerText = `Gain potentiel en direct : ${potentialWin} 🪙`;
-            }
-        });
-
+        
         socket.on('game-crashed', (data) => {
             if (gamePhase === 'ended') return;
             gamePhase = 'crashed';
@@ -673,5 +623,60 @@
             socket.emit('cancel-next-bet', { roomCode: currentRoomCode });
         }
     </script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const stage=$('stage'), mBox=$('multiplierBox'), curve=$('flightCurve'), area=$('curveArea'), pg=$('planeGroup'),
+        flame=$('flame'), trail=$('trail'), boom=$('boom'), prev=$('liveCashoutPreview');
+  let target=1, shown=1, t0=performance.now(), smoke=[];
+  const pos = q => ({x: 24+q*420, y: 236-Math.pow(q,1.5)*170});
+  const qOf = m => Math.min(Math.log(Math.max(m,1))/Math.log(15),1);
+
+  function draw(m, now){
+    const q=qOf(m), end=pos(q), p0=pos(Math.max(q-.02,0));
+    let d='M24 236';
+    for(let i=1;i<=40;i++){const s=pos(q*i/40); d+=` L${s.x.toFixed(1)} ${s.y.toFixed(1)}`;}
+    const bob=Math.sin(now/350)*(q>=1?6:2), ang=q>0?Math.atan2(end.y-p0.y,end.x-p0.x)*180/Math.PI:-4;
+    curve.setAttribute('d', q>0?d:'M24 236L24 236');
+    area.setAttribute('d', q>0?`${d} L${end.x.toFixed(1)} 260 L24 260Z`:'');
+    pg.setAttribute('transform', `translate(${end.x.toFixed(1)} ${(end.y+bob).toFixed(1)}) rotate(${ang.toFixed(1)})`);
+    return {x:end.x, y:end.y+bob};
+  }
+
+  function frame(now){
+    const playing = gamePhase==='playing';
+    if(playing){
+      // extrapolation locale entre deux ticks serveur (70 ms) => animation 60 fps fluide
+      shown=Math.max(shown, Math.min(target*Math.exp(.07*(now-t0)/1000), target*1.03));
+      mBox.innerText=shown.toFixed(2)+'x';
+      mBox.style.color=shown<2?'#5cc8ff':shown<10?'#c58cff':'#ffc24d';
+      mBox.style.transform=`translate(-50%,-50%) scale(${1+Math.min(shown/40,.25)})`;
+      if(myActiveBet>0&&!hasCashedOut) prev.innerText=`Gain potentiel en direct : ${Math.floor(myActiveBet*shown)} 🪙`;
+    } else if(gamePhase==='betting'){
+      shown=target=1; mBox.style.color=''; mBox.style.transform='translate(-50%,-50%)';
+    }
+    if(gamePhase!=='crashed'){
+      const p=draw(shown,now);
+      flame.setAttribute('rx', playing?9+Math.random()*7:3+Math.random()*2);
+      if(playing) smoke.push({x:p.x,y:p.y,l:1});
+      smoke.forEach(s=>s.l-=.035); smoke=smoke.filter(s=>s.l>0);
+      trail.innerHTML=smoke.map(s=>`<circle cx="${s.x.toFixed(1)}" cy="${s.y.toFixed(1)}" r="${(2+(1-s.l)*7).toFixed(1)}" fill="rgba(255,190,120,${(s.l*.35).toFixed(2)})"/>`).join('');
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  socket.on('multiplier-update', d=>{target=d.multiplier; t0=performance.now();});
+  socket.on('playing-phase-started', ()=>{shown=target=1; t0=performance.now(); smoke=[];});
+  socket.on('betting-phase', ()=>{stage.classList.remove('shake'); pg.style.opacity=1; smoke=[]; trail.innerHTML='';});
+  socket.on('game-crashed', d=>{
+    shown=d.multiplier;
+    const p=draw(shown,performance.now());
+    pg.style.opacity=0; trail.innerHTML=''; stage.classList.add('shake');
+    boom.setAttribute('cx',p.x); boom.setAttribute('cy',p.y);
+    boom.classList.remove('go'); void boom.getBoundingClientRect(); boom.classList.add('go');
+  });
+})();
+</script>
 </body>
 </html>
