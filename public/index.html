@@ -114,22 +114,25 @@ ul{padding-left:20px;text-align:left}
             </div>
         </div>
 
-        <!-- 4. ÉCRAN DE JEU AVIATOR PRO -->
-        <div id="game-screen" class="hidden">
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
-                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
-                <button id="musicBtn" class="btn-history-more" onclick="toggleMusic()" title="Musique on/off">🎵</button><span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span id="playerBalance">1000</span> 🪙</span>
-            </div>
+    <!-- 4. ÉCRAN DE JEU AVIATOR PRO -->
+    <div id="game-screen" class="hidden">
+        <!-- BOUTON DE RETOUR -->
+        <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
 
-            <div class="history-container">
-                <div class="history-bar" id="historyBar"></div>
-                <button class="btn-history-more" onclick="openHistoryModal()">•••</button>
-            </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+            <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span id="sessionTimerDisplay">--:--</span></span>
+            <button id="musicBtn" class="btn-history-more" onclick="toggleMusic()" title="Musique on/off">🎵</button>
+            <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span id="playerBalance">1000</span> 🪙</span>
+        </div>
 
-            <div class="provably-fair-box" id="provablyFairBox">
-                🔒 <b>Provably Fair Hash (SHA-256) :</b> <span id="currentHashDisplay" style="color: #38bdf8;">En attente...</span>
-            </div>
+        <div class="history-container">
+            <div class="history-bar" id="historyBar"></div>
+            <button class="btn-history-more" onclick="openHistoryModal()">•••</button>
+        </div>
 
+        <div class="provably-fair-box" id="provablyFairBox">
+            🔒 <b>Provably Fair Hash (SHA-256) :</b> <span id="currentHashDisplay" style="color: #38bdf8;">En attente...</span>
+        </div>
             <div class="game-canvas-container" id="stage">
                 <div class="rays"></div>
                 <div id="multiplierBox" class="multiplier-display">1.00x</div>
