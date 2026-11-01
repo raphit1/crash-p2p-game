@@ -8,15 +8,16 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// index.html doit être dans le dossier "public/"
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 const rooms = {};
-const ROOM_TTL_AFTER_END = 10 * 60 * 1000;
+const ROOM_TTL_AFTER_END = 10 * 60 * 1000; // la room est supprimée 10 min après la fin
 const ALLOWED_DURATIONS = [1, 3, 5, 10, 15];
 
 /* ------------------------------------------------------------------ */
-/*  Utilitaires & Provably Fair                                       */
+/*  Utilitaires                                                        */
 /* ------------------------------------------------------------------ */
 
 function generateRoomCode() {
@@ -33,13 +34,22 @@ function cleanName(name) {
     return String(name || '').trim().slice(0, 20);
 }
 
+/*
+ * Provably fair :
+ *  - on publie AVANT la manche : publicHash = SHA256(secretSeed)  (l'engagement)
+ *  - le point de crash est calculé à partir de HMAC-SHA256(secretSeed, 'crash')
+ *    => impossible à deviner avec le hash public seul
+ *  - APRÈS la manche on révèle secretSeed : chacun peut vérifier les deux.
+ * (Dans ta version, le crash était calculé depuis le hash public : n'importe qui
+ *  pouvait donc prédire le crash avant la manche.)
+ */
 function generateProvablyFairRound() {
     const secretSeed = crypto.randomBytes(16).toString('hex');
     const publicHash = crypto.createHash('sha256').update(secretSeed).digest('hex');
     const resultHash = crypto.createHmac('sha256', secretSeed).update('crash').digest('hex');
 
-    const seedInt = parseInt(resultHash.slice(0, 13), 16);
-    const critical = seedInt / 4503599627370496;
+    const seedInt = parseInt(resultHash.slice(0, 13), 16); // 52 bits
+    const critical = seedInt / 4503599627370496;           // 2^52 -> [0, 1)
 
     let crashPoint = 1.00;
     if (critical >= 0.015) {
@@ -52,13 +62,7 @@ function generateProvablyFairRound() {
     return { secretSeed, publicHash, crashPoint };
 }
 
-function calculateIcefieldMultiplier(cols, step) {
-    // Multiplicateur équitable avec un RTP fixe de 98%
-    const probaPerStep = (cols - 1) / cols;
-    const cumulProba = Math.pow(probaPerStep, step);
-    const mult = 0.98 / cumulProba;
-    return parseFloat(mult.toFixed(2));
-}
+const newSlot = () => ({ bet: 0, next: 0, auto: 0, nextAuto: 0, cashed: false, win: 0 });
 
 function newPlayer(socket, name, isAdmin) {
     return {
@@ -69,18 +73,17 @@ function newPlayer(socket, name, isAdmin) {
         isAdmin,
         inGame: false,
         connected: true,
-        bet: 0,
-        nextBet: 0,
-        autoCashOut: 0,
-        nextAutoCashOut: 0,
-        cashedOut: false,
-        winAmount: 0,
-        // Données spécifiques Icefield
-        iceState: null,
+        slots: [newSlot(), newSlot()],
         stats: { gamesPlayed: 0, wins: 0, totalProfit: 0 }
     };
 }
 
+/*
+ * IMPORTANT : on n'envoie JAMAIS l'objet "room" brut aux clients.
+ *  1) il contient des timers (setInterval) => structure circulaire => Socket.IO plante
+ *     (c'est LA cause du "rien ne marche" quand la partie démarre)
+ *  2) il contient crashPoint et currentSecret => les joueurs pourraient tricher
+ */
 function publicRoom(room) {
     return {
         code: room.code,
@@ -96,18 +99,7 @@ function publicRoom(room) {
             isAdmin: p.isAdmin,
             inGame: p.inGame,
             connected: p.connected,
-            bet: p.bet,
-            nextBet: p.nextBet,
-            autoCashOut: p.autoCashOut,
-            cashedOut: p.cashedOut,
-            winAmount: p.winAmount,
-            iceState: p.iceState ? {
-                cols: p.iceState.cols,
-                currentStep: p.iceState.currentStep,
-                active: p.iceState.active,
-                path: p.iceState.path, // uniquement les choix passés
-                multipliers: p.iceState.multipliers
-            } : null,
+            slots: p.slots,
             stats: p.stats
         })),
         history: room.history
@@ -141,7 +133,7 @@ function findPlayer(socket, roomCode) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Socket.IO Handlers                                                 */
+/*  Sockets                                                            */
 /* ------------------------------------------------------------------ */
 
 io.on('connection', (socket) => {
@@ -189,6 +181,7 @@ io.on('connection', (socket) => {
         socket.join(code);
 
         socket.emit('joined-success', publicRoom(room));
+        // si l'hôte a déjà ouvert le jeu, on envoie directement le nouveau joueur dessus
         if (room.status !== 'waiting') {
             socket.emit('navigate-to-game', { gameName: room.selectedGame, room: publicRoom(room) });
         }
@@ -216,198 +209,47 @@ io.on('connection', (socket) => {
         if (!room.loopStarted) {
             room.loopStarted = true;
             startSessionTimer(room);
-            if (room.selectedGame === 'Crash Out') {
-                startCrashLoop(room);
-            } else {
-                room.status = 'active_session';
-                broadcast(room);
-            }
+            startCrashLoop(room);
         }
     });
 
-    /* ---------- Logic CRASH ---------- */
-    socket.on('place-bet', ({ roomCode, amount, autoCashOut } = {}) => {
+    const slotOf = (player, i) => player.slots[i === 1 ? 1 : 0];
+
+    socket.on('place-bet', ({ roomCode, amount, autoCashOut, slot } = {}) => {
         const { room, player } = findPlayer(socket, roomCode);
-        if (!room || !player || !player.inGame || room.status === 'ended' || room.selectedGame !== 'Crash Out') return;
+        if (!room || !player || !player.inGame || room.status === 'ended') return;
 
         amount = Math.floor(Number(amount));
         if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
         if (player.balance < amount) return socket.emit('error-message', 'Solde insuffisant !');
 
-        const parsedAuto = parseFloat(autoCashOut);
-        const auto = parsedAuto >= 1.01 ? parsedAuto : 0;
-
+        const pa = parseFloat(autoCashOut), auto = pa >= 1.01 ? pa : 0, sl = slotOf(player, slot);
         if (room.status === 'betting') {
-            if (player.bet > 0) return;
-            player.balance -= amount;
-            player.bet = amount;
-            player.autoCashOut = auto;
-            player.cashedOut = false;
-            player.winAmount = 0;
+            if (sl.bet > 0) return; // déjà misé : annuler avant de changer
+            sl.bet = amount; sl.auto = auto; sl.cashed = false; sl.win = 0;
         } else if (room.status === 'playing' || room.status === 'crashed') {
-            if (player.nextBet > 0) return;
-            player.balance -= amount;
-            player.nextBet = amount;
-            player.nextAutoCashOut = auto;
-        }
-
-        broadcast(room);
-    });
-
-    socket.on('cancel-next-bet', ({ roomCode } = {}) => {
-        const { room, player } = findPlayer(socket, roomCode);
-        if (!room || !player) return;
-
-        if (room.status === 'betting' && player.bet > 0) {
-            player.balance += player.bet;
-            player.bet = 0;
-            player.autoCashOut = 0;
-        } else if ((room.status === 'playing' || room.status === 'crashed') && player.nextBet > 0) {
-            player.balance += player.nextBet;
-            player.nextBet = 0;
-            player.nextAutoCashOut = 0;
-        }
-
-        broadcast(room);
-    });
-
-    socket.on('cash-out', ({ roomCode } = {}) => {
-        const { room, player } = findPlayer(socket, roomCode);
-        if (!room || !player || room.status !== 'playing' || room.selectedGame !== 'Crash Out') return;
-        if (player.bet <= 0 || player.cashedOut) return;
-
-        processCashOut(player, room.multiplier, room);
-    });
-
-    /* ---------- Logic ICEFIELD ---------- */
-    socket.on('icefield-start-game', ({ roomCode, amount, cols } = {}) => {
-        const { room, player } = findPlayer(socket, roomCode);
-        if (!room || !player || !player.inGame || room.status === 'ended' || room.selectedGame !== 'Icefield') return;
-
-        if (player.iceState && player.iceState.active) {
-            return socket.emit('error-message', 'Partie Icefield déjà en cours !');
-        }
-
-        amount = Math.floor(Number(amount));
-        cols = Math.min(10, Math.max(2, parseInt(cols) || 2));
-
-        if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
-        if (player.balance < amount) return socket.emit('error-message', 'Solde insuffisant !');
+            if (sl.next > 0) return;
+            sl.next = amount; sl.nextAuto = auto;
+        } else return;
 
         player.balance -= amount;
-        player.bet = amount;
-
-        // Pré-génération des cases piégées (1 piège aléatoire par ligne sur 8 lignes)
-        const traps = [];
-        const multipliers = [];
-        for (let row = 0; row < 8; row++) {
-            traps.push(crypto.randomInt(cols));
-            multipliers.push(calculateIcefieldMultiplier(cols, row + 1));
-        }
-
-        player.iceState = {
-            cols,
-            active: true,
-            currentStep: 0,
-            traps,
-            multipliers,
-            path: []
-        };
-
         broadcast(room);
     });
 
-    socket.on('icefield-step', ({ roomCode, tileIndex } = {}) => {
+    socket.on('cancel-next-bet', ({ roomCode, slot } = {}) => {
         const { room, player } = findPlayer(socket, roomCode);
-        if (!room || !player || room.status === 'ended' || room.selectedGame !== 'Icefield') return;
-        if (!player.iceState || !player.iceState.active) return;
-
-        const { cols, currentStep, traps, multipliers } = player.iceState;
-        tileIndex = parseInt(tileIndex);
-
-        if (tileIndex < 0 || tileIndex >= cols) return;
-
-        const isTrap = (traps[currentStep] === tileIndex);
-
-        if (isTrap) {
-            // Le bloc casse : Perte
-            player.iceState.active = false;
-            player.iceState.brokenIndex = tileIndex;
-            player.stats.gamesPlayed++;
-            player.stats.totalProfit -= player.bet;
-
-            socket.emit('icefield-result', {
-                success: false,
-                brokenIndex: tileIndex,
-                trapIndex: traps[currentStep],
-                message: '🧊 La glace s\'est brisée !'
-            });
-            player.bet = 0;
-        } else {
-            // Bloc solide : Progression
-            player.iceState.path.push(tileIndex);
-            player.iceState.currentStep++;
-
-            const currentMult = multipliers[player.iceState.currentStep - 1];
-
-            // Si toutes les 8 étapes sont validées : Victoire auto max
-            if (player.iceState.currentStep >= 8) {
-                const winnings = Math.floor(player.bet * currentMult);
-                player.balance += winnings;
-                player.iceState.active = false;
-
-                const profit = winnings - player.bet;
-                player.stats.gamesPlayed++;
-                player.stats.wins++;
-                player.stats.totalProfit += profit;
-
-                socket.emit('icefield-result', {
-                    success: true,
-                    completed: true,
-                    multiplier: currentMult,
-                    winnings,
-                    message: `🎉 Traversée réussie ! +${winnings} 🪙`
-                });
-                player.bet = 0;
-            } else {
-                socket.emit('icefield-result', {
-                    success: true,
-                    completed: false,
-                    step: player.iceState.currentStep,
-                    nextMultiplier: currentMult
-                });
-            }
-        }
-
+        if (!room || !player) return;
+        const sl = slotOf(player, slot);
+        if (room.status === 'betting' && sl.bet > 0) { player.balance += sl.bet; sl.bet = 0; sl.auto = 0; }
+        else if ((room.status === 'playing' || room.status === 'crashed') && sl.next > 0) { player.balance += sl.next; sl.next = 0; sl.nextAuto = 0; }
         broadcast(room);
     });
 
-    socket.on('icefield-cashout', ({ roomCode } = {}) => {
+    socket.on('cash-out', ({ roomCode, slot } = {}) => {
         const { room, player } = findPlayer(socket, roomCode);
-        if (!room || !player || room.status === 'ended' || room.selectedGame !== 'Icefield') return;
-        if (!player.iceState || !player.iceState.active || player.iceState.currentStep === 0) return;
-
-        const currentMult = player.iceState.multipliers[player.iceState.currentStep - 1];
-        const winnings = Math.floor(player.bet * currentMult);
-
-        player.balance += winnings;
-        player.iceState.active = false;
-
-        const profit = winnings - player.bet;
-        player.stats.gamesPlayed++;
-        player.stats.wins++;
-        player.stats.totalProfit += profit;
-
-        socket.emit('icefield-result', {
-            success: true,
-            cashout: true,
-            multiplier: currentMult,
-            winnings,
-            message: `💰 Encaissé : +${winnings} 🪙 (x${currentMult})`
-        });
-
-        player.bet = 0;
-        broadcast(room);
+        if (!room || !player || room.status !== 'playing') return;
+        const sl = slotOf(player, slot);
+        if (sl.bet > 0 && !sl.cashed) processCashOut(player, sl, room.multiplier, room, slot === 1 ? 1 : 0);
     });
 
     socket.on('disconnect', () => {
@@ -422,7 +264,7 @@ io.on('connection', (socket) => {
             if (room.status === 'waiting' || room.status === 'choosing_game') {
                 room.players.splice(idx, 1);
             } else {
-                player.connected = false;
+                player.connected = false; // on garde le joueur pour le classement final
             }
 
             if (!room.players.some(p => p.connected)) {
@@ -441,25 +283,20 @@ io.on('connection', (socket) => {
 });
 
 /* ------------------------------------------------------------------ */
-/*  Boucle de jeu & Session                                           */
+/*  Logique de jeu                                                     */
 /* ------------------------------------------------------------------ */
 
-function processCashOut(player, multiplier, room) {
-    const winnings = Math.floor(player.bet * multiplier);
+function processCashOut(player, sl, multiplier, room, idx) {
+    const winnings = Math.floor(sl.bet * multiplier);
     player.balance += winnings;
-    player.cashedOut = true;
-    player.winAmount = winnings - player.bet;
+    sl.cashed = true;
+    sl.win = winnings - sl.bet;
 
     player.stats.gamesPlayed++;
     player.stats.wins++;
-    player.stats.totalProfit += player.winAmount;
+    player.stats.totalProfit += sl.win;
 
-    io.to(room.code).emit('player-cashed-out', {
-        socketId: player.id,
-        playerName: player.name,
-        multiplier,
-        winnings
-    });
+    io.to(room.code).emit('player-cashed-out', { socketId: player.id, playerName: player.name, slot: idx, multiplier, winnings });
     broadcast(room);
 }
 
@@ -476,12 +313,13 @@ function endSession(room) {
     clearRoomTimers(room);
     room.status = 'ended';
 
-    room.players.forEach(p => {
-        if (p.bet > 0 && !p.cashedOut) p.balance += p.bet;
-        p.bet = 0;
-        p.balance += p.nextBet;
-        p.nextBet = 0;
-    });
+    // on rembourse les mises en cours pour que la fin de session soit équitable
+    room.players.forEach(p => p.slots.forEach(sl => {
+        if (sl.bet > 0 && !sl.cashed) p.balance += sl.bet;
+        sl.bet = 0;
+        p.balance += sl.next;
+        sl.next = 0;
+    }));
 
     const leaderboard = room.players
         .map(p => ({
@@ -493,6 +331,7 @@ function endSession(room) {
         .sort((a, b) => b.finalBalance - a.finalBalance);
 
     io.to(room.code).emit('game-session-ended', { leaderboard });
+
     setTimeout(() => destroyRoom(room.code), ROOM_TTL_AFTER_END);
 }
 
@@ -508,14 +347,11 @@ function startCrashLoop(room) {
         room.currentHash = roundData.publicHash;
         room.currentSecret = roundData.secretSeed;
 
-        room.players.forEach(p => {
-            p.bet = p.nextBet;
-            p.autoCashOut = p.nextBet > 0 ? p.nextAutoCashOut : 0;
-            p.nextBet = 0;
-            p.nextAutoCashOut = 0;
-            p.cashedOut = false;
-            p.winAmount = 0;
-        });
+        // les paris "préparés" deviennent les paris actifs de cette manche
+        room.players.forEach(p => p.slots.forEach(sl => {
+            sl.bet = sl.next; sl.auto = sl.next > 0 ? sl.nextAuto : 0;
+            sl.next = 0; sl.nextAuto = 0; sl.cashed = false; sl.win = 0;
+        }));
 
         let countdown = 5;
         io.to(room.code).emit('betting-phase', { countdown, hash: room.currentHash, room: publicRoom(room) });
@@ -547,12 +383,12 @@ function startCrashLoop(room) {
             const elapsedSeconds = (Date.now() - startTime) / 1000;
             room.multiplier = parseFloat(Math.max(1.00, Math.exp(0.07 * elapsedSeconds)).toFixed(2));
 
-            room.players.forEach(p => {
-                if (p.bet > 0 && !p.cashedOut && p.autoCashOut > 0 && room.multiplier >= p.autoCashOut
-                    && p.autoCashOut <= room.crashPoint) {
-                    processCashOut(p, p.autoCashOut, room);
+            // auto cash-out
+            room.players.forEach(p => p.slots.forEach((sl, i) => {
+                if (sl.bet > 0 && !sl.cashed && sl.auto > 0 && room.multiplier >= sl.auto && sl.auto <= room.crashPoint) {
+                    processCashOut(p, sl, sl.auto, room, i);
                 }
-            });
+            }));
 
             if (room.multiplier >= room.crashPoint) {
                 room.multiplier = room.crashPoint;
@@ -568,13 +404,10 @@ function startCrashLoop(room) {
                 });
                 if (room.history.length > 50) room.history.pop();
 
-                room.players.forEach(p => {
-                    if (p.bet > 0 && !p.cashedOut) {
-                        p.stats.gamesPlayed++;
-                        p.stats.totalProfit -= p.bet;
-                    }
-                    p.bet = 0;
-                });
+                room.players.forEach(p => p.slots.forEach(sl => {
+                    if (sl.bet > 0 && !sl.cashed) { p.stats.gamesPlayed++; p.stats.totalProfit -= sl.bet; }
+                    sl.bet = 0;
+                }));
 
                 io.to(room.code).emit('game-crashed', {
                     multiplier: room.crashPoint,
