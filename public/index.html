@@ -59,13 +59,13 @@ ul{padding-left:20px;text-align:left}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
 .bet-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px}.bet-grid .bet-control-box{margin-top:0}@media(max-width:560px){.bet-grid{grid-template-columns:1fr}}.auto-row{display:flex;align-items:center;gap:8px;font-size:13px;color:#cdbf9f;margin:6px 0}.auto-row input{width:auto;margin:0}.act{font-size:16px;padding:14px;letter-spacing:.3px}
 
-/* Styles Icefield de droite à gauche */
+/* Styles Icefield stricts de droite à gauche (Étape 8 à Étape 1) */
 .icefield-mult-header{display:flex;gap:6px;justify-content:flex-end;margin-bottom:8px;padding-right:35px}
-.ice-mult-col{flex:1;text-align:center;font-size:12px;font-weight:bold;color:#38bdf8;background:#0d0814;padding:4px;border-radius:4px;border:1px solid rgba(56,189,248,.2)}
+.ice-mult-col{flex:1;text-align:center;font-size:11px;font-weight:bold;color:#38bdf8;background:#0d0814;padding:4px 2px;border-radius:4px;border:1px solid rgba(56,189,248,.2)}
 .icefield-grid{display:flex;flex-direction:column;gap:6px;margin:10px 0;background:#0d0814;padding:15px;border-radius:12px;border:1px solid rgba(56,189,248,.3)}
 .ice-row{display:flex;gap:6px;align-items:center}
 .ice-row-label{width:30px;font-size:12px;color:#94a3b8;font-weight:bold;text-align:right}
-.ice-tiles-container{display:flex;gap:6px;flex:1;flex-direction:row-reverse}
+.ice-tiles-container{display:flex;gap:6px;flex:1;flex-direction:row-reverse;justify-content:flex-end}
 .ice-tile{flex:1;height:45px;background:linear-gradient(180deg,#1e293b,#0f172a);border:1px solid #334155;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:18px;transition:all .15s}
 .ice-tile.active-row{border-color:#38bdf8;box-shadow:0 0 10px rgba(56,189,248,.4);background:linear-gradient(180deg,#0284c7,#0369a1)}
 .ice-tile.active-row:hover{transform:scale(1.04);filter:brightness(1.2)}
@@ -522,6 +522,10 @@ function sync(room) {
   if (['betting', 'playing', 'crashed'].includes(room.status) && S.phase !== 'ended') S.phase = room.status;
   if (room.currentHash) $('currentHashDisplay').textContent = room.currentHash;
   renderPlayers(room); renderButtons(); renderHistory(room.history || []);
+  if (S.iceState || room.players.find(p => p.id === socket.id)?.iceState) {
+    S.iceState = room.players.find(p => p.id === socket.id)?.iceState;
+    renderIcefieldGrid();
+  }
 }
 function enterLobby(room) {
   S.code = room.code;
@@ -548,10 +552,19 @@ function draw(m, now) {
   return { x: end.x, y: end.y + bob };
 }
 
+/* --- ANIMATION 60 FPS ULTRA-FLUIDE --- */
+let lastFrameTime = performance.now();
 function frame(now) {
+  const dt = (now - lastFrameTime) / 1000;
+  lastFrameTime = now;
+
   const playing = S.phase === 'playing';
   if (playing) {
-    S.shown = Math.max(S.shown, Math.min(S.target * Math.exp(.07 * (now - S.t0) / 1000), S.target * 1.03));
+    // Interpolation linéaire ultra-fluide vers la cible serveur
+    const diff = S.target - S.shown;
+    S.shown += diff * Math.min(1, dt * 12);
+    S.shown = Math.max(S.shown, S.target * 0.98);
+
     mBox.textContent = S.shown.toFixed(2) + 'x';
     for (const m of [2, 5, 10, 25]) if (lastShown < m && S.shown >= m) sound('milestone');
     lastShown = S.shown;
@@ -617,7 +630,7 @@ socket.on('playing-phase-started', room => {
 
 socket.on('multiplier-update', d => {
   if (S.phase === 'ended') return;
-  S.target = d.multiplier; S.t0 = performance.now();
+  S.target = d.multiplier;
 });
 
 socket.on('game-crashed', d => {
@@ -703,10 +716,11 @@ function renderIcefieldGrid() {
   const path = S.iceState ? S.iceState.path : [];
   const revealedTraps = S.iceState ? S.iceState.revealedTraps : [];
 
+  // En-tête des multiplicateurs de droite à gauche (Étape 8 vers Étape 1)
   const header = $('iceMultHeader');
   if (header) {
     header.innerHTML = '';
-    for (let row = 0; row < 8; row++) {
+    for (let row = 7; row >= 0; row--) {
       const colDiv = document.createElement('div');
       colDiv.className = 'ice-mult-col';
       colDiv.textContent = 'x' + calculateLocalMult(cols, row + 1);
@@ -718,7 +732,8 @@ function renderIcefieldGrid() {
   if (!grid) return;
   grid.innerHTML = '';
 
-  for (let row = 7; row >= 0; row--) {
+  // Grille de bas en haut (R1 à R8), colonnes de droite à gauche
+  for (let row = 0; row < 8; row++) {
     const rowDiv = document.createElement('div');
     rowDiv.className = 'ice-row';
 
