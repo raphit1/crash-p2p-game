@@ -185,6 +185,45 @@ ul{padding-left:20px;text-align:left}
         </div>
     </div>
 
+        <!-- 5. ÉCRAN DE JEU ICEFIELD AVEC LE YÉTI -->
+        <div id="icefield-screen" class="hidden">
+            <button class="btn-history-more btn-back" onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+
+            <h3 style="margin: 5px 0; color: #38bdf8;">🧊 Icefield - La Traversée du Yéti</h3>
+            <p id="iceStatusText" style="font-size: 14px; color: #94a3b8; margin: 5px 0;">Choisis tes blocs et guide le Yéti de droite à gauche !</p>
+
+            <div class="bet-control-box" style="margin-bottom: 10px;">
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 12px; color: #94a3b8; text-align: left; display: block;">Blocs par ligne (2 - 10) :</label>
+                        <input type="number" id="iceColsInput" value="3" min="2" max="10" oninput="onColsChange()" style="margin: 4px 0;">
+                    </div>
+                    <div style="flex: 1.5;">
+                        <label style="font-size: 12px; color: #94a3b8; text-align: left; display: block;">Mise :</label>
+                        <input type="number" id="iceBetAmount" value="50" min="1" style="margin: 4px 0;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- EN-TÊTE DES MULTIPLICATEURS -->
+            <div class="icefield-mult-header" id="iceMultHeader"></div>
+            <!-- GRILLE DE DROITE À GAUCHE -->
+            <div class="icefield-grid" id="iceGrid"></div>
+
+            <div style="display: flex; gap: 10px;">
+                <button id="iceStartBtn" onclick="startIcefieldGame()" style="background: #22c55e;">Lancer la traversée 🧊</button>
+                <button id="iceCashoutBtn" class="btn-cashout hidden" onclick="cashoutIcefield()">ENCAISSER</button>
+            </div>
+        </div>
+    </div> <!-- Fin du conteneur général -->
+
+    <!-- MODALE HISTORIQUE COMPLET -->
+    <div id="historyModal" class="modal-overlay hidden">
+        
     <!-- MODALE HISTORIQUE COMPLET -->
     <div id="historyModal" class="modal-overlay hidden">
         <div class="modal-content">
@@ -572,15 +611,147 @@ socket.on('game-session-ended', d => {
   show('gameOverModal');
 });
 
-// Si la connexion saute (veille du téléphone, redémarrage Render), l'ancien id joueur n'existe plus
+// Écouteur des résultats Icefield
+socket.on('icefield-result', d => {
+  if (d.success) {
+    sound('win');
+    if (d.completed || d.cashout) alert(d.message);
+  } else {
+    sound('crash');
+    alert(d.message);
+  }
+  renderIcefieldGrid();
+});
+
+// Si la connexion saute
 socket.on('disconnect', () => { $('gameStatusText').textContent = '⚠️ Connexion perdue...'; });
 socket.on('connect', () => {
   if (S.wasConnected && S.code && S.phase !== 'ended') { alert('Connexion perdue : retour à l\'accueil.'); location.reload(); }
   S.wasConnected = true;
 });
 
-Object.assign(window, { createRoom, joinRoom, launchGame, joinGameTable, openHistoryModal, closeHistoryModal, toggleMusic });
-})();
+/* ---------- Logique Icefield & Yéti ---------- */
+function calculateLocalMult(cols, step) {
+  const probaPerStep = (cols - 1) / cols;
+  return parseFloat((0.98 / Math.pow(probaPerStep, step)).toFixed(2));
+}
+
+function onColsChange() {
+  renderIcefieldGrid();
+}
+
+function startIcefieldGame() {
+  const amount = parseInt($('iceBetAmount').value);
+  const cols = parseInt($('iceColsInput').value);
+  if (!amount || amount <= 0) return alert('Entre un montant valide !');
+  if (cols < 2 || cols > 10) return alert('Nombre de blocs entre 2 et 10 !');
+  sound('bet');
+  socket.emit('icefield-start-game', { roomCode: S.code, amount, cols });
+}
+
+function stepIcefield(tileIndex) {
+  socket.emit('icefield-step', { roomCode: S.code, tileIndex });
+}
+
+function cashoutIcefield() {
+  socket.emit('icefield-cashout', { roomCode: S.code });
+}
+
+function renderIcefieldGrid() {
+  const cols = S.iceState ? S.iceState.cols : (parseInt($('iceColsInput').value) || 3);
+  const currentStep = S.iceState ? S.iceState.currentStep : 0;
+  const active = S.iceState ? S.iceState.active : false;
+  const path = S.iceState ? S.iceState.path : [];
+  const revealedTraps = S.iceState ? S.iceState.revealedTraps : [];
+
+  const header = $('iceMultHeader');
+  if (header) {
+    header.innerHTML = '';
+    for (let row = 0; row < 8; row++) {
+      const colDiv = document.createElement('div');
+      colDiv.className = 'ice-mult-col';
+      colDiv.textContent = 'x' + calculateLocalMult(cols, row + 1);
+      header.appendChild(colDiv);
+    }
+  }
+
+  const grid = $('iceGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  for (let row = 7; row >= 0; row--) {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'ice-row';
+
+    const label = document.createElement('div');
+    label.className = 'ice-row-label';
+    label.textContent = `R${row+1}`;
+    rowDiv.appendChild(label);
+
+    const tilesContainer = document.createElement('div');
+    tilesContainer.className = 'ice-tiles-container';
+
+    for (let col = 0; col < cols; col++) {
+      const tile = document.createElement('div');
+      tile.className = 'ice-tile';
+
+      const isPassed = row < currentStep;
+      const isCurrent = row === currentStep && active;
+      const trapIdx = revealedTraps[row];
+
+      if (isPassed) {
+        if (path[row] === col) {
+          tile.classList.add('success');
+          if (row === currentStep - 1) {
+            tile.innerHTML = '<span class="yeti-char">🧌</span>';
+          } else {
+            tile.textContent = '🧊';
+          }
+        } else if (trapIdx === col) {
+          tile.classList.add('trap-revealed');
+          tile.textContent = '💣';
+        } else {
+          tile.classList.add('disabled');
+          tile.textContent = '❄️';
+        }
+      } else if (isCurrent) {
+        tile.classList.add('active-row');
+        if (row === 0 && currentStep === 0) {
+          tile.innerHTML = '<span class="yeti-char">🧌</span>';
+        } else {
+          tile.textContent = '❓';
+        }
+        tile.onclick = () => stepIcefield(col);
+      } else {
+        tile.classList.add('disabled');
+        tile.textContent = '❄️';
+      }
+
+      tilesContainer.appendChild(tile);
+    }
+    rowDiv.appendChild(tilesContainer);
+    grid.appendChild(rowDiv);
+  }
+
+  show('iceStartBtn', !active);
+  show('iceCashoutBtn', active && currentStep > 0);
+
+  if (active && currentStep > 0) {
+    const currentMult = S.iceState.multipliers[currentStep - 1];
+    const gain = Math.floor(S.bet * currentMult);
+    $('iceStatusText').textContent = `Étape ${currentStep}/8 - Multiplicateur : x${currentMult} (Gain : ${gain} 🪙)`;
+  } else if (!active) {
+    $('iceStatusText').textContent = 'Choisis tes blocs et guide le Yéti de droite à gauche !';
+  }
+}
+
+// Enregistrement global
+Object.assign(window, { 
+  createRoom, joinRoom, launchGame, joinGameTable, openHistoryModal, closeHistoryModal, toggleMusic,
+  startIcefieldGame, stepIcefield, cashoutIcefield, onColsChange 
+});
+
+})(); // Fin du script global
 </script>
 </body>
 </html>
