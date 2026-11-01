@@ -118,7 +118,7 @@ ul{padding-left:20px;text-align:left}
         <div id="game-screen" class="hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
                 <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span id="sessionTimerDisplay">--:--</span></span>
-                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span id="playerBalance">1000</span> 🪙</span>
+                <button id="musicBtn" class="btn-history-more" onclick="toggleMusic()" title="Musique on/off">🎵</button><span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span id="playerBalance">1000</span> 🪙</span>
             </div>
 
             <div class="history-container">
@@ -223,459 +223,363 @@ ul{padding-left:20px;text-align:left}
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
-        let currentRoomCode = null;
-        let hasCashedOut = false;
-        let currentMultiplierVal = 1.00;
-        let gamePhase = 'waiting';
-        let currentBalance = 1000;
-        let myActiveBet = 0;
-        let myNextBet = 0;
-        let globalHistoryData = [];
-
-        // Protège contre l'injection HTML via les pseudos
-        function escapeHtml(str) {
-            return String(str).replace(/[&<>"']/g, c => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-            }[c]));
-        }
-
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function playSound(type) {
-            try {
-                if (audioCtx.state === 'suspended') audioCtx.resume();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-
-                if (type === 'start') {
-                    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.2);
-                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
-                    osc.start(); osc.stop(audioCtx.currentTime + 0.2);
-                } else if (type === 'win') {
-                    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
-                    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
-                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
-                    osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-                } else if (type === 'crash') {
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                    osc.frequency.linearRampToValueAtTime(40, audioCtx.currentTime + 0.4);
-                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
-                    osc.start(); osc.stop(audioCtx.currentTime + 0.4);
-                }
-            } catch (e) { /* le son ne doit jamais casser le jeu */ }
-        }
-
-        function createRoom() {
-            const playerName = document.getElementById('createName').value.trim();
-            const duration = document.getElementById('duration').value;
-            if (!playerName) return alert("Entre un pseudo !");
-            socket.emit('create-room', { playerName, duration });
-        }
-
-        function joinRoom() {
-            const playerName = document.getElementById('joinName').value.trim();
-            const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
-            if (!playerName || !roomCode) return alert("Remplis ton pseudo et le code !");
-            socket.emit('join-room', { roomCode, playerName });
-        }
-
-        socket.on('room-created', (data) => {
-            currentRoomCode = data.roomCode;
-            showLobby(data.room);
-        });
-
-        socket.on('joined-success', (room) => {
-            currentRoomCode = room.code;
-            showLobby(room);
-        });
-
-        socket.on('update-room', (room) => {
-            updateUI(room);
-        });
-
-        socket.on('error-message', (msg) => alert(msg));
-
-        socket.on('timer-update', (data) => {
-            const minutes = Math.floor(data.timeRemaining / 60);
-            const seconds = data.timeRemaining % 60;
-            const formattedTime = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-            const timerEl = document.getElementById('sessionTimerDisplay');
-            if (timerEl) timerEl.innerText = formattedTime;
-        });
-
-        socket.on('game-session-ended', (data) => {
-            gamePhase = 'ended';
-            const modal = document.getElementById('gameOverModal');
-            const listEl = document.getElementById('finalLeaderboardList');
-            listEl.innerHTML = '';
-
-            data.leaderboard.forEach((player, index) => {
-                const profitClass = player.profit >= 0 ? 'text-green' : 'text-red';
-                const div = document.createElement('div');
-                div.style.cssText = "background: #0f172a; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;";
-                div.innerHTML = `
-                    <span><b>#${index + 1} ${escapeHtml(player.name)}</b></span>
-                    <span>Solde : <b>${player.finalBalance} 🪙</b> (<span class="${profitClass}">${player.profit >= 0 ? '+' : ''}${player.profit}</span>)</span>
-                `;
-                listEl.appendChild(div);
-            });
-
-            modal.classList.remove('hidden');
-        });
-
-        function showLobby(room) {
-            document.getElementById('auth-screen').classList.add('hidden');
-            document.getElementById('lobby').classList.remove('hidden');
-            document.getElementById('displayCode').innerText = room.code;
-            updateUI(room);
-        }
-
-        function updateUI(room) {
-            const list = document.getElementById('playersList');
-            const gameList = document.getElementById('gamePlayersList');
-            list.innerHTML = '';
-            gameList.innerHTML = '';
-
-            // Le serveur est la source de vérité pour la phase de jeu
-            // (corrige le cas d'un joueur qui entre en cours de manche)
-            if (['betting', 'playing', 'crashed'].includes(room.status) && gamePhase !== 'ended') {
-                gamePhase = room.status;
-            }
-            if (room.currentHash) {
-                document.getElementById('currentHashDisplay').innerText = room.currentHash;
-            }
-
-            let amIAdmin = false;
-            let totalProfitSum = 0;
-            room.players.forEach(p => totalProfitSum += p.stats.totalProfit);
-            let avgProfit = room.players.length > 0 ? totalProfitSum / room.players.length : 0;
-
-            room.players.forEach(p => {
-                const li = document.createElement('li');
-                li.textContent = `${p.name} (${p.balance} 🪙) ${p.isAdmin ? '👑 Hôte' : ''}${p.connected === false ? ' 💤 déconnecté' : ''}`;
-                list.appendChild(li);
-
-                const gli = document.createElement('li');
-                let statusText = "";
-                if (p.bet > 0) statusText = `Mise active: ${p.bet} 🪙 (Auto: ${p.autoCashOut ? p.autoCashOut + 'x' : 'aucun'})`;
-                else if (p.nextBet > 0) statusText = `Mise préparée: ${p.nextBet} 🪙`;
-                if (p.cashedOut) statusText = `✅ Cash Out (+${p.winAmount} 🪙)`;
-
-                const colorClass = p.stats.totalProfit >= avgProfit ? 'text-green' : 'text-red';
-
-                gli.innerHTML = `<b>${escapeHtml(p.name)}</b> - ${statusText || 'Observe'} | Profit: <span class="${colorClass}">${p.stats.totalProfit >= 0 ? '+' : ''}${p.stats.totalProfit} 🪙</span> (Solde: ${p.balance} 🪙)`;
-                gameList.appendChild(gli);
-
-                if (p.id === socket.id) {
-                    currentBalance = p.balance;
-                    myActiveBet = p.bet;
-                    myNextBet = p.nextBet;
-                    hasCashedOut = p.cashedOut;
-                    document.getElementById('playerBalance').innerText = p.balance;
-
-                    const profitClass = p.stats.totalProfit >= 0 ? 'text-green' : 'text-red';
-                    document.getElementById('myStatsBadge').innerHTML = `
-                        <span>📊 <b>Mes Stats :</b> ${p.stats.gamesPlayed} jouées</span>
-                        <span>Victoires : ${p.stats.wins}</span>
-                        <span>Profit : <span class="${profitClass}">${p.stats.totalProfit >= 0 ? '+' : ''}${p.stats.totalProfit} 🪙</span></span>
-                    `;
-
-                    if (p.isAdmin) amIAdmin = true;
-                }
-            });
-
-            updateButtonStates();
-
-            if (room.status === 'waiting') {
-                if (amIAdmin) {
-                    document.getElementById('adminControls').classList.remove('hidden');
-                    document.getElementById('playerWaitingGame').classList.add('hidden');
-                } else {
-                    document.getElementById('adminControls').classList.add('hidden');
-                    document.getElementById('playerWaitingGame').classList.remove('hidden');
-                }
-            }
-
-            if (room.history) {
-                globalHistoryData = room.history;
-                renderHistory(room.history);
-            }
-        }
-
-        function updateButtonStates() {
-            const btn = document.getElementById('actionBtn');
-            const cancelBtn = document.getElementById('cancelBtn');
-
-            // Reset : sans ça, la classe "btn-cashout" restait collée au bouton pour toujours
-            btn.classList.remove('btn-cashout');
-            btn.style.background = '';
-            btn.disabled = false;
-
-            if (gamePhase === 'betting') {
-                if (myActiveBet > 0) {
-                    btn.innerText = `Pari enregistré : ${myActiveBet} 🪙 ✅`;
-                    btn.style.background = "#3b82f6";
-                    cancelBtn.classList.remove('hidden');
-                } else {
-                    btn.innerText = "Parier pour la manche";
-                    btn.style.background = "#22c55e";
-                    cancelBtn.classList.add('hidden');
-                }
-            }
-            else if (gamePhase === 'playing') {
-                if (myActiveBet > 0 && !hasCashedOut) {
-                    btn.innerText = "CASH OUT";
-                    btn.classList.add('btn-cashout');
-                    cancelBtn.classList.add('hidden');
-                } else if (myNextBet > 0) {
-                    btn.innerText = `Prochain tour préparé : ${myNextBet} 🪙 ✅`;
-                    btn.style.background = "#eab308";
-                    cancelBtn.classList.remove('hidden');
-                } else {
-                    btn.innerText = "Parier pour le tour suivant ✈️";
-                    btn.style.background = "#3b82f6";
-                    cancelBtn.classList.add('hidden');
-                }
-            }
-            else if (gamePhase === 'crashed') {
-                if (myNextBet > 0) {
-                    btn.innerText = `Prochain tour préparé : ${myNextBet} 🪙 ✅`;
-                    btn.style.background = "#eab308";
-                    cancelBtn.classList.remove('hidden');
-                } else {
-                    btn.innerText = "Parier pour le tour suivant ✈️";
-                    btn.style.background = "#3b82f6";
-                    cancelBtn.classList.add('hidden');
-                }
-            }
-            else {
-                btn.innerText = "En attente de la prochaine manche...";
-                btn.disabled = true;
-                cancelBtn.classList.add('hidden');
-            }
-        }
-
-        function renderHistory(historyArray) {
-            const historyBar = document.getElementById('historyBar');
-            historyBar.innerHTML = '';
-            if (!historyArray) return;
-
-            const recent = historyArray.slice(0, 8);
-            recent.forEach(item => {
-                historyBar.appendChild(createHistoryPill(item));
-            });
-        }
-
-        function createHistoryPill(item) {
-            const pill = document.createElement('div');
-            pill.className = 'history-pill ';
-            if (item.multiplier < 2.00) pill.classList.add('hist-low');
-            else if (item.multiplier < 10.00) pill.classList.add('hist-mid');
-            else pill.classList.add('hist-high');
-
-            pill.textContent = item.multiplier.toFixed(2) + 'x';
-            pill.onclick = () => {
-                alert(
-                    `🔍 Preuve Provably Fair :\n\n` +
-                    `- Multiplicateur : ${item.multiplier}x\n` +
-                    `- Hash publié avant la manche : ${item.hash}\n` +
-                    `- Graine secrète révélée : ${item.secret}\n\n` +
-                    `Vérification :\n` +
-                    `1) SHA-256(graine) doit être égal au hash publié\n` +
-                    `2) Le crash est dérivé de HMAC-SHA256(graine, "crash")`
-                );
-            };
-            return pill;
-        }
-
-        function openHistoryModal() {
-            const grid = document.getElementById('fullHistoryGrid');
-            grid.innerHTML = '';
-            if (globalHistoryData.length === 0) {
-                grid.innerHTML = '<p style="color: #94a3b8;">Aucun historique pour l\'instant.</p>';
-            } else {
-                globalHistoryData.forEach(item => {
-                    grid.appendChild(createHistoryPill(item));
-                });
-            }
-            document.getElementById('historyModal').classList.remove('hidden');
-        }
-
-        function closeHistoryModal() {
-            document.getElementById('historyModal').classList.add('hidden');
-        }
-
-        function launchGame(gameName) {
-            socket.emit('launch-game-lobby', { roomCode: currentRoomCode, gameName });
-        }
-
-        socket.on('navigate-to-game', (data) => {
-            document.getElementById('lobby').classList.add('hidden');
-            document.getElementById('game-lobby-screen').classList.remove('hidden');
-            document.getElementById('gameTitleName').innerText = data.gameName;
-        });
-
-        function joinGameTable() {
-            socket.emit('join-game-table', { roomCode: currentRoomCode });
-            document.getElementById('game-lobby-screen').classList.add('hidden');
-            document.getElementById('game-screen').classList.remove('hidden');
-            if (audioCtx.state === 'suspended') audioCtx.resume(); // le clic débloque le son
-        }
-
-        function setBet(amount) {
-            document.getElementById('betAmount').value = amount;
-        }
-
-        function multiplyBet(factor) {
-            const input = document.getElementById('betAmount');
-            let val = Math.floor(parseFloat(input.value || 0) * factor);
-            if (val < 1) val = 1;
-            input.value = val;
-        }
-
-        function setMaxBet() {
-            document.getElementById('betAmount').value = currentBalance;
-        }
-
-        socket.on('betting-phase', (data) => {
-            if (gamePhase === 'ended') return;
-            gamePhase = 'betting';
-            hasCashedOut = false;
-            playSound('start');
-            const mBox = document.getElementById('multiplierBox');
-            mBox.classList.remove('crashed-text');
-            mBox.innerText = "1.00x";
-
-            document.getElementById('currentHashDisplay').innerText = data.hash;
-            document.getElementById('gameStatusText').innerText = `Prochaine manche dans ${data.countdown}s... Placez vos mises !`;
-            document.getElementById('liveCashoutPreview').innerText = "";
-
-            document.getElementById('planeGroup').setAttribute('transform', `translate(0, 240)`);
-            document.getElementById('flightCurve').setAttribute('d', `M 0 240 Q 0 240, 0 240`);
-            document.getElementById('curveArea').setAttribute('d', `M 0 240 L 0 240 L 0 240 Z`);
-
-            updateUI(data.room);
-        });
-
-        socket.on('betting-countdown', (data) => {
-            if (gamePhase === 'ended') return;
-            document.getElementById('gameStatusText').innerText = `Prochaine manche dans ${data.countdown}s... Placez vos mises !`;
-        });
-
-        socket.on('playing-phase-started', (room) => {
-            if (gamePhase === 'ended') return;
-            gamePhase = 'playing';
-            document.getElementById('gameStatusText').innerText = "L'avion décolle ! Bon vol ✈️";
-            updateUI(room);
-        });
-
-        
-        socket.on('game-crashed', (data) => {
-            if (gamePhase === 'ended') return;
-            gamePhase = 'crashed';
-            playSound('crash');
-            const mBox = document.getElementById('multiplierBox');
-            mBox.innerText = data.multiplier.toFixed(2) + 'x (CRASH !)';
-            mBox.classList.add('crashed-text');
-            document.getElementById('gameStatusText').innerText = "Crash ! La manche est terminée.";
-            document.getElementById('liveCashoutPreview').innerText = "";
-
-            updateUI(data.room);
-        });
-
-        socket.on('player-cashed-out', (data) => {
-            if (data.socketId === socket.id) {
-                hasCashedOut = true;
-                playSound('win');
-                document.getElementById('liveCashoutPreview').innerText = `Tu as gagné ${data.winnings} 🪙 ! (x${Number(data.multiplier).toFixed(2)})`;
-            }
-        });
-
-        function handleMainAction() {
-            if (gamePhase === 'ended' || gamePhase === 'waiting') return;
-
-            // Cash out : pas besoin de montant
-            if (gamePhase === 'playing' && myActiveBet > 0 && !hasCashedOut) {
-                socket.emit('cash-out', { roomCode: currentRoomCode });
-                return;
-            }
-
-            // Un pari est déjà enregistré : on ne le double pas (utilise "Annuler" pour le changer)
-            if (gamePhase === 'betting' && myActiveBet > 0) return;
-            if ((gamePhase === 'playing' || gamePhase === 'crashed') && myNextBet > 0) return;
-
-            const amount = parseInt(document.getElementById('betAmount').value);
-            const autoCashOut = document.getElementById('autoCashOutInput').value;
-
-            if (!amount || amount <= 0) return alert("Entre un montant valide !");
-
-            socket.emit('place-bet', { roomCode: currentRoomCode, amount, autoCashOut });
-        }
-
-        function cancelBet() {
-            socket.emit('cancel-next-bet', { roomCode: currentRoomCode });
-        }
-    </script>
-<script>
 (() => {
-  const $ = id => document.getElementById(id);
-  const stage=$('stage'), mBox=$('multiplierBox'), curve=$('flightCurve'), area=$('curveArea'), pg=$('planeGroup'),
-        flame=$('flame'), trail=$('trail'), boom=$('boom'), prev=$('liveCashoutPreview');
-  let target=1, shown=1, t0=performance.now(), smoke=[];
-  const pos = q => ({x: 24+q*420, y: 236-Math.pow(q,1.5)*170});
-  const qOf = m => Math.min(Math.log(Math.max(m,1))/Math.log(15),1);
+'use strict';
+const socket = io();
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const show = (id, on = true) => $(id).classList.toggle('hidden', !on);
 
-  function draw(m, now){
-    const q=qOf(m), end=pos(q), p0=pos(Math.max(q-.02,0));
-    let d='M24 236';
-    for(let i=1;i<=40;i++){const s=pos(q*i/40); d+=` L${s.x.toFixed(1)} ${s.y.toFixed(1)}`;}
-    const bob=Math.sin(now/350)*(q>=1?6:2), ang=q>0?Math.atan2(end.y-p0.y,end.x-p0.x)*180/Math.PI:-4;
-    curve.setAttribute('d', q>0?d:'M24 236L24 236');
-    area.setAttribute('d', q>0?`${d} L${end.x.toFixed(1)} 260 L24 260Z`:'');
-    pg.setAttribute('transform', `translate(${end.x.toFixed(1)} ${(end.y+bob).toFixed(1)}) rotate(${ang.toFixed(1)})`);
-    return {x:end.x, y:end.y+bob};
+/* ---------- État ---------- */
+const S = { code:null, phase:'waiting', balance:1000, bet:0, nextBet:0, cashed:false,
+            history:[], target:1, shown:1, t0:0, smoke:[], wasConnected:false };
+
+/* ---------- Audio : effets doux + musique chill générative (aucun fichier à charger) ---------- */
+const Snd = (() => {
+  let ctx, sfx, musicBus, verb, noiseBuf, timer = null, nextT = 0, step = 0, musicOn = true;
+  const BPM = 72, hz = m => 440 * Math.pow(2, (m - 69) / 12);
+  const CH = [ // Am9 · Fmaj7 · Cmaj7 · G6  (notes MIDI)
+    { b: 45, n: [57, 60, 64, 67, 71] }, { b: 41, n: [53, 57, 60, 64] },
+    { b: 48, n: [52, 55, 59, 64] },     { b: 43, n: [59, 62, 64, 67] } ];
+
+  function init() {
+    if (ctx) return;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const master = ctx.createGain(); master.gain.value = .85; master.connect(ctx.destination);
+    const len = ctx.sampleRate * 2.4, ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
+    verb = ctx.createConvolver(); verb.buffer = ir;
+    const vg = ctx.createGain(); vg.gain.value = .4; verb.connect(vg); vg.connect(master);
+    sfx = ctx.createGain(); sfx.gain.value = .9; sfx.connect(master); sfx.connect(verb);
+    musicBus = ctx.createGain(); musicBus.gain.value = 0;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200;
+    const send = ctx.createGain(); send.gain.value = .35;
+    musicBus.connect(lp); lp.connect(master); lp.connect(send); send.connect(verb);
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const n = noiseBuf.getChannelData(0); for (let i = 0; i < n.length; i++) n[i] = Math.random() * 2 - 1;
   }
 
-  function frame(now){
-    const playing = gamePhase==='playing';
-    if(playing){
-      // extrapolation locale entre deux ticks serveur (70 ms) => animation 60 fps fluide
-      shown=Math.max(shown, Math.min(target*Math.exp(.07*(now-t0)/1000), target*1.03));
-      mBox.innerText=shown.toFixed(2)+'x';
-      mBox.style.color=shown<2?'#5cc8ff':shown<10?'#c58cff':'#ffc24d';
-      mBox.style.transform=`translate(-50%,-50%) scale(${1+Math.min(shown/40,.25)})`;
-      if(myActiveBet>0&&!hasCashedOut) prev.innerText=`Gain potentiel en direct : ${Math.floor(myActiveBet*shown)} 🪙`;
-    } else if(gamePhase==='betting'){
-      shown=target=1; mBox.style.color=''; mBox.style.transform='translate(-50%,-50%)';
+  function tone(f, t, dur, o = {}) {
+    const osc = ctx.createOscillator(), g = ctx.createGain(), v = o.v || .2, a = o.a || .008;
+    osc.type = o.type || 'sine'; osc.frequency.setValueAtTime(f, t);
+    if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + dur);
+    if (o.det) osc.detune.value = o.det;
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(v, t + a);
+    if (o.sus) { g.gain.setValueAtTime(v, t + dur - o.sus); g.gain.linearRampToValueAtTime(.0001, t + dur); }
+    else g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    osc.connect(g); g.connect(o.dest || sfx); osc.start(t); osc.stop(t + dur + .05);
+  }
+  function noise(t, dur, o = {}) {
+    const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = noiseBuf; s.loop = true; f.type = o.type || 'lowpass'; f.frequency.setValueAtTime(o.f || 1000, t);
+    if (o.to) f.frequency.exponentialRampToValueAtTime(o.to, t + dur);
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(o.v || .1, t + (o.a || .005)); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(o.dest || sfx); s.start(t, Math.random() * .5); s.stop(t + dur + .05);
+  }
+
+  // Effets : sinusoïdes/triangles arrondis + réverb, rien d'agressif
+  const FX = {
+    bet:       t => { tone(660, t, .14, { type: 'triangle', v: .16 }); tone(990, t + .06, .18, { type: 'triangle', v: .14 }); },
+    cancel:    t => tone(520, t, .2, { type: 'triangle', to: 330, v: .14 }),
+    tick:      t => tone(1250, t, .07, { v: .1 }),
+    start:     t => { tone(784, t, .5, { v: .14 }); tone(1175, t + .09, .6, { v: .1 }); },
+    takeoff:   t => { noise(t, 1.4, { f: 250, to: 3200, v: .13 }); tone(180, t, 1.2, { to: 420, v: .09, a: .3 }); },
+    milestone: t => { tone(1047, t, .35, { type: 'triangle', v: .12 }); tone(1568, t + .07, .45, { v: .1 }); },
+    win:       t => [523, 659, 784, 1047, 1319].forEach((f, i) => { tone(f, t + i * .075, .9, { type: 'triangle', v: .15 }); tone(f * 2, t + i * .075, .6, { v: .05 }); }),
+    crash:     t => { tone(150, t, .6, { to: 38, v: .45 }); noise(t, .45, { f: 700, to: 90, v: .22 }); tone(330, t + .05, .7, { type: 'triangle', to: 196, v: .09 }); }
+  };
+
+  // Musique lo-fi : accords en nappe, basse, batterie douce et petites notes aléatoires, croches swinguées
+  function pad(c, t, dur) {
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.connect(musicBus);
+    c.n.forEach(m => [-7, 7].forEach(d => tone(hz(m), t, dur, { type: 'triangle', v: .035, a: 1.1, sus: 1.2, det: d, dest: lp })));
+  }
+  function playStep(st, t) {
+    const c = CH[Math.floor(st / 8) % 4], s = st % 8;
+    if (s === 0) pad(c, t, 240 / BPM + 1);
+    if (s === 0 || s === 5) tone(hz(c.b), t, s ? .5 : .9, { v: .2, a: .02, dest: musicBus });
+    if (s === 0 || s === 4) tone(115, t, .3, { to: 42, v: .32, dest: musicBus });
+    if (s === 2 || s === 6) noise(t, .16, { type: 'bandpass', f: 1800, v: .05, dest: musicBus });
+    if (s % 2) noise(t, .05, { type: 'highpass', f: 7000, v: .025, dest: musicBus });
+    if (Math.random() < .6) {
+      const m = hz(c.n[Math.floor(Math.random() * c.n.length)] + 12);
+      tone(m, t, .9, { type: 'triangle', v: .06, a: .01, dest: musicBus });
+      tone(m * 2, t, .35, { v: .015, dest: musicBus });
     }
-    if(gamePhase!=='crashed'){
-      const p=draw(shown,now);
-      flame.setAttribute('rx', playing?9+Math.random()*7:3+Math.random()*2);
-      if(playing) smoke.push({x:p.x,y:p.y,l:1});
-      smoke.forEach(s=>s.l-=.035); smoke=smoke.filter(s=>s.l>0);
-      trail.innerHTML=smoke.map(s=>`<circle cx="${s.x.toFixed(1)}" cy="${s.y.toFixed(1)}" r="${(2+(1-s.l)*7).toFixed(1)}" fill="rgba(255,190,120,${(s.l*.35).toFixed(2)})"/>`).join('');
+  }
+  function schedule() {
+    if (nextT < ctx.currentTime - .3) nextT = ctx.currentTime + .05; // onglet resté en arrière-plan
+    while (nextT < ctx.currentTime + .5) {
+      playStep(step, nextT);
+      nextT += (30 / BPM) * (step % 2 ? .82 : 1.18);
+      step++;
     }
-    requestAnimationFrame(frame);
+  }
+  const level = () => musicBus.gain.setTargetAtTime(musicOn ? .55 : 0, ctx.currentTime, .7);
+
+  return {
+    unlock() { init(); if (ctx.state === 'suspended') ctx.resume(); },
+    play(name) { if (!ctx || !FX[name]) return; try { FX[name](ctx.currentTime + .01); } catch (e) {} },
+    startMusic() { init(); if (timer) return; step = 0; nextT = ctx.currentTime + .1; timer = setInterval(schedule, 120); schedule(); level(); },
+    stopMusic() { if (!timer) return; clearInterval(timer); timer = null; musicBus.gain.setTargetAtTime(0, ctx.currentTime, .6); },
+    toggle() { musicOn = !musicOn; if (ctx && timer) level(); return musicOn; }
+  };
+})();
+const sound = name => Snd.play(name);
+const startAudio = () => { Snd.unlock(); Snd.startMusic(); };
+const toggleMusic = () => { $('musicBtn').textContent = Snd.toggle() ? '🎵' : '🔇'; };
+let lastShown = 1;
+
+/* ---------- Actions (appelées par les onclick du HTML) ---------- */
+function createRoom() {
+  const playerName = $('createName').value.trim();
+  if (!playerName) return alert('Entre un pseudo !');
+  socket.emit('create-room', { playerName, duration: $('duration').value });
+}
+function joinRoom() {
+  const playerName = $('joinName').value.trim(), roomCode = $('roomCodeInput').value.trim().toUpperCase();
+  if (!playerName || !roomCode) return alert('Remplis ton pseudo et le code !');
+  socket.emit('join-room', { roomCode, playerName });
+}
+const launchGame = gameName => socket.emit('launch-game-lobby', { roomCode: S.code, gameName });
+function joinGameTable() {
+  socket.emit('join-game-table', { roomCode: S.code });
+  show('game-lobby-screen', false); show('game-screen');
+  startAudio(); // le clic débloque l'audio et lance la musique
+}
+const setBet = n => { $('betAmount').value = n; };
+const multiplyBet = f => { $('betAmount').value = Math.max(1, Math.floor((parseFloat($('betAmount').value) || 0) * f)); };
+const setMaxBet = () => { $('betAmount').value = S.balance; };
+const cancelBet = () => { sound('cancel'); socket.emit('cancel-next-bet', { roomCode: S.code }); };
+
+function handleMainAction() {
+  if (S.phase === 'ended' || S.phase === 'waiting') return;
+  if (S.phase === 'playing' && S.bet > 0 && !S.cashed) return socket.emit('cash-out', { roomCode: S.code });
+  if (S.phase === 'betting' ? S.bet > 0 : S.nextBet > 0) return; // pari déjà posé : "Annuler" pour le changer
+  const amount = parseInt($('betAmount').value);
+  if (!amount || amount <= 0) return alert('Entre un montant valide !');
+  sound('bet');
+  socket.emit('place-bet', { roomCode: S.code, amount, autoCashOut: $('autoCashOutInput').value });
+}
+
+/* ---------- Rendu de l'interface ---------- */
+function setBtn(text, bg, cashout = false, disabled = false) {
+  const b = $('actionBtn');
+  b.textContent = text; b.style.background = bg || ''; b.disabled = disabled;
+  b.classList.toggle('btn-cashout', cashout);
+}
+function renderButtons() {
+  const { phase, bet, nextBet, cashed } = S;
+  let cancel = false;
+  if (phase === 'betting') {
+    if (bet > 0) { setBtn(`Pari enregistré : ${bet} 🪙 ✅`, '#3b82f6'); cancel = true; }
+    else setBtn('Parier pour la manche', '#22c55e');
+  } else if (phase === 'playing' && bet > 0 && !cashed) {
+    setBtn('CASH OUT', '', true);
+  } else if (phase === 'playing' || phase === 'crashed') {
+    if (nextBet > 0) { setBtn(`Prochain tour préparé : ${nextBet} 🪙 ✅`, '#eab308'); cancel = true; }
+    else setBtn('Parier pour le tour suivant ✈️', '#3b82f6');
+  } else setBtn('En attente de la prochaine manche...', '', false, true);
+  show('cancelBtn', cancel);
+}
+
+function renderPlayers(room) {
+  const lobby = $('playersList'), game = $('gamePlayersList');
+  lobby.innerHTML = game.innerHTML = '';
+  const avg = room.players.reduce((s, p) => s + p.stats.totalProfit, 0) / (room.players.length || 1);
+  let admin = false;
+
+  room.players.forEach(p => {
+    const li = document.createElement('li');
+    li.textContent = `${p.name} (${p.balance} 🪙) ${p.isAdmin ? '👑 Hôte' : ''}${p.connected === false ? ' 💤 déconnecté' : ''}`;
+    lobby.appendChild(li);
+
+    let st = '';
+    if (p.bet > 0) st = `Mise active: ${p.bet} 🪙 (Auto: ${p.autoCashOut ? p.autoCashOut + 'x' : 'aucun'})`;
+    else if (p.nextBet > 0) st = `Mise préparée: ${p.nextBet} 🪙`;
+    if (p.cashedOut) st = `✅ Cash Out (+${p.winAmount} 🪙)`;
+    const sign = p.stats.totalProfit >= 0 ? '+' : '';
+    const gi = document.createElement('li');
+    gi.innerHTML = `<b>${esc(p.name)}</b> - ${st || 'Observe'} | Profit: <span class="${p.stats.totalProfit >= avg ? 'text-green' : 'text-red'}">${sign}${p.stats.totalProfit} 🪙</span> (Solde: ${p.balance} 🪙)`;
+    game.appendChild(gi);
+
+    if (p.id === socket.id) {
+      Object.assign(S, { balance: p.balance, bet: p.bet, nextBet: p.nextBet, cashed: p.cashedOut });
+      $('playerBalance').textContent = p.balance;
+      $('myStatsBadge').innerHTML = `<span>📊 <b>Mes Stats :</b> ${p.stats.gamesPlayed} jouées</span>
+        <span>Victoires : ${p.stats.wins}</span>
+        <span>Profit : <span class="${p.stats.totalProfit >= 0 ? 'text-green' : 'text-red'}">${sign}${p.stats.totalProfit} 🪙</span></span>`;
+      admin = p.isAdmin;
+    }
+  });
+
+  if (room.status === 'waiting') { show('adminControls', admin); show('playerWaitingGame', !admin); }
+}
+
+function pill(item) {
+  const d = document.createElement('div');
+  d.className = 'history-pill ' + (item.multiplier < 2 ? 'hist-low' : item.multiplier < 10 ? 'hist-mid' : 'hist-high');
+  d.textContent = item.multiplier.toFixed(2) + 'x';
+  d.onclick = () => alert(`🔍 Preuve Provably Fair :\n\n- Multiplicateur : ${item.multiplier}x\n- Hash publié avant la manche : ${item.hash}\n- Graine secrète révélée : ${item.secret}\n\nVérification :\n1) SHA-256(graine) doit être égal au hash publié\n2) Le crash est dérivé de HMAC-SHA256(graine, "crash")`);
+  return d;
+}
+function renderHistory(list) {
+  S.history = list;
+  const bar = $('historyBar'); bar.innerHTML = '';
+  list.slice(0, 8).forEach(i => bar.appendChild(pill(i)));
+}
+function openHistoryModal() {
+  const g = $('fullHistoryGrid'); g.innerHTML = '';
+  if (!S.history.length) g.innerHTML = '<p style="color:#9a90ad">Aucun historique pour l\'instant.</p>';
+  S.history.forEach(i => g.appendChild(pill(i)));
+  show('historyModal');
+}
+const closeHistoryModal = () => show('historyModal', false);
+
+// La phase de jeu vient du serveur : un joueur qui arrive en cours de manche est synchronisé
+function sync(room) {
+  if (['betting', 'playing', 'crashed'].includes(room.status) && S.phase !== 'ended') S.phase = room.status;
+  if (room.currentHash) $('currentHashDisplay').textContent = room.currentHash;
+  renderPlayers(room); renderButtons(); renderHistory(room.history || []);
+}
+function enterLobby(room) {
+  S.code = room.code;
+  show('auth-screen', false); show('lobby');
+  $('displayCode').textContent = room.code;
+  sync(room);
+}
+
+/* ---------- Animation du vol (60 fps) ---------- */
+const stage = $('stage'), mBox = $('multiplierBox'), curve = $('flightCurve'), area = $('curveArea'),
+      plane = $('planeGroup'), flame = $('flame'), trail = $('trail'), boom = $('boom'), live = $('liveCashoutPreview');
+const pos = q => ({ x: 24 + q * 420, y: 236 - Math.pow(q, 1.5) * 170 });
+const qOf = m => Math.min(Math.log(Math.max(m, 1)) / Math.log(15), 1);
+
+function draw(m, now) {
+  const q = qOf(m), end = pos(q), p0 = pos(Math.max(q - .02, 0));
+  let d = 'M24 236';
+  for (let i = 1; i <= 40; i++) { const s = pos(q * i / 40); d += ` L${s.x.toFixed(1)} ${s.y.toFixed(1)}`; }
+  const bob = Math.sin(now / 350) * (q >= 1 ? 6 : 2);
+  const ang = q > 0 ? Math.atan2(end.y - p0.y, end.x - p0.x) * 180 / Math.PI : -4;
+  curve.setAttribute('d', q > 0 ? d : 'M24 236L24 236');
+  area.setAttribute('d', q > 0 ? `${d} L${end.x.toFixed(1)} 260 L24 260Z` : '');
+  plane.setAttribute('transform', `translate(${end.x.toFixed(1)} ${(end.y + bob).toFixed(1)}) rotate(${ang.toFixed(1)})`);
+  return { x: end.x, y: end.y + bob };
+}
+
+function frame(now) {
+  const playing = S.phase === 'playing';
+  if (playing) {
+    // extrapolation locale entre deux ticks serveur (70 ms) => mouvement continu
+    S.shown = Math.max(S.shown, Math.min(S.target * Math.exp(.07 * (now - S.t0) / 1000), S.target * 1.03));
+    mBox.textContent = S.shown.toFixed(2) + 'x';
+    for (const m of [2, 5, 10, 25]) if (lastShown < m && S.shown >= m) sound('milestone');
+    lastShown = S.shown;
+    mBox.style.color = S.shown < 2 ? '#5cc8ff' : S.shown < 10 ? '#c58cff' : '#ffc24d';
+    mBox.style.transform = `translate(-50%,-50%) scale(${1 + Math.min(S.shown / 40, .25)})`;
+    if (S.bet > 0 && !S.cashed) live.textContent = `Gain potentiel en direct : ${Math.floor(S.bet * S.shown)} 🪙`;
+  } else if (S.phase === 'betting') {
+    S.shown = S.target = 1; mBox.style.color = ''; mBox.style.transform = 'translate(-50%,-50%)';
+  }
+  if (S.phase !== 'crashed') {
+    const p = draw(S.shown, now);
+    flame.setAttribute('rx', playing ? 9 + Math.random() * 7 : 3 + Math.random() * 2);
+    if (playing) S.smoke.push({ x: p.x, y: p.y, l: 1 });
+    S.smoke.forEach(s => s.l -= .035);
+    S.smoke = S.smoke.filter(s => s.l > 0);
+    trail.innerHTML = S.smoke.map(s => `<circle cx="${s.x.toFixed(1)}" cy="${s.y.toFixed(1)}" r="${(2 + (1 - s.l) * 7).toFixed(1)}" fill="rgba(255,190,120,${(s.l * .35).toFixed(2)})"/>`).join('');
   }
   requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
 
-  socket.on('multiplier-update', d=>{target=d.multiplier; t0=performance.now();});
-  socket.on('playing-phase-started', ()=>{shown=target=1; t0=performance.now(); smoke=[];});
-  socket.on('betting-phase', ()=>{stage.classList.remove('shake'); pg.style.opacity=1; smoke=[]; trail.innerHTML='';});
-  socket.on('game-crashed', d=>{
-    shown=d.multiplier;
-    const p=draw(shown,performance.now());
-    pg.style.opacity=0; trail.innerHTML=''; stage.classList.add('shake');
-    boom.setAttribute('cx',p.x); boom.setAttribute('cy',p.y);
-    boom.classList.remove('go'); void boom.getBoundingClientRect(); boom.classList.add('go');
+/* ---------- Événements serveur ---------- */
+socket.on('room-created', d => enterLobby(d.room));
+socket.on('joined-success', enterLobby);
+socket.on('update-room', sync);
+socket.on('error-message', alert);
+
+socket.on('navigate-to-game', d => {
+  show('lobby', false); show('game-lobby-screen');
+  $('gameTitleName').textContent = d.gameName;
+});
+
+socket.on('timer-update', d => {
+  const m = Math.floor(d.timeRemaining / 60), s = d.timeRemaining % 60;
+  $('sessionTimerDisplay').textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+});
+
+socket.on('betting-phase', d => {
+  if (S.phase === 'ended') return;
+  S.phase = 'betting'; S.cashed = false; S.smoke = [];
+  sound('start');
+  mBox.classList.remove('crashed-text'); mBox.textContent = '1.00x';
+  stage.classList.remove('shake'); plane.style.opacity = 1; trail.innerHTML = '';
+  $('currentHashDisplay').textContent = d.hash;
+  $('gameStatusText').textContent = `Prochaine manche dans ${d.countdown}s... Placez vos mises !`;
+  live.textContent = '';
+  sync(d.room);
+});
+
+socket.on('betting-countdown', d => {
+  if (d.countdown <= 3) sound('tick');
+  if (S.phase !== 'ended') $('gameStatusText').textContent = `Prochaine manche dans ${d.countdown}s... Placez vos mises !`;
+});
+
+socket.on('playing-phase-started', room => {
+  if (S.phase === 'ended') return;
+  S.phase = 'playing'; S.shown = S.target = 1; S.t0 = performance.now(); S.smoke = []; lastShown = 1; sound('takeoff');
+  $('gameStatusText').textContent = "L'avion décolle ! Bon vol ✈️";
+  sync(room);
+});
+
+socket.on('multiplier-update', d => {
+  if (S.phase === 'ended') return;
+  S.target = d.multiplier; S.t0 = performance.now();
+});
+
+socket.on('game-crashed', d => {
+  if (S.phase === 'ended') return;
+  S.phase = 'crashed'; S.shown = d.multiplier;
+  sound('crash');
+  mBox.textContent = d.multiplier.toFixed(2) + 'x (CRASH !)'; mBox.classList.add('crashed-text');
+  $('gameStatusText').textContent = 'Crash ! La manche est terminée.';
+  live.textContent = '';
+  const p = draw(S.shown, performance.now());
+  plane.style.opacity = 0; trail.innerHTML = ''; stage.classList.add('shake');
+  boom.setAttribute('cx', p.x); boom.setAttribute('cy', p.y);
+  boom.classList.remove('go'); void boom.getBoundingClientRect(); boom.classList.add('go');
+  sync(d.room);
+});
+
+socket.on('player-cashed-out', d => {
+  if (d.socketId !== socket.id) return;
+  S.cashed = true; sound('win');
+  live.textContent = `Tu as gagné ${d.winnings} 🪙 ! (x${Number(d.multiplier).toFixed(2)})`;
+});
+
+socket.on('game-session-ended', d => {
+  S.phase = 'ended'; Snd.stopMusic(); sound('win');
+  const box = $('finalLeaderboardList'); box.innerHTML = '';
+  d.leaderboard.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'background:#0d0814;padding:10px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px';
+    row.innerHTML = `<span><b>#${i + 1} ${esc(p.name)}</b></span>
+      <span>Solde : <b>${p.finalBalance} 🪙</b> (<span class="${p.profit >= 0 ? 'text-green' : 'text-red'}">${p.profit >= 0 ? '+' : ''}${p.profit}</span>)</span>`;
+    box.appendChild(row);
   });
+  show('gameOverModal');
+});
+
+// Si la connexion saute (veille du téléphone, redémarrage Render), l'ancien id joueur n'existe plus
+socket.on('disconnect', () => { $('gameStatusText').textContent = '⚠️ Connexion perdue...'; });
+socket.on('connect', () => {
+  if (S.wasConnected && S.code && S.phase !== 'ended') { alert('Connexion perdue : retour à l\'accueil.'); location.reload(); }
+  S.wasConnected = true;
+});
+
+Object.assign(window, { createRoom, joinRoom, launchGame, joinGameTable, setBet, multiplyBet, setMaxBet,
+                        handleMainAction, cancelBet, openHistoryModal, closeHistoryModal, toggleMusic });
 })();
 </script>
 </body>
