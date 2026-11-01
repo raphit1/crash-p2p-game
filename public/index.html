@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Crash P2P - Aviator Pro Ultimate</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #090d16; color: #fff; margin: 0; padding: 20px; text-align: center; }
@@ -10,10 +11,11 @@
         input, select, button { display: block; width: 100%; margin: 10px 0; padding: 12px; border-radius: 8px; border: none; box-sizing: border-box; font-size: 16px; }
         button { background: #22c55e; color: white; font-weight: bold; cursor: pointer; transition: background 0.2s; }
         button:hover { background: #16a34a; }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
         .hidden { display: none !important; }
 
         #game-screen { background: #111827; border-radius: 16px; padding: 20px; border: 1px solid #374151; }
-        
+
         .history-container { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
         .history-bar { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0; flex-grow: 1; scrollbar-width: none; }
         .history-bar::-webkit-scrollbar { display: none; }
@@ -26,25 +28,25 @@
 
         .provably-fair-box { background: #0f172a; padding: 10px 14px; border-radius: 8px; font-size: 12px; color: #94a3b8; margin-bottom: 10px; border: 1px dashed #334155; text-align: left; word-break: break-all; }
 
-        .game-canvas-container { 
-            position: relative; 
-            height: 240px; 
-            background: linear-gradient(135deg, #1f2937 0%, #0b0f19 100%); 
-            border-radius: 12px; 
-            overflow: hidden; 
-            border: 1px solid #374151; 
+        .game-canvas-container {
+            position: relative;
+            height: 240px;
+            background: linear-gradient(135deg, #1f2937 0%, #0b0f19 100%);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #374151;
         }
 
         .game-svg { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
-        
-        .multiplier-display { 
-            position: absolute; 
-            top: 20px; 
-            left: 20px; 
-            font-size: 42px; 
-            font-weight: 900; 
-            color: #38bdf8; 
-            text-shadow: 0 2px 10px rgba(0,0,0,0.8); 
+
+        .multiplier-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 42px;
+            font-weight: 900;
+            color: #38bdf8;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
             z-index: 10;
         }
         .crashed-text { color: #ef4444 !important; }
@@ -62,28 +64,28 @@
         .text-green { color: #22c55e; font-weight: bold; }
         .text-red { color: #ef4444; font-weight: bold; }
 
-        .modal-overlay { 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            background: rgba(0,0,0,0.85); 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            z-index: 9999; 
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
         }
-        .modal-content { 
-            background: #1e293b; 
-            padding: 25px; 
-            border-radius: 16px; 
-            width: 90%; 
-            max-width: 480px; 
-            max-height: 80vh; 
-            overflow-y: auto; 
-            text-align: center; 
-            border: 1px solid #374151; 
+        .modal-content {
+            background: #1e293b;
+            padding: 25px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 480px;
+            max-height: 80vh;
+            overflow-y: auto;
+            text-align: center;
+            border: 1px solid #374151;
             box-shadow: 0 10px 30px rgba(0,0,0,0.6);
         }
         .full-history-grid {
@@ -110,7 +112,7 @@
         <div id="auth-screen">
             <div class="card">
                 <h3>Créer une Room</h3>
-                <input type="text" id="createName" placeholder="Ton pseudo">
+                <input type="text" id="createName" placeholder="Ton pseudo" maxlength="20">
                 <label style="font-size: 14px; color: #94a3b8; display: block; margin-top: 8px;">Durée de la session :</label>
                 <select id="duration">
                     <option value="1">1 minute (Test rapide)</option>
@@ -123,7 +125,7 @@
             </div>
             <div class="card">
                 <h3>Rejoindre une Room</h3>
-                <input type="text" id="joinName" placeholder="Ton pseudo">
+                <input type="text" id="joinName" placeholder="Ton pseudo" maxlength="20">
                 <input type="text" id="roomCodeInput" placeholder="Code de la room (ex: CRASH-XXXX)">
                 <button onclick="joinRoom()">Rejoindre</button>
             </div>
@@ -175,11 +177,11 @@
 
             <div class="game-canvas-container">
                 <div id="multiplierBox" class="multiplier-display">1.00x</div>
-                
+
                 <svg class="game-svg" viewBox="0 0 500 240" preserveAspectRatio="none">
                     <path id="curveArea" d="M 0 240 L 0 240 L 500 240 Z" fill="rgba(239, 68, 68, 0.15)" />
                     <path id="flightCurve" d="M 0 240 Q 250 240, 500 240" fill="none" stroke="#ef4444" stroke-width="3" />
-                    
+
                     <g id="planeGroup" transform="translate(0, 240)">
                         <g transform="scale(0.9) rotate(-25)">
                             <path d="M-15 0 L15 -3 L25 -12 L22 -15 L10 -6 L-10 -6 L-20 -15 L-23 -12 L-13 -3 Z" fill="#ef4444" />
@@ -189,7 +191,7 @@
                     </g>
                 </svg>
             </div>
-            
+
             <p id="gameStatusText" style="color: #94a3b8; margin: 10px 0; font-weight: bold;">En attente de la prochaine manche...</p>
 
             <div class="bet-control-box">
@@ -206,11 +208,11 @@
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-top: 8px;">
-                    <input type="number" id="betAmount" value="50" placeholder="Montant de la mise" style="margin:0; flex: 2;">
-                    <input type="number" step="0.1" id="autoCashOutInput" placeholder="Auto Cash-Out (ex: 2.00)" style="margin:0; flex: 1.5;">
+                    <input type="number" id="betAmount" value="50" min="1" placeholder="Montant de la mise" style="margin:0; flex: 2;">
+                    <input type="number" step="0.1" min="1.01" id="autoCashOutInput" placeholder="Auto Cash-Out (ex: 2.00)" style="margin:0; flex: 1.5;">
                 </div>
 
-                <button id="actionBtn" onclick="handleMainAction()" style="margin-top: 10px; background: #22c55e;">Parier pour la manche</button>
+                <button id="actionBtn" onclick="handleMainAction()" style="margin-top: 10px;">En attente de la prochaine manche...</button>
                 <button id="cancelBtn" class="btn-cancel hidden" onclick="cancelBet()">Annuler le pari</button>
 
                 <div id="liveCashoutPreview" style="margin-top: 8px; font-size: 15px; color: #38bdf8; font-weight: bold;"></div>
@@ -260,47 +262,56 @@
         let myNextBet = 0;
         let globalHistoryData = [];
 
+        // Protège contre l'injection HTML via les pseudos
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
+
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSound(type) {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
 
-            if (type === 'start') {
-                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.2);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
-            } else if (type === 'win') {
-                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
-                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-            } else if (type === 'crash') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(40, audioCtx.currentTime + 0.4);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.4);
-            }
+                if (type === 'start') {
+                    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+                } else if (type === 'win') {
+                    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+                } else if (type === 'crash') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(40, audioCtx.currentTime + 0.4);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+                }
+            } catch (e) { /* le son ne doit jamais casser le jeu */ }
         }
 
         function createRoom() {
-            const playerName = document.getElementById('createName').value;
+            const playerName = document.getElementById('createName').value.trim();
             const duration = document.getElementById('duration').value;
-            if(!playerName) return alert("Entre un pseudo !");
+            if (!playerName) return alert("Entre un pseudo !");
             socket.emit('create-room', { playerName, duration });
         }
 
         function joinRoom() {
-            const playerName = document.getElementById('joinName').value;
+            const playerName = document.getElementById('joinName').value.trim();
             const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
-            if(!playerName || !roomCode) return alert("Remplis ton pseudo et le code !");
+            if (!playerName || !roomCode) return alert("Remplis ton pseudo et le code !");
             socket.emit('join-room', { roomCode, playerName });
         }
 
@@ -339,7 +350,7 @@
                 const div = document.createElement('div');
                 div.style.cssText = "background: #0f172a; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;";
                 div.innerHTML = `
-                    <span><b>#${index + 1} ${player.name}</b></span>
+                    <span><b>#${index + 1} ${escapeHtml(player.name)}</b></span>
                     <span>Solde : <b>${player.finalBalance} 🪙</b> (<span class="${profitClass}">${player.profit >= 0 ? '+' : ''}${player.profit}</span>)</span>
                 `;
                 listEl.appendChild(div);
@@ -361,6 +372,15 @@
             list.innerHTML = '';
             gameList.innerHTML = '';
 
+            // Le serveur est la source de vérité pour la phase de jeu
+            // (corrige le cas d'un joueur qui entre en cours de manche)
+            if (['betting', 'playing', 'crashed'].includes(room.status) && gamePhase !== 'ended') {
+                gamePhase = room.status;
+            }
+            if (room.currentHash) {
+                document.getElementById('currentHashDisplay').innerText = room.currentHash;
+            }
+
             let amIAdmin = false;
             let totalProfitSum = 0;
             room.players.forEach(p => totalProfitSum += p.stats.totalProfit);
@@ -368,26 +388,27 @@
 
             room.players.forEach(p => {
                 const li = document.createElement('li');
-                li.textContent = `${p.name} (${p.balance} 🪙) ${p.isAdmin ? '👑 Hôte' : ''}`;
+                li.textContent = `${p.name} (${p.balance} 🪙) ${p.isAdmin ? '👑 Hôte' : ''}${p.connected === false ? ' 💤 déconnecté' : ''}`;
                 list.appendChild(li);
 
                 const gli = document.createElement('li');
                 let statusText = "";
-                if(p.bet > 0) statusText = `Mise active: ${p.bet} 🪙 (Auto: ${p.autoCashOut || 'Aucun'}x)`;
-                else if(p.nextBet > 0) statusText = `Mise préparée: ${p.nextBet} 🪙`;
-                if(p.cashedOut) statusText = `✅ Cash Out (+${p.winAmount} 🪙)`;
+                if (p.bet > 0) statusText = `Mise active: ${p.bet} 🪙 (Auto: ${p.autoCashOut ? p.autoCashOut + 'x' : 'aucun'})`;
+                else if (p.nextBet > 0) statusText = `Mise préparée: ${p.nextBet} 🪙`;
+                if (p.cashedOut) statusText = `✅ Cash Out (+${p.winAmount} 🪙)`;
 
-                let colorClass = p.stats.totalProfit >= avgProfit ? 'text-green' : 'text-red';
+                const colorClass = p.stats.totalProfit >= avgProfit ? 'text-green' : 'text-red';
 
-                gli.innerHTML = `<b>${p.name}</b> - ${statusText || 'Observe'} | Profit: <span class="${colorClass}">${p.stats.totalProfit >= 0 ? '+' : ''}${p.stats.totalProfit} 🪙</span> (Solde: ${p.balance} 🪙)`;
+                gli.innerHTML = `<b>${escapeHtml(p.name)}</b> - ${statusText || 'Observe'} | Profit: <span class="${colorClass}">${p.stats.totalProfit >= 0 ? '+' : ''}${p.stats.totalProfit} 🪙</span> (Solde: ${p.balance} 🪙)`;
                 gameList.appendChild(gli);
 
-                if(p.id === socket.id) {
+                if (p.id === socket.id) {
                     currentBalance = p.balance;
                     myActiveBet = p.bet;
                     myNextBet = p.nextBet;
+                    hasCashedOut = p.cashedOut;
                     document.getElementById('playerBalance').innerText = p.balance;
-                    
+
                     const profitClass = p.stats.totalProfit >= 0 ? 'text-green' : 'text-red';
                     document.getElementById('myStatsBadge').innerHTML = `
                         <span>📊 <b>Mes Stats :</b> ${p.stats.gamesPlayed} jouées</span>
@@ -395,14 +416,14 @@
                         <span>Profit : <span class="${profitClass}">${p.stats.totalProfit >= 0 ? '+' : ''}${p.stats.totalProfit} 🪙</span></span>
                     `;
 
-                    if(p.isAdmin) amIAdmin = true;
+                    if (p.isAdmin) amIAdmin = true;
                 }
             });
 
             updateButtonStates();
 
-            if(room.status === 'waiting') {
-                if(amIAdmin) {
+            if (room.status === 'waiting') {
+                if (amIAdmin) {
                     document.getElementById('adminControls').classList.remove('hidden');
                     document.getElementById('playerWaitingGame').classList.add('hidden');
                 } else {
@@ -411,7 +432,7 @@
                 }
             }
 
-            if(room.history) {
+            if (room.history) {
                 globalHistoryData = room.history;
                 renderHistory(room.history);
             }
@@ -421,34 +442,34 @@
             const btn = document.getElementById('actionBtn');
             const cancelBtn = document.getElementById('cancelBtn');
 
+            // Reset : sans ça, la classe "btn-cashout" restait collée au bouton pour toujours
+            btn.classList.remove('btn-cashout');
+            btn.style.background = '';
+            btn.disabled = false;
+
             if (gamePhase === 'betting') {
                 if (myActiveBet > 0) {
                     btn.innerText = `Pari enregistré : ${myActiveBet} 🪙 ✅`;
                     btn.style.background = "#3b82f6";
-                    btn.disabled = false;
                     cancelBtn.classList.remove('hidden');
                 } else {
                     btn.innerText = "Parier pour la manche";
                     btn.style.background = "#22c55e";
-                    btn.disabled = false;
                     cancelBtn.classList.add('hidden');
                 }
-            } 
+            }
             else if (gamePhase === 'playing') {
                 if (myActiveBet > 0 && !hasCashedOut) {
                     btn.innerText = "CASH OUT";
-                    btn.className = "btn-cashout";
-                    btn.disabled = false;
+                    btn.classList.add('btn-cashout');
                     cancelBtn.classList.add('hidden');
                 } else if (myNextBet > 0) {
                     btn.innerText = `Prochain tour préparé : ${myNextBet} 🪙 ✅`;
                     btn.style.background = "#eab308";
-                    btn.disabled = false;
                     cancelBtn.classList.remove('hidden');
                 } else {
                     btn.innerText = "Parier pour le tour suivant ✈️";
                     btn.style.background = "#3b82f6";
-                    btn.disabled = false;
                     cancelBtn.classList.add('hidden');
                 }
             }
@@ -456,39 +477,49 @@
                 if (myNextBet > 0) {
                     btn.innerText = `Prochain tour préparé : ${myNextBet} 🪙 ✅`;
                     btn.style.background = "#eab308";
-                    btn.disabled = false;
                     cancelBtn.classList.remove('hidden');
                 } else {
                     btn.innerText = "Parier pour le tour suivant ✈️";
                     btn.style.background = "#3b82f6";
-                    btn.disabled = false;
                     cancelBtn.classList.add('hidden');
                 }
+            }
+            else {
+                btn.innerText = "En attente de la prochaine manche...";
+                btn.disabled = true;
+                cancelBtn.classList.add('hidden');
             }
         }
 
         function renderHistory(historyArray) {
             const historyBar = document.getElementById('historyBar');
             historyBar.innerHTML = '';
-            if(!historyArray) return;
+            if (!historyArray) return;
 
             const recent = historyArray.slice(0, 8);
             recent.forEach(item => {
-                const pill = createHistoryPill(item);
-                historyBar.appendChild(pill);
+                historyBar.appendChild(createHistoryPill(item));
             });
         }
 
         function createHistoryPill(item) {
             const pill = document.createElement('div');
             pill.className = 'history-pill ';
-            if(item.multiplier < 2.00) pill.classList.add('hist-low');
-            else if(item.multiplier < 10.00) pill.classList.add('hist-mid');
+            if (item.multiplier < 2.00) pill.classList.add('hist-low');
+            else if (item.multiplier < 10.00) pill.classList.add('hist-mid');
             else pill.classList.add('hist-high');
 
             pill.textContent = item.multiplier.toFixed(2) + 'x';
             pill.onclick = () => {
-                alert(`🔍 Preuve Provably Fair :\n\n- Multiplicateur : ${item.multiplier}x\n- Hash SHA-256 : ${item.hash}\n- Graine Secrète : ${item.secret}`);
+                alert(
+                    `🔍 Preuve Provably Fair :\n\n` +
+                    `- Multiplicateur : ${item.multiplier}x\n` +
+                    `- Hash publié avant la manche : ${item.hash}\n` +
+                    `- Graine secrète révélée : ${item.secret}\n\n` +
+                    `Vérification :\n` +
+                    `1) SHA-256(graine) doit être égal au hash publié\n` +
+                    `2) Le crash est dérivé de HMAC-SHA256(graine, "crash")`
+                );
             };
             return pill;
         }
@@ -496,12 +527,11 @@
         function openHistoryModal() {
             const grid = document.getElementById('fullHistoryGrid');
             grid.innerHTML = '';
-            if(globalHistoryData.length === 0) {
+            if (globalHistoryData.length === 0) {
                 grid.innerHTML = '<p style="color: #94a3b8;">Aucun historique pour l\'instant.</p>';
             } else {
                 globalHistoryData.forEach(item => {
-                    const pill = createHistoryPill(item);
-                    grid.appendChild(pill);
+                    grid.appendChild(createHistoryPill(item));
                 });
             }
             document.getElementById('historyModal').classList.remove('hidden');
@@ -525,6 +555,7 @@
             socket.emit('join-game-table', { roomCode: currentRoomCode });
             document.getElementById('game-lobby-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
+            if (audioCtx.state === 'suspended') audioCtx.resume(); // le clic débloque le son
         }
 
         function setBet(amount) {
@@ -550,15 +581,15 @@
             const mBox = document.getElementById('multiplierBox');
             mBox.classList.remove('crashed-text');
             mBox.innerText = "1.00x";
-            
+
             document.getElementById('currentHashDisplay').innerText = data.hash;
             document.getElementById('gameStatusText').innerText = `Prochaine manche dans ${data.countdown}s... Placez vos mises !`;
             document.getElementById('liveCashoutPreview').innerText = "";
-            
+
             document.getElementById('planeGroup').setAttribute('transform', `translate(0, 240)`);
             document.getElementById('flightCurve').setAttribute('d', `M 0 240 Q 0 240, 0 240`);
             document.getElementById('curveArea').setAttribute('d', `M 0 240 L 0 240 L 0 240 Z`);
-            
+
             updateUI(data.room);
         });
 
@@ -585,12 +616,12 @@
 
             let pathData = `M 0 240 Q ${posX / 2} 240, ${posX} ${posY}`;
             let areaData = `M 0 240 L 0 240 L ${posX} ${posY} L ${posX} 240 Z`;
-            
+
             document.getElementById('flightCurve').setAttribute('d', pathData);
             document.getElementById('curveArea').setAttribute('d', areaData);
             document.getElementById('planeGroup').setAttribute('transform', `translate(${posX}, ${posY})`);
 
-            if(myActiveBet > 0 && !hasCashedOut) {
+            if (myActiveBet > 0 && !hasCashedOut) {
                 let potentialWin = Math.floor(myActiveBet * currentMultiplierVal);
                 document.getElementById('liveCashoutPreview').innerText = `Gain potentiel en direct : ${potentialWin} 🪙`;
             }
@@ -610,35 +641,32 @@
         });
 
         socket.on('player-cashed-out', (data) => {
-            if(data.socketId === socket.id) {
+            if (data.socketId === socket.id) {
                 hasCashedOut = true;
                 playSound('win');
-                document.getElementById('actionBtn').innerText = `Cash Out Réussi (+${data.winnings}🪙) ✅`;
-                document.getElementById('actionBtn').style.background = "#3b82f6";
-                document.getElementById('liveCashoutPreview').innerText = `Tu as gagné ${data.winnings} 🪙 !`;
+                document.getElementById('liveCashoutPreview').innerText = `Tu as gagné ${data.winnings} 🪙 ! (x${Number(data.multiplier).toFixed(2)})`;
             }
         });
 
         function handleMainAction() {
-            if (gamePhase === 'ended') return;
+            if (gamePhase === 'ended' || gamePhase === 'waiting') return;
+
+            // Cash out : pas besoin de montant
+            if (gamePhase === 'playing' && myActiveBet > 0 && !hasCashedOut) {
+                socket.emit('cash-out', { roomCode: currentRoomCode });
+                return;
+            }
+
+            // Un pari est déjà enregistré : on ne le double pas (utilise "Annuler" pour le changer)
+            if (gamePhase === 'betting' && myActiveBet > 0) return;
+            if ((gamePhase === 'playing' || gamePhase === 'crashed') && myNextBet > 0) return;
+
             const amount = parseInt(document.getElementById('betAmount').value);
             const autoCashOut = document.getElementById('autoCashOutInput').value;
 
             if (!amount || amount <= 0) return alert("Entre un montant valide !");
 
-            if (gamePhase === 'betting') {
-                socket.emit('place-bet', { roomCode: currentRoomCode, amount, autoCashOut });
-            } 
-            else if (gamePhase === 'playing') {
-                if (myActiveBet > 0 && !hasCashedOut) {
-                    socket.emit('cash-out', { roomCode: currentRoomCode });
-                } else {
-                    socket.emit('place-bet', { roomCode: currentRoomCode, amount, autoCashOut });
-                }
-            }
-            else if (gamePhase === 'crashed') {
-                socket.emit('place-bet', { roomCode: currentRoomCode, amount, autoCashOut });
-            }
+            socket.emit('place-bet', { roomCode: currentRoomCode, amount, autoCashOut });
         }
 
         function cancelBet() {
