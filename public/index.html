@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Crash P2P - Arena Ultimate & Icefield</title>
+    <title>Crash P2P - Aviator Pro Ultimate</title>
     <style>
 *{box-sizing:border-box}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:radial-gradient(1100px 560px at 50% -8%,#3a1530 0,#150d22 45%,#07060d 100%) fixed;color:#efe9dc;margin:0;padding:18px;text-align:center;min-height:100vh}
@@ -17,8 +17,7 @@ button{background:linear-gradient(180deg,#3fd68b,#17a057);color:#fff;font-weight
 button:hover{filter:brightness(1.1)}button:active{transform:scale(.97)}
 button:disabled{opacity:.5;cursor:not-allowed;filter:none}
 .hidden{display:none!important}
-#game-screen, #icefield-screen{background:linear-gradient(180deg,#1a1026,#0c0814);border-radius:18px;padding:18px;border:1px solid rgba(212,162,76,.3);box-shadow:0 18px 50px rgba(0,0,0,.6)}
-
+#game-screen{background:linear-gradient(180deg,#1a1026,#0c0814);border-radius:18px;padding:18px;border:1px solid rgba(212,162,76,.3);box-shadow:0 18px 50px rgba(0,0,0,.6)}
 .history-container{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .history-bar{display:flex;gap:8px;overflow-x:auto;padding:4px 0;flex-grow:1;scrollbar-width:none}
 .history-bar::-webkit-scrollbar{display:none}
@@ -35,7 +34,13 @@ button:disabled{opacity:.5;cursor:not-allowed;filter:none}
 .game-svg{width:100%;height:100%;position:absolute;inset:0}
 .multiplier-display{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:clamp(44px,13vw,80px);font-weight:900;font-variant-numeric:tabular-nums;color:#5cc8ff;text-shadow:0 0 24px currentColor,0 4px 12px rgba(0,0,0,.8);z-index:10;pointer-events:none;white-space:nowrap}
 .crashed-text{color:#ff4d5e!important}
-
+#boom{opacity:0;transform-box:fill-box;transform-origin:center}
+#boom.go{animation:boom .7s ease-out}
+.shake{animation:shake .5s}
+@keyframes boom{0%{transform:scale(.1);opacity:1}100%{transform:scale(2.6);opacity:0}}
+@keyframes shake{0%,100%{transform:none}20%{transform:translate(-6px,3px)}40%{transform:translate(5px,-4px)}60%{transform:translate(-4px,-2px)}80%{transform:translate(3px,3px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{50%{box-shadow:0 0 0 8px rgba(251,191,36,0)}}
 .bet-control-box{background:linear-gradient(180deg,#241731,#150d1f);padding:15px;border-radius:12px;margin-top:15px;border:1px solid rgba(212,162,76,.25)}
 #actionBtn{font-size:18px;padding:16px;letter-spacing:.4px}
 .btn-cashout{background:linear-gradient(180deg,#ffd45c,#e09a10)!important;color:#2a1700!important;font-size:20px!important;font-weight:900;box-shadow:0 0 0 0 rgba(251,191,36,.6);animation:pulse 1s infinite}
@@ -48,26 +53,11 @@ button:disabled{opacity:.5;cursor:not-allowed;filter:none}
 .modal-overlay{position:fixed;inset:0;background:rgba(5,3,10,.88);backdrop-filter:blur(4px);display:flex;justify-content:center;align-items:center;z-index:9999}
 .modal-content{background:linear-gradient(160deg,#2c1a34,#140d1d);padding:25px;border-radius:18px;width:90%;max-width:480px;max-height:80vh;overflow-y:auto;text-align:center;border:1px solid rgba(212,162,76,.4);box-shadow:0 20px 60px rgba(0,0,0,.7)}
 .full-history-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-height:350px;overflow-y:auto;padding:15px 5px}
-.game-thumbnail{background:linear-gradient(135deg,#8a1c3c,#d4562a 60%,#f0a63a);padding:22px;border-radius:14px;cursor:pointer;text-align:center;font-weight:800;font-size:20px;box-shadow:0 8px 24px rgba(212,86,42,.4);transition:transform .2s;margin-bottom:12px}
+.game-thumbnail{background:linear-gradient(135deg,#8a1c3c,#d4562a 60%,#f0a63a);padding:22px;border-radius:14px;cursor:pointer;text-align:center;font-weight:800;font-size:20px;box-shadow:0 8px 24px rgba(212,86,42,.4);transition:transform .2s}
 .game-thumbnail:hover{transform:scale(1.03)}
-.game-thumbnail-ice{background:linear-gradient(135deg,#1e3a8a,#0284c7 60%,#38bdf8);box-shadow:0 8px 24px rgba(2,132,199,.4)}
-
-/* --- STYLES ICEFIELD --- */
-.icefield-grid{display:flex;flex-direction:column-reverse;gap:8px;margin:15px 0;background:#0d0814;padding:15px;border-radius:12px;border:1px solid rgba(56,189,248,.3)}
-.ice-row{display:flex;gap:6px;justify-content:center}
-.ice-tile{flex:1;height:45px;background:linear-gradient(180deg,#1e293b,#0f172a);border:1px solid #334155;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:18px;transition:all .15s}
-.ice-tile.active-row{border-color:#38bdf8;box-shadow:0 0 10px rgba(56,189,248,.4);background:linear-gradient(180deg,#0284c7,#0369a1)}
-.ice-tile.active-row:hover{transform:scale(1.04);filter:brightness(1.2)}
-.ice-tile.success{background:linear-gradient(180deg,#22c55e,#15803d)!important;border-color:#4ade80!important}
-.ice-tile.broken{background:linear-gradient(180deg,#ef4444,#b91c1c)!important;border-color:#f87171!important;animation:shake .4s}
-.ice-tile.disabled{opacity:.4;cursor:not-allowed}
-.ice-mult-badge{font-size:12px;color:#38bdf8;font-weight:bold;margin-bottom:4px;text-align:right}
-
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes shake{0%,100%{transform:none}20%{transform:translate(-6px,3px)}40%{transform:translate(5px,-4px)}60%{transform:translate(-4px,-2px)}80%{transform:translate(3px,3px)}}
-@keyframes pulse{50%{box-shadow:0 0 0 8px rgba(251,191,36,0)}}
 ul{padding-left:20px;text-align:left}
-</style>
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+.bet-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px}.bet-grid .bet-control-box{margin-top:0}@media(max-width:560px){.bet-grid{grid-template-columns:1fr}}.auto-row{display:flex;align-items:center;gap:8px;font-size:13px;color:#cdbf9f;margin:6px 0}.auto-row input{width:auto;margin:0}.act{font-size:16px;padding:14px;letter-spacing:.3px}</style>
 </head>
 <body>
     <div class="container">
@@ -108,9 +98,6 @@ ul{padding-left:20px;text-align:left}
                 <div class="game-thumbnail" onclick="launchGame('Crash Out')">
                     ✈️ Crash Out (Style Aviator)
                 </div>
-                <div class="game-thumbnail game-thumbnail-ice" onclick="launchGame('Icefield')">
-                    🧊 Icefield (Traversée de Glace)
-                </div>
             </div>
 
             <div id="playerWaitingGame" class="hidden" style="margin-top: 20px; text-align: center; color: #94a3b8;">
@@ -123,16 +110,15 @@ ul{padding-left:20px;text-align:left}
             <h2>🎮 Salon des Jeux</h2>
             <p>Jeu ouvert par l'hôte : <b id="gameTitleName" style="color: #c084fc;"></b></p>
             <div class="game-thumbnail" style="margin: 20px auto; max-width: 300px;" onclick="joinGameTable()">
-                Entrer dans la table 🚀
+                Entrer dans la table ✈️
             </div>
         </div>
 
         <!-- 4. ÉCRAN DE JEU AVIATOR PRO -->
         <div id="game-screen" class="hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
-                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
-                <button id="musicBtn" class="btn-history-more" onclick="toggleMusic()" title="Musique on/off">🎵</button>
-                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span id="sessionTimerDisplay">--:--</span></span>
+                <button id="musicBtn" class="btn-history-more" onclick="toggleMusic()" title="Musique on/off">🎵</button><span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span id="playerBalance">1000</span> 🪙</span>
             </div>
 
             <div class="history-container">
@@ -140,7 +126,7 @@ ul{padding-left:20px;text-align:left}
                 <button class="btn-history-more" onclick="openHistoryModal()">•••</button>
             </div>
 
-            <div class="provably-fair-box">
+            <div class="provably-fair-box" id="provablyFairBox">
                 🔒 <b>Provably Fair Hash (SHA-256) :</b> <span id="currentHashDisplay" style="color: #38bdf8;">En attente...</span>
             </div>
 
@@ -158,6 +144,7 @@ ul{padding-left:20px;text-align:left}
                         <filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
                     </defs>
                     <g stroke="rgba(255,255,255,.06)"><path d="M0 60H500M0 120H500M0 180H500M0 240H500M100 0V260M200 0V260M300 0V260M400 0V260"/></g>
+                    <g id="axis" font-size="9" fill="rgba(255,255,255,.4)"></g>
                     <path id="curveArea" fill="url(#gArea)"/>
                     <path id="flightCurve" fill="none" stroke="url(#gCurve)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
                     <g id="trail"></g>
@@ -179,84 +166,37 @@ ul{padding-left:20px;text-align:left}
 
             <p id="gameStatusText" style="color: #94a3b8; margin: 10px 0; font-weight: bold;">En attente de la prochaine manche...</p>
 
-            <div class="bet-control-box">
-                <div class="quick-bet-row">
-                    <button class="quick-btn" onclick="setBet(10)">10 🪙</button>
-                    <button class="quick-btn" onclick="setBet(50)">50 🪙</button>
-                    <button class="quick-btn" onclick="setBet(100)">100 🪙</button>
-                    <button class="quick-btn" onclick="setBet(500)">500 🪙</button>
-                </div>
-                <div class="quick-bet-row">
-                    <button class="quick-btn" onclick="multiplyBet(0.5)">÷2</button>
-                    <button class="quick-btn" onclick="multiplyBet(2)">×2</button>
-                    <button class="quick-btn" onclick="setMaxBet()">Max (All-in)</button>
-                </div>
+            <div id="betPanels" class="bet-grid"></div>
+            <div id="liveCashoutPreview" style="margin:10px 0 0;font-size:15px;color:#5cc8ff;font-weight:700;min-height:20px"></div>
 
-                <div style="display: flex; gap: 10px; margin-top: 8px;">
-                    <input type="number" id="betAmount" value="50" min="1" placeholder="Montant de la mise" style="margin:0; flex: 2;">
-                    <input type="number" step="0.1" min="1.01" id="autoCashOutInput" placeholder="Auto Cash-Out (ex: 2.00)" style="margin:0; flex: 1.5;">
-                </div>
-
-                <button id="actionBtn" onclick="handleMainAction()">En attente de la prochaine manche...</button>
-                <button id="cancelBtn" class="btn-cancel hidden" onclick="cancelBet()">Annuler le pari</button>
-
-                <div id="liveCashoutPreview" style="margin-top: 8px; font-size: 15px; color: #38bdf8; font-weight: bold;"></div>
-            </div>
 
             <div class="card" style="margin-top: 15px; background: #0f172a;">
-                <h4 style="margin-top:0;">🏆 Leaderboard & Participants :</h4>
+                <h4 style="margin-top:0;">👥 Mises en direct :</h4>
                 <ul id="gamePlayersList"></ul>
-            </div>
-        </div>
-
-        <!-- 5. ÉCRAN DE JEU ICEFIELD -->
-        <div id="icefield-screen" class="hidden">
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
-                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
-                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
-            </div>
-
-            <h3 style="margin: 5px 0; color: #38bdf8;">🧊 Icefield - Traversée de Glace</h3>
-            <p id="iceStatusText" style="font-size: 14px; color: #94a3b8; margin: 5px 0;">Configure ta mise et le nombre de blocs par ligne !</p>
-
-            <div class="icefield-grid" id="iceGrid"></div>
-
-            <div class="bet-control-box">
-                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                    <div style="flex: 1;">
-                        <label style="font-size: 12px; color: #94a3b8; text-align: left; display: block;">Blocs par ligne (2 - 10) :</label>
-                        <input type="number" id="iceColsInput" value="3" min="2" max="10" style="margin: 4px 0;">
-                    </div>
-                    <div style="flex: 1.5;">
-                        <label style="font-size: 12px; color: #94a3b8; text-align: left; display: block;">Mise :</label>
-                        <input type="number" id="iceBetAmount" value="50" min="1" style="margin: 4px 0;">
-                    </div>
+                <div class="stats-badge" id="myStatsBadge">
+                    <span>📊 <b>Mes Stats :</b> 0 parties</span>
+                    <span>Victoires : 0</span>
+                    <span>Profit : <span class="text-green">0 🪙</span></span>
                 </div>
-
-                <button id="iceStartBtn" onclick="startIcefieldGame()">Lancer la traversée 🧊</button>
-                <button id="iceCashoutBtn" class="btn-cashout hidden" onclick="cashoutIcefield()">ENCAISSER (CASH OUT)</button>
-            </div>
-
-            <div class="card" style="margin-top: 15px; background: #0f172a;">
-                <h4 style="margin-top:0;">🏆 Leaderboard :</h4>
-                <ul id="icePlayersList"></ul>
             </div>
         </div>
     </div>
 
-    <!-- MODALES -->
+    <!-- MODALE HISTORIQUE COMPLET -->
     <div id="historyModal" class="modal-overlay hidden">
         <div class="modal-content">
             <h3 style="margin-top:0; color: #38bdf8;">📜 Historique Complet des Tours</h3>
+            <p style="font-size: 13px; color: #94a3b8; margin-bottom: 15px;">Clique sur une pastille pour voir la preuve Provably Fair.</p>
             <div class="full-history-grid" id="fullHistoryGrid"></div>
             <button onclick="closeHistoryModal()" style="background: #ef4444; margin-top: 20px;">Fermer</button>
         </div>
     </div>
 
+    <!-- MODALE RÉSULTATS DE FIN DE SESSION -->
     <div id="gameOverModal" class="modal-overlay hidden">
         <div class="modal-content" style="border: 2px solid #eab308;">
             <h2 style="margin-top:0; color: #eab308;">🏁 Fin de la Session !</h2>
-            <p style="color: #94a3b8; font-size: 14px;">Voici le classement final des joueurs :</p>
+            <p style="color: #94a3b8; font-size: 14px;">Le temps imparti est écoulé. Voici le classement final des joueurs :</p>
             <div id="finalLeaderboardList" style="text-align: left; margin: 15px 0; max-height: 250px; overflow-y: auto;"></div>
             <button onclick="location.reload()" style="background: #22c55e; margin-top: 20px;">Recommencer une partie</button>
         </div>
@@ -271,14 +211,17 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const show = (id, on = true) => $(id).classList.toggle('hidden', !on);
 
-const S = { code:null, phase:'waiting', gameName: 'Crash Out', balance:1000, bet:0, nextBet:0, cashed:false,
-            history:[], target:1, shown:1, t0:0, smoke:[], wasConnected:false, iceState: null };
+/* ---------- État ---------- */
+const S = { code:null, phase:'waiting', balance:1000, slots:[{},{}],
+            history:[], target:1, shown:1, t0:0, smoke:[], wasConnected:false };
 
-/* ---------- Audio ---------- */
+/* ---------- Audio : effets doux + musique chill générative (aucun fichier à charger) ---------- */
 const Snd = (() => {
   let ctx, sfx, musicBus, verb, noiseBuf, timer = null, nextT = 0, step = 0, musicOn = true;
   const BPM = 72, hz = m => 440 * Math.pow(2, (m - 69) / 12);
-  const CH = [{ b: 45, n: [57, 60, 64, 67, 71] }, { b: 41, n: [53, 57, 60, 64] }, { b: 48, n: [52, 55, 59, 64] }, { b: 43, n: [59, 62, 64, 67] }];
+  const CH = [ // Am9 · Fmaj7 · Cmaj7 · G6  (notes MIDI)
+    { b: 45, n: [57, 60, 64, 67, 71] }, { b: 41, n: [53, 57, 60, 64] },
+    { b: 48, n: [52, 55, 59, 64] },     { b: 43, n: [59, 62, 64, 67] } ];
 
   function init() {
     if (ctx) return;
@@ -315,16 +258,19 @@ const Snd = (() => {
     s.connect(f); f.connect(g); g.connect(o.dest || sfx); s.start(t, Math.random() * .5); s.stop(t + dur + .05);
   }
 
+  // Effets : sinusoïdes/triangles arrondis + réverb, rien d'agressif
   const FX = {
     bet:       t => { tone(660, t, .14, { type: 'triangle', v: .16 }); tone(990, t + .06, .18, { type: 'triangle', v: .14 }); },
     cancel:    t => tone(520, t, .2, { type: 'triangle', to: 330, v: .14 }),
     tick:      t => tone(1250, t, .07, { v: .1 }),
     start:     t => { tone(784, t, .5, { v: .14 }); tone(1175, t + .09, .6, { v: .1 }); },
     takeoff:   t => { noise(t, 1.4, { f: 250, to: 3200, v: .13 }); tone(180, t, 1.2, { to: 420, v: .09, a: .3 }); },
-    win:       t => [523, 659, 784, 1047, 1319].forEach((f, i) => { tone(f, t + i * .075, .9, { type: 'triangle', v: .15 }); }),
-    crash:     t => { tone(150, t, .6, { to: 38, v: .45 }); noise(t, .45, { f: 700, to: 90, v: .22 }); }
+    milestone: t => { tone(1047, t, .35, { type: 'triangle', v: .12 }); tone(1568, t + .07, .45, { v: .1 }); },
+    win:       t => [523, 659, 784, 1047, 1319].forEach((f, i) => { tone(f, t + i * .075, .9, { type: 'triangle', v: .15 }); tone(f * 2, t + i * .075, .6, { v: .05 }); }),
+    crash:     t => { tone(150, t, .6, { to: 38, v: .45 }); noise(t, .45, { f: 700, to: 90, v: .22 }); tone(330, t + .05, .7, { type: 'triangle', to: 196, v: .09 }); }
   };
 
+  // Musique lo-fi : accords en nappe, basse, batterie douce et petites notes aléatoires, croches swinguées
   function pad(c, t, dur) {
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.connect(musicBus);
     c.n.forEach(m => [-7, 7].forEach(d => tone(hz(m), t, dur, { type: 'triangle', v: .035, a: 1.1, sus: 1.2, det: d, dest: lp })));
@@ -335,9 +281,15 @@ const Snd = (() => {
     if (s === 0 || s === 5) tone(hz(c.b), t, s ? .5 : .9, { v: .2, a: .02, dest: musicBus });
     if (s === 0 || s === 4) tone(115, t, .3, { to: 42, v: .32, dest: musicBus });
     if (s === 2 || s === 6) noise(t, .16, { type: 'bandpass', f: 1800, v: .05, dest: musicBus });
+    if (s % 2) noise(t, .05, { type: 'highpass', f: 7000, v: .025, dest: musicBus });
+    if (Math.random() < .6) {
+      const m = hz(c.n[Math.floor(Math.random() * c.n.length)] + 12);
+      tone(m, t, .9, { type: 'triangle', v: .06, a: .01, dest: musicBus });
+      tone(m * 2, t, .35, { v: .015, dest: musicBus });
+    }
   }
   function schedule() {
-    if (nextT < ctx.currentTime - .3) nextT = ctx.currentTime + .05;
+    if (nextT < ctx.currentTime - .3) nextT = ctx.currentTime + .05; // onglet resté en arrière-plan
     while (nextT < ctx.currentTime + .5) {
       playStep(step, nextT);
       nextT += (30 / BPM) * (step % 2 ? .82 : 1.18);
@@ -357,8 +309,9 @@ const Snd = (() => {
 const sound = name => Snd.play(name);
 const startAudio = () => { Snd.unlock(); Snd.startMusic(); };
 const toggleMusic = () => { $('musicBtn').textContent = Snd.toggle() ? '🎵' : '🔇'; };
+let lastShown = 1;
 
-/* ---------- Handlers UI ---------- */
+/* ---------- Actions (appelées par les onclick du HTML) ---------- */
 function createRoom() {
   const playerName = $('createName').value.trim();
   if (!playerName) return alert('Entre un pseudo !');
@@ -372,162 +325,118 @@ function joinRoom() {
 const launchGame = gameName => socket.emit('launch-game-lobby', { roomCode: S.code, gameName });
 function joinGameTable() {
   socket.emit('join-game-table', { roomCode: S.code });
-  show('game-lobby-screen', false);
-  if (S.gameName === 'Icefield') {
-    show('icefield-screen');
-    renderIcefieldGrid();
-  } else {
-    show('game-screen');
-  }
-  startAudio();
+  show('game-lobby-screen', false); show('game-screen');
+  startAudio(); // le clic débloque l'audio et lance la musique
 }
-
-/* ---------- Actions Crash ---------- */
-const setBet = n => { $('betAmount').value = n; };
-const multiplyBet = f => { $('betAmount').value = Math.max(1, Math.floor((parseFloat($('betAmount').value) || 0) * f)); };
-const setMaxBet = () => { $('betAmount').value = S.balance; };
-const cancelBet = () => { sound('cancel'); socket.emit('cancel-next-bet', { roomCode: S.code }); };
-
-function handleMainAction() {
+function buildPanels() {
+  $('betPanels').innerHTML = [0, 1].map(i => `<div class="bet-control-box">
+    <div class="quick-bet-row">${[10, 50, 100, 500].map(a => `<button class="quick-btn" data-i="${i}" data-a="${a}">${a}</button>`).join('')}</div>
+    <div class="quick-bet-row"><button class="quick-btn" data-i="${i}" data-f=".5">÷2</button><button class="quick-btn" data-i="${i}" data-f="2">×2</button><button class="quick-btn" data-i="${i}" data-f="max">Max</button></div>
+    <div style="display:flex;gap:8px"><input type="number" id="amt${i}" value="${i ? 100 : 50}" min="1" style="margin:0;flex:2"><input type="number" step="0.1" min="1.01" id="auto${i}" placeholder="Auto cash-out" style="margin:0;flex:1.5"></div>
+    <label class="auto-row"><input type="checkbox" id="ab${i}"> Relancer la mise automatiquement</label>
+    <button class="act" id="act${i}" data-i="${i}"></button>
+    <button class="btn-cancel hidden" id="cancel${i}" data-i="${i}">Annuler</button></div>`).join('');
+  $('betPanels').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const i = +b.dataset.i, amt = $('amt' + i);
+    if (b.dataset.a) amt.value = b.dataset.a;
+    else if (b.dataset.f === 'max') amt.value = S.balance;
+    else if (b.dataset.f) amt.value = Math.max(1, Math.floor((parseFloat(amt.value) || 0) * b.dataset.f));
+    else if (b.id.startsWith('act')) act(i);
+    else if (b.id.startsWith('cancel')) { sound('cancel'); socket.emit('cancel-next-bet', { roomCode: S.code, slot: i }); }
+  });
+}
+function act(i) {
+  const s = S.slots[i] || {};
   if (S.phase === 'ended' || S.phase === 'waiting') return;
-  if (S.phase === 'playing' && S.bet > 0 && !S.cashed) return socket.emit('cash-out', { roomCode: S.code });
-  if (S.phase === 'betting' ? S.bet > 0 : S.nextBet > 0) return;
-  const amount = parseInt($('betAmount').value);
+  if (S.phase === 'playing' && s.bet > 0 && !s.cashed) return socket.emit('cash-out', { roomCode: S.code, slot: i });
+  if (S.phase === 'betting' ? s.bet > 0 : s.next > 0) return; // pari déjà posé
+  const amount = parseInt($('amt' + i).value);
   if (!amount || amount <= 0) return alert('Entre un montant valide !');
   sound('bet');
-  socket.emit('place-bet', { roomCode: S.code, amount, autoCashOut: $('autoCashOutInput').value });
+  socket.emit('place-bet', { roomCode: S.code, slot: i, amount, autoCashOut: $('auto' + i).value });
 }
-
-/* ---------- Actions Icefield ---------- */
-function startIcefieldGame() {
-  const amount = parseInt($('iceBetAmount').value);
-  const cols = parseInt($('iceColsInput').value);
-  if (!amount || amount <= 0) return alert('Entre un montant valide !');
-  if (cols < 2 || cols > 10) return alert('Nombre de blocs entre 2 et 10 !');
-  sound('bet');
-  socket.emit('icefield-start-game', { roomCode: S.code, amount, cols });
+function autoBets() {
+  [0, 1].forEach(i => {
+    const a = parseInt($('amt' + i).value);
+    if ($('ab' + i).checked && !(S.slots[i].bet > 0) && a > 0 && S.balance >= a) act(i);
+  });
 }
+buildPanels();
 
-function stepIcefield(tileIndex) {
-  socket.emit('icefield-step', { roomCode: S.code, tileIndex });
-}
-
-function cashoutIcefield() {
-  socket.emit('icefield-cashout', { roomCode: S.code });
-}
-
-function renderIcefieldGrid() {
-  const grid = $('iceGrid');
-  grid.innerHTML = '';
-  const cols = S.iceState ? S.iceState.cols : (parseInt($('iceColsInput').value) || 3);
-  const currentStep = S.iceState ? S.iceState.currentStep : 0;
-  const active = S.iceState ? S.iceState.active : false;
-  const path = S.iceState ? S.iceState.path : [];
-
-  for (let row = 7; row >= 0; row--) {
-    const rowDiv = document.createElement('div');
-    rowDiv.className = 'ice-row';
-
-    const multVal = S.iceState ? S.iceState.multipliers[row] : null;
-
-    for (let col = 0; col < cols; col++) {
-      const tile = document.createElement('div');
-      tile.className = 'ice-tile';
-
-      if (row < currentStep) {
-        if (path[row] === col) {
-          tile.classList.add('success');
-          tile.textContent = '🧊';
-        } else {
-          tile.classList.add('disabled');
-        }
-      } else if (row === currentStep && active) {
-        tile.classList.add('active-row');
-        tile.textContent = '❓';
-        tile.onclick = () => stepIcefield(col);
-      } else {
-        tile.classList.add('disabled');
-      }
-
-      rowDiv.appendChild(tile);
-    }
-    grid.appendChild(rowDiv);
-  }
-
-  show('iceStartBtn', !active);
-  show('iceCashoutBtn', active && currentStep > 0);
-
-  if (active && currentStep > 0) {
-    const currentMult = S.iceState.multipliers[currentStep - 1];
-    const gain = Math.floor(S.bet * currentMult);
-    $('iceStatusText').textContent = `Étape ${currentStep}/8 - Multiplicateur actuel : x${currentMult} (Gain : ${gain} 🪙)`;
-  } else if (!active) {
-    $('iceStatusText').textContent = 'Prêt ? Choisis tes paramètres et lance la traversée !';
-  }
-}
-
-/* ---------- Synchronisation ---------- */
-function setBtn(text, bg, cashout = false, disabled = false) {
-  const b = $('actionBtn');
-  b.textContent = text; b.style.background = bg || ''; b.disabled = disabled;
-  b.classList.toggle('btn-cashout', cashout);
-}
+/* ---------- Rendu de l'interface ---------- */
 function renderButtons() {
-  const { phase, bet, nextBet, cashed } = S;
-  let cancel = false;
-  if (phase === 'betting') {
-    if (bet > 0) { setBtn(`Pari enregistré : ${bet} 🪙 ✅`, '#3b82f6'); cancel = true; }
-    else setBtn('Parier pour la manche', '#22c55e');
-  } else if (phase === 'playing' && bet > 0 && !cashed) {
-    setBtn('CASH OUT', '', true);
-  } else if (phase === 'playing' || phase === 'crashed') {
-    if (nextBet > 0) { setBtn(`Prochain tour préparé : ${nextBet} 🪙 ✅`, '#eab308'); cancel = true; }
-    else setBtn('Parier pour le tour suivant ✈️', '#3b82f6');
-  } else setBtn('En attente de la prochaine manche...', '', false, true);
-  show('cancelBtn', cancel);
+  [0, 1].forEach(i => {
+    const s = S.slots[i], b = $('act' + i), ph = S.phase;
+    let text, bg = '', cash = false, dis = false, cancel = false;
+    if (ph === 'betting') {
+      if (s.bet > 0) { text = `Pari enregistré : ${s.bet} 🪙 ✅`; bg = '#3b82f6'; cancel = true; }
+      else { text = 'Parier'; bg = '#22c55e'; }
+    } else if (ph === 'playing' && s.bet > 0 && !s.cashed) { text = `CASH OUT ${Math.floor(s.bet * S.shown)} 🪙`; cash = true; }
+    else if (ph === 'playing' || ph === 'crashed') {
+      if (s.next > 0) { text = `Prochain tour : ${s.next} 🪙 ✅`; bg = '#eab308'; cancel = true; }
+      else { text = 'Parier pour le tour suivant'; bg = '#3b82f6'; }
+    } else { text = 'En attente...'; dis = true; }
+    b.textContent = text; b.style.background = bg; b.disabled = dis; b.classList.toggle('btn-cashout', cash);
+    $('cancel' + i).classList.toggle('hidden', !cancel);
+  });
 }
 
 function renderPlayers(room) {
-  const lobby = $('playersList'), game = $('gamePlayersList'), iceList = $('icePlayersList');
-  lobby.innerHTML = '';
-  if (game) game.innerHTML = '';
-  if (iceList) iceList.innerHTML = '';
-
+  const lobby = $('playersList'), game = $('gamePlayersList');
+  lobby.innerHTML = game.innerHTML = '';
   const avg = room.players.reduce((s, p) => s + p.stats.totalProfit, 0) / (room.players.length || 1);
   let admin = false;
 
   room.players.forEach(p => {
     const li = document.createElement('li');
-    li.textContent = `${p.name} (${p.balance} 🪙) ${p.isAdmin ? '👑 Hôte' : ''}`;
+    li.textContent = `${p.name} (${p.balance} 🪙) ${p.isAdmin ? '👑 Hôte' : ''}${p.connected === false ? ' 💤 déconnecté' : ''}`;
     lobby.appendChild(li);
 
-    let st = '';
-    if (p.bet > 0) st = `Mise active: ${p.bet} 🪙`;
-    if (p.cashedOut) st = `✅ Cash Out (+${p.winAmount} 🪙)`;
+    const st = p.slots.map(x => x.cashed ? `✅ +${x.win} 🪙` : x.bet > 0 ? `Mise ${x.bet} 🪙${x.auto ? ' (auto ' + x.auto + 'x)' : ''}` : x.next > 0 ? `Prête ${x.next} 🪙` : '').filter(Boolean).join(' · ');
     const sign = p.stats.totalProfit >= 0 ? '+' : '';
-
     const gi = document.createElement('li');
-    gi.innerHTML = `<b>${esc(p.name)}</b> - ${st || 'En attente'} | Profit: <span class="${p.stats.totalProfit >= avg ? 'text-green' : 'text-red'}">${sign}${p.stats.totalProfit} 🪙</span> (Solde: ${p.balance} 🪙)`;
-
-    if (game) game.appendChild(gi);
-    if (iceList) iceList.appendChild(gi.cloneNode(true));
+    gi.innerHTML = `<b>${esc(p.name)}</b> - ${st || 'Observe'} | Profit: <span class="${p.stats.totalProfit >= avg ? 'text-green' : 'text-red'}">${sign}${p.stats.totalProfit} 🪙</span> (Solde: ${p.balance} 🪙)`;
+    game.appendChild(gi);
 
     if (p.id === socket.id) {
-      Object.assign(S, { balance: p.balance, bet: p.bet, nextBet: p.nextBet, cashed: p.cashedOut, iceState: p.iceState });
-      document.querySelectorAll('.playerBalance').forEach(el => el.textContent = p.balance);
+      S.balance = p.balance; S.slots = p.slots;
+      $('playerBalance').textContent = p.balance;
+      $('myStatsBadge').innerHTML = `<span>📊 <b>Mes Stats :</b> ${p.stats.gamesPlayed} jouées</span>
+        <span>Victoires : ${p.stats.wins}</span>
+        <span>Profit : <span class="${p.stats.totalProfit >= 0 ? 'text-green' : 'text-red'}">${sign}${p.stats.totalProfit} 🪙</span></span>`;
       admin = p.isAdmin;
     }
   });
 
   if (room.status === 'waiting') { show('adminControls', admin); show('playerWaitingGame', !admin); }
-  if (room.selectedGame === 'Icefield') renderIcefieldGrid();
 }
 
+function pill(item) {
+  const d = document.createElement('div');
+  d.className = 'history-pill ' + (item.multiplier < 2 ? 'hist-low' : item.multiplier < 10 ? 'hist-mid' : 'hist-high');
+  d.textContent = item.multiplier.toFixed(2) + 'x';
+  d.onclick = () => alert(`🔍 Preuve Provably Fair :\n\n- Multiplicateur : ${item.multiplier}x\n- Hash publié avant la manche : ${item.hash}\n- Graine secrète révélée : ${item.secret}\n\nVérification :\n1) SHA-256(graine) doit être égal au hash publié\n2) Le crash est dérivé de HMAC-SHA256(graine, "crash")`);
+  return d;
+}
+function renderHistory(list) {
+  S.history = list;
+  const bar = $('historyBar'); bar.innerHTML = '';
+  list.slice(0, 8).forEach(i => bar.appendChild(pill(i)));
+}
+function openHistoryModal() {
+  const g = $('fullHistoryGrid'); g.innerHTML = '';
+  if (!S.history.length) g.innerHTML = '<p style="color:#9a90ad">Aucun historique pour l\'instant.</p>';
+  S.history.forEach(i => g.appendChild(pill(i)));
+  show('historyModal');
+}
+const closeHistoryModal = () => show('historyModal', false);
+
+// La phase de jeu vient du serveur : un joueur qui arrive en cours de manche est synchronisé
 function sync(room) {
-  S.gameName = room.selectedGame || 'Crash Out';
   if (['betting', 'playing', 'crashed'].includes(room.status) && S.phase !== 'ended') S.phase = room.status;
   if (room.currentHash) $('currentHashDisplay').textContent = room.currentHash;
-  renderPlayers(room); renderButtons();
+  renderPlayers(room); renderButtons(); renderHistory(room.history || []);
 }
 function enterLobby(room) {
   S.code = room.code;
@@ -536,63 +445,115 @@ function enterLobby(room) {
   sync(room);
 }
 
-/* ---------- Événements Sockets ---------- */
+/* ---------- Animation du vol (60 fps) ---------- */
+const stage = $('stage'), mBox = $('multiplierBox'), curve = $('flightCurve'), area = $('curveArea'),
+      plane = $('planeGroup'), axis = $('axis'), flame = $('flame'), trail = $('trail'), boom = $('boom'), live = $('liveCashoutPreview');
+// Zoom automatique : l'axe vertical s'adapte au multiplicateur (comme un vrai graphique de crash)
+function draw(m, now) {
+  const top = Math.max(3, m * 1.2), lm = Math.log(m), xf = lm / Math.log(top);
+  const yf = v => 236 - (v - 1) / (top - 1) * 170;
+  const pt = k => ({ x: 24 + k * 420 * xf, y: yf(Math.exp(lm * k)) });
+  let d = 'M24 236';
+  for (let i = 1; i <= 40; i++) { const s = pt(i / 40); d += ` L${s.x.toFixed(1)} ${s.y.toFixed(1)}`; }
+  const end = pt(1), p0 = pt(.95), up = m > 1.001, bob = Math.sin(now / 350) * (m > 2.5 ? 4 : 2);
+  const ang = up ? Math.atan2(end.y - p0.y, end.x - p0.x) * 180 / Math.PI : -4;
+  curve.setAttribute('d', up ? d : 'M24 236L24 236');
+  area.setAttribute('d', up ? `${d} L${end.x.toFixed(1)} 260 L24 260Z` : '');
+  plane.setAttribute('transform', `translate(${end.x.toFixed(1)} ${(end.y + bob).toFixed(1)}) rotate(${ang.toFixed(1)})`);
+  axis.innerHTML = [.25, .5, .75, 1].map(f => { const v = 1 + f * (top - 1); return `<text x="494" y="${(yf(v) - 3).toFixed(0)}" text-anchor="end">${v.toFixed(1)}x</text>`; }).join('');
+  return { x: end.x, y: end.y + bob };
+}
+
+function frame(now) {
+  const playing = S.phase === 'playing';
+  if (playing) {
+    // extrapolation locale entre deux ticks serveur (70 ms) => mouvement continu
+    S.shown = Math.max(S.shown, Math.min(S.target * Math.exp(.07 * (now - S.t0) / 1000), S.target * 1.03));
+    mBox.textContent = S.shown.toFixed(2) + 'x';
+    for (const m of [2, 5, 10, 25]) if (lastShown < m && S.shown >= m) sound('milestone');
+    lastShown = S.shown;
+    mBox.style.color = S.shown < 2 ? '#5cc8ff' : S.shown < 10 ? '#c58cff' : '#ffc24d';
+    mBox.style.transform = `translate(-50%,-50%) scale(${1 + Math.min(S.shown / 40, .25)})`;
+    S.slots.forEach((s, i) => { if (s.bet > 0 && !s.cashed) $('act' + i).textContent = `CASH OUT ${Math.floor(s.bet * S.shown)} 🪙`; });
+  } else if (S.phase === 'betting') {
+    S.shown = S.target = 1; mBox.style.color = ''; mBox.style.transform = 'translate(-50%,-50%)';
+  }
+  if (S.phase !== 'crashed') {
+    const p = draw(S.shown, now);
+    flame.setAttribute('rx', playing ? 9 + Math.random() * 7 : 3 + Math.random() * 2);
+    if (playing) S.smoke.push({ x: p.x, y: p.y, l: 1 });
+    S.smoke.forEach(s => s.l -= .035);
+    S.smoke = S.smoke.filter(s => s.l > 0);
+    trail.innerHTML = S.smoke.map(s => `<circle cx="${s.x.toFixed(1)}" cy="${s.y.toFixed(1)}" r="${(2 + (1 - s.l) * 7).toFixed(1)}" fill="rgba(255,190,120,${(s.l * .35).toFixed(2)})"/>`).join('');
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------- Événements serveur ---------- */
 socket.on('room-created', d => enterLobby(d.room));
 socket.on('joined-success', enterLobby);
 socket.on('update-room', sync);
 socket.on('error-message', alert);
 
 socket.on('navigate-to-game', d => {
-  S.gameName = d.gameName;
   show('lobby', false); show('game-lobby-screen');
   $('gameTitleName').textContent = d.gameName;
 });
 
 socket.on('timer-update', d => {
   const m = Math.floor(d.timeRemaining / 60), s = d.timeRemaining % 60;
-  document.querySelectorAll('.sessionTimerDisplay').forEach(el => el.textContent = `${m}:${s < 10 ? '0' : ''}${s}`);
-});
-
-socket.on('icefield-result', d => {
-  if (d.success) {
-    if (d.completed || d.cashout) {
-      sound('win');
-      alert(d.message);
-    }
-  } else {
-    sound('crash');
-    alert(d.message);
-  }
+  $('sessionTimerDisplay').textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
 });
 
 socket.on('betting-phase', d => {
-  if (S.phase === 'ended' || S.gameName !== 'Crash Out') return;
-  S.phase = 'betting'; S.cashed = false;
+  if (S.phase === 'ended') return;
+  S.phase = 'betting'; S.smoke = [];
   sound('start');
+  mBox.classList.remove('crashed-text'); mBox.textContent = '1.00x';
+  stage.classList.remove('shake'); plane.style.opacity = 1; trail.innerHTML = '';
   $('currentHashDisplay').textContent = d.hash;
   $('gameStatusText').textContent = `Prochaine manche dans ${d.countdown}s... Placez vos mises !`;
+  live.textContent = '';
   sync(d.room);
+  autoBets();
+});
+
+socket.on('betting-countdown', d => {
+  if (d.countdown <= 3) sound('tick');
+  if (S.phase !== 'ended') $('gameStatusText').textContent = `Prochaine manche dans ${d.countdown}s... Placez vos mises !`;
 });
 
 socket.on('playing-phase-started', room => {
-  if (S.phase === 'ended' || S.gameName !== 'Crash Out') return;
-  S.phase = 'playing'; sound('takeoff');
+  if (S.phase === 'ended') return;
+  S.phase = 'playing'; S.shown = S.target = 1; S.t0 = performance.now(); S.smoke = []; lastShown = 1; sound('takeoff');
   $('gameStatusText').textContent = "L'avion décolle ! Bon vol ✈️";
   sync(room);
 });
 
 socket.on('multiplier-update', d => {
-  if (S.phase === 'ended' || S.gameName !== 'Crash Out') return;
-  $('multiplierBox').textContent = d.multiplier.toFixed(2) + 'x';
+  if (S.phase === 'ended') return;
+  S.target = d.multiplier; S.t0 = performance.now();
 });
 
 socket.on('game-crashed', d => {
-  if (S.phase === 'ended' || S.gameName !== 'Crash Out') return;
-  S.phase = 'crashed';
+  if (S.phase === 'ended') return;
+  S.phase = 'crashed'; S.shown = d.multiplier;
   sound('crash');
-  $('multiplierBox').textContent = d.multiplier.toFixed(2) + 'x (CRASH !)';
+  mBox.innerHTML = `<small style="display:block;font-size:.3em;letter-spacing:1px;color:#ff9aa5">L'avion s'est envolé !</small>${d.multiplier.toFixed(2)}x`; mBox.classList.add('crashed-text');
   $('gameStatusText').textContent = 'Crash ! La manche est terminée.';
+  live.textContent = '';
+  const p = draw(S.shown, performance.now());
+  plane.style.opacity = 0; trail.innerHTML = ''; stage.classList.add('shake');
+  boom.setAttribute('cx', p.x); boom.setAttribute('cy', p.y);
+  boom.classList.remove('go'); void boom.getBoundingClientRect(); boom.classList.add('go');
   sync(d.room);
+});
+
+socket.on('player-cashed-out', d => {
+  if (d.socketId !== socket.id) return;
+  sound('win');
+  live.textContent = `Tu as gagné ${d.winnings} 🪙 ! (x${Number(d.multiplier).toFixed(2)})`;
 });
 
 socket.on('game-session-ended', d => {
@@ -608,8 +569,14 @@ socket.on('game-session-ended', d => {
   show('gameOverModal');
 });
 
-Object.assign(window, { createRoom, joinRoom, launchGame, joinGameTable, setBet, multiplyBet, setMaxBet,
-                        handleMainAction, cancelBet, toggleMusic, startIcefieldGame, stepIcefield, cashoutIcefield });
+// Si la connexion saute (veille du téléphone, redémarrage Render), l'ancien id joueur n'existe plus
+socket.on('disconnect', () => { $('gameStatusText').textContent = '⚠️ Connexion perdue...'; });
+socket.on('connect', () => {
+  if (S.wasConnected && S.code && S.phase !== 'ended') { alert('Connexion perdue : retour à l\'accueil.'); location.reload(); }
+  S.wasConnected = true;
+});
+
+Object.assign(window, { createRoom, joinRoom, launchGame, joinGameTable, openHistoryModal, closeHistoryModal, toggleMusic });
 })();
 </script>
 </body>
