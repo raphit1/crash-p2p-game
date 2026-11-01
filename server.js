@@ -44,10 +44,9 @@ function generateProvablyFairRound() {
 io.on('connection', (socket) => {
     console.log(`Connexion : ${socket.id}`);
 
-    // Création de room avec durée personnalisée (en minutes reçues du client)
     socket.on('create-room', ({ playerName, duration }) => {
         const roomCode = generateRoomCode();
-        const durationInSeconds = (parseInt(duration) || 5) * 60; // Par défaut 5 min si non spécifié
+        const durationInSeconds = (parseInt(duration) || 5) * 60;
 
         rooms[roomCode] = {
             code: roomCode,
@@ -195,7 +194,6 @@ function processCashOut(player, multiplier, roomCode) {
     io.to(roomCode).emit('update-room', rooms[roomCode]);
 }
 
-// Gestion du chronomètre global de la session de jeu
 function startSessionTimer(roomCode) {
     const room = rooms[roomCode];
     if (!room) return;
@@ -208,7 +206,6 @@ function startSessionTimer(roomCode) {
             clearInterval(room.sessionTimer);
             room.status = 'ended';
             
-            // Calcul du classement final
             const leaderboard = [...room.players].map(p => ({
                 name: p.name,
                 finalBalance: p.balance,
