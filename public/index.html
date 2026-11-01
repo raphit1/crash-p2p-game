@@ -62,8 +62,8 @@
         .text-green { color: #22c55e; font-weight: bold; }
         .text-red { color: #ef4444; font-weight: bold; }
 
-        /* Modale Historique Complet (Grille de pastilles) */
-        #historyModal { 
+        /* Modales */
+        .modal-overlay { 
             position: fixed; 
             top: 0; 
             left: 0; 
@@ -112,8 +112,13 @@
             <div class="card">
                 <h3>Créer une Room</h3>
                 <input type="text" id="createName" placeholder="Ton pseudo">
+                <label style="font-size: 14px; color: #94a3b8; display: block; margin-top: 8px;">Durée de la session :</label>
                 <select id="duration">
-                    <option value="5">5 minutes</option>
+                    <option value="1">1 minute (Test rapide)</option>
+                    <option value="3">3 minutes</option>
+                    <option value="5" selected>5 minutes</option>
+                    <option value="10">10 minutes</option>
+                    <option value="15">15 minutes</option>
                 </select>
                 <button onclick="createRoom()">Créer la partie</button>
             </div>
@@ -155,6 +160,12 @@
 
         <!-- 4. ÉCRAN DE JEU AVIATOR PRO -->
         <div id="game-screen" class="hidden">
+            <!-- Barre supérieure avec Chrono global et Historique -->
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span id="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span id="playerBalance">1000</span> 🪙</span>
+            </div>
+
             <div class="history-container">
                 <div class="history-bar" id="historyBar"></div>
                 <button class="btn-history-more" onclick="openHistoryModal()">•••</button>
@@ -162,11 +173,6 @@
 
             <div class="provably-fair-box" id="provablyFairBox">
                 🔒 <b>Provably Fair Hash (SHA-256) :</b> <span id="currentHashDisplay" style="color: #38bdf8;">En attente...</span>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h3 style="margin:0;">✈️ Crash Out Live</h3>
-                <span style="color: #22c55e; font-weight: bold;">Solde : <span id="playerBalance">1000</span> 🪙</span>
             </div>
 
             <div class="game-canvas-container">
@@ -224,13 +230,23 @@
         </div>
     </div>
 
-    <!-- MODALE HISTORIQUE COMPLET (Grille de pastilles) -->
-    <div id="historyModal" class="hidden">
+    <!-- MODALE HISTORIQUE COMPLET -->
+    <div id="historyModal" class="modal-overlay hidden">
         <div class="modal-content">
             <h3 style="margin-top:0; color: #38bdf8;">📜 Historique Complet des Tours</h3>
             <p style="font-size: 13px; color: #94a3b8; margin-bottom: 15px;">Clique sur une pastille pour voir la preuve Provably Fair.</p>
             <div class="full-history-grid" id="fullHistoryGrid"></div>
             <button onclick="closeHistoryModal()" style="background: #ef4444; margin-top: 20px;">Fermer</button>
+        </div>
+    </div>
+
+    <!-- MODALE RÉSULTATS DE FIN DE SESSION -->
+    <div id="gameOverModal" class="modal-overlay hidden">
+        <div class="modal-content" style="border: 2px solid #eab308;">
+            <h2 style="margin-top:0; color: #eab308;">🏁 Fin de la Session !</h2>
+            <p style="color: #94a3b8; font-size: 14px;">Le temps imparti est écoulé. Voici le classement final des joueurs :</p>
+            <div id="finalLeaderboardList" style="text-align: left; margin: 15px 0; max-height: 250px; overflow-y: auto;"></div>
+            <button onclick="location.reload()" style="background: #22c55e; margin-top: 20px;">Recommencer une partie</button>
         </div>
     </div>
 
@@ -305,6 +321,36 @@
         });
 
         socket.on('error-message', (msg) => alert(msg));
+
+        // Réception du décompte du chrono global de session
+        socket.on('timer-update', (data) => {
+            const minutes = Math.floor(data.timeRemaining / 60);
+            const seconds = data.timeRemaining % 60;
+            const formattedTime = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            const timerEl = document.getElementById('sessionTimerDisplay');
+            if (timerEl) timerEl.innerText = formattedTime;
+        });
+
+        // Fin de la session de jeu globale
+        socket.on('game-session-ended', (data) => {
+            gamePhase = 'ended';
+            const modal = document.getElementById('gameOverModal');
+            const listEl = document.getElementById('finalLeaderboardList');
+            listEl.innerHTML = '';
+
+            data.leaderboard.forEach((player, index) => {
+                const profitClass = player.profit >= 0 ? 'text-green' : 'text-red';
+                const div = document.createElement('div');
+                div.style.cssText = "background: #0f172a; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;";
+                div.innerHTML = `
+                    <span><b>#${index + 1} ${player.name}</b></span>
+                    <span>Solde : <b>${player.finalBalance} 🪙</b> (<span class="${profitClass}">${player.profit >= 0 ? '+' : ''}${player.profit}</span>)</span>
+                `;
+                listEl.appendChild(div);
+            });
+
+            modal.classList.remove('hidden');
+        });
 
         function showLobby(room) {
             document.getElementById('auth-screen').classList.add('hidden');
@@ -451,7 +497,6 @@
             return pill;
         }
 
-        // Affichage de la grille complète dans la modale
         function openHistoryModal() {
             const grid = document.getElementById('fullHistoryGrid');
             grid.innerHTML = '';
@@ -502,6 +547,7 @@
         }
 
         socket.on('betting-phase', (data) => {
+            if (gamePhase === 'ended') return;
             gamePhase = 'betting';
             hasCashedOut = false;
             playSound('start');
@@ -521,16 +567,19 @@
         });
 
         socket.on('betting-countdown', (data) => {
+            if (gamePhase === 'ended') return;
             document.getElementById('gameStatusText').innerText = `Prochaine manche dans ${data.countdown}s... Placez vos mises !`;
         });
 
         socket.on('playing-phase-started', (room) => {
+            if (gamePhase === 'ended') return;
             gamePhase = 'playing';
             document.getElementById('gameStatusText').innerText = "L'avion décolle ! Bon vol ✈️";
             updateUI(room);
         });
 
         socket.on('multiplier-update', (data) => {
+            if (gamePhase === 'ended') return;
             currentMultiplierVal = data.multiplier;
             document.getElementById('multiplierBox').innerText = currentMultiplierVal.toFixed(2) + 'x';
 
@@ -552,6 +601,7 @@
         });
 
         socket.on('game-crashed', (data) => {
+            if (gamePhase === 'ended') return;
             gamePhase = 'crashed';
             playSound('crash');
             const mBox = document.getElementById('multiplierBox');
@@ -574,6 +624,7 @@
         });
 
         function handleMainAction() {
+            if (gamePhase === 'ended') return;
             const amount = parseInt(document.getElementById('betAmount').value);
             const autoCashOut = document.getElementById('autoCashOutInput').value;
 
@@ -596,6 +647,7 @@
 
         function cancelBet() {
             socket.emit('cancel-next-bet', { roomCode: currentRoomCode });
-        }    </script>
+        }
+    </script>
 </body>
 </html>
