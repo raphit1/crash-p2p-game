@@ -62,7 +62,6 @@
         .text-green { color: #22c55e; font-weight: bold; }
         .text-red { color: #ef4444; font-weight: bold; }
 
-        /* Modales */
         .modal-overlay { 
             position: fixed; 
             top: 0; 
@@ -160,7 +159,6 @@
 
         <!-- 4. ÉCRAN DE JEU AVIATOR PRO -->
         <div id="game-screen" class="hidden">
-            <!-- Barre supérieure avec Chrono global et Historique -->
             <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
                 <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span id="sessionTimerDisplay">--:--</span></span>
                 <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span id="playerBalance">1000</span> 🪙</span>
@@ -322,7 +320,6 @@
 
         socket.on('error-message', (msg) => alert(msg));
 
-        // Réception du décompte du chrono global de session
         socket.on('timer-update', (data) => {
             const minutes = Math.floor(data.timeRemaining / 60);
             const seconds = data.timeRemaining % 60;
@@ -331,7 +328,6 @@
             if (timerEl) timerEl.innerText = formattedTime;
         });
 
-        // Fin de la session de jeu globale
         socket.on('game-session-ended', (data) => {
             gamePhase = 'ended';
             const modal = document.getElementById('gameOverModal');
