@@ -1,5 +1,5 @@
 const express = require('express');
-const http = require('http');
+const http = http = require('http');
 const { Server } = require('socket.io');
 const crypto = require('crypto');
 
@@ -44,11 +44,15 @@ function generateProvablyFairRound() {
 io.on('connection', (socket) => {
     console.log(`Connexion : ${socket.id}`);
 
+    // Création de room avec durée personnalisée (en minutes reçues du client)
     socket.on('create-room', ({ playerName, duration }) => {
         const roomCode = generateRoomCode();
+        const durationInSeconds = (parseInt(duration) || 5) * 60; // Par défaut 5 min si non spécifié
+
         rooms[roomCode] = {
             code: roomCode,
-            duration: parseInt(duration),
+            duration: durationInSeconds,
+            timeRemaining: durationInSeconds,
             status: 'waiting',
             selectedGame: null,
             players: [{
@@ -70,6 +74,7 @@ io.on('connection', (socket) => {
             currentHash: '',
             currentSecret: '',
             loopStarted: false,
+            sessionTimer: null,
             history: []
         };
 
@@ -120,13 +125,14 @@ io.on('connection', (socket) => {
 
         if (!room.loopStarted) {
             room.loopStarted = true;
+            startSessionTimer(roomCode);
             startCrashLoop(roomCode);
         }
     });
 
     socket.on('place-bet', ({ roomCode, amount, autoCashOut }) => {
         const room = rooms[roomCode];
-        if (!room) return;
+        if (!room || room.status === 'ended') return;
         const player = room.players.find(p => p.id === socket.id);
         if (!player || player.balance < amount) return socket.emit('error-message', "Solde insuffisant !");
 
@@ -171,7 +177,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log(`Déconnexion : ${socket.id}`);
+        console.log(`Connexion fermée : ${socket.id}`);
     });
 });
 
@@ -189,11 +195,39 @@ function processCashOut(player, multiplier, roomCode) {
     io.to(roomCode).emit('update-room', rooms[roomCode]);
 }
 
+// Gestion du chronomètre global de la session de jeu
+function startSessionTimer(roomCode) {
+    const room = rooms[roomCode];
+    if (!room) return;
+
+    room.sessionTimer = setInterval(() => {
+        if (room.timeRemaining > 0) {
+            room.timeRemaining--;
+            io.to(roomCode).emit('timer-update', { timeRemaining: room.timeRemaining });
+        } else {
+            clearInterval(room.sessionTimer);
+            room.status = 'ended';
+            
+            // Calcul du classement final
+            const leaderboard = [...room.players].map(p => ({
+                name: p.name,
+                finalBalance: p.balance,
+                profit: p.balance - p.initialBalance,
+                stats: p.stats
+            })).sort((a, b) => b.finalBalance - a.finalBalance);
+
+            io.to(roomCode).emit('game-session-ended', { leaderboard, room });
+        }
+    }, 1000);
+}
+
 function startCrashLoop(roomCode) {
     const room = rooms[roomCode];
     if (!room) return;
 
     function runRound() {
+        if (room.status === 'ended') return;
+
         room.status = 'betting';
         room.multiplier = 1.00;
 
@@ -223,6 +257,10 @@ function startCrashLoop(roomCode) {
         io.to(roomCode).emit('betting-phase', { countdown, hash: room.currentHash, room });
 
         const countInterval = setInterval(() => {
+            if (room.status === 'ended') {
+                clearInterval(countInterval);
+                return;
+            }
             countdown--;
             if (countdown > 0) {
                 io.to(roomCode).emit('betting-countdown', { countdown });
@@ -234,12 +272,19 @@ function startCrashLoop(roomCode) {
     }
 
     function startPlayingPhase() {
+        if (room.status === 'ended') return;
+
         room.status = 'playing';
         io.to(roomCode).emit('playing-phase-started', room);
 
         const startTime = Date.now();
 
         const playInterval = setInterval(() => {
+            if (room.status === 'ended') {
+                clearInterval(playInterval);
+                return;
+            }
+
             const elapsedSeconds = (Date.now() - startTime) / 1000;
             room.multiplier = parseFloat(Math.max(1.00, Math.exp(0.07 * elapsedSeconds)).toFixed(2));
 
@@ -252,7 +297,10 @@ function startCrashLoop(roomCode) {
             if (room.multiplier >= room.crashPoint) {
                 room.multiplier = room.crashPoint;
                 clearInterval(playInterval);
-                room.status = 'crashed';
+                
+                if (room.status !== 'ended') {
+                    room.status = 'crashed';
+                }
                 
                 room.history.unshift({
                     multiplier: room.crashPoint,
@@ -273,7 +321,9 @@ function startCrashLoop(roomCode) {
                 io.to(roomCode).emit('game-crashed', { multiplier: room.crashPoint, secret: room.currentSecret, room });
 
                 setTimeout(() => {
-                    runRound();
+                    if (room.status !== 'ended') {
+                        runRound();
+                    }
                 }, 4000);
             } else {
                 io.to(roomCode).emit('multiplier-update', { multiplier: room.multiplier });
