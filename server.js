@@ -39,14 +39,13 @@ function calculateIcefieldMultiplier(cols, step) {
     const cumulProba = Math.pow(probaPerStep, step);
     return parseFloat((0.98 / cumulProba).toFixed(2));
 }
+
 /*
  * Provably fair :
  *  - on publie AVANT la manche : publicHash = SHA256(secretSeed)  (l'engagement)
  *  - le point de crash est calculé à partir de HMAC-SHA256(secretSeed, 'crash')
  *    => impossible à deviner avec le hash public seul
  *  - APRÈS la manche on révèle secretSeed : chacun peut vérifier les deux.
- * (Dans ta version, le crash était calculé depuis le hash public : n'importe qui
- *  pouvait donc prédire le crash avant la manche.)
  */
 function generateProvablyFairRound() {
     const secretSeed = crypto.randomBytes(16).toString('hex');
@@ -85,9 +84,6 @@ function newPlayer(socket, name, isAdmin) {
 
 /*
  * IMPORTANT : on n'envoie JAMAIS l'objet "room" brut aux clients.
- *  1) il contient des timers (setInterval) => structure circulaire => Socket.IO plante
- *     (c'est LA cause du "rien ne marche" quand la partie démarre)
- *  2) il contient crashPoint et currentSecret => les joueurs pourraient tricher
  */
 function publicRoom(room) {
     return {
@@ -97,7 +93,7 @@ function publicRoom(room) {
         timeRemaining: room.timeRemaining,
         multiplier: room.multiplier,
         currentHash: room.currentHash,
-       players: room.players.map(p => ({
+        players: room.players.map(p => ({
             id: p.id,
             name: p.name,
             balance: p.balance,
@@ -194,7 +190,6 @@ io.on('connection', (socket) => {
         socket.join(code);
 
         socket.emit('joined-success', publicRoom(room));
-        // si l'hôte a déjà ouvert le jeu, on envoie directement le nouveau joueur dessus
         if (room.status !== 'waiting') {
             socket.emit('navigate-to-game', { gameName: room.selectedGame, room: publicRoom(room) });
         }
@@ -207,7 +202,7 @@ io.on('connection', (socket) => {
         if (room.status !== 'waiting') return;
 
         room.status = 'choosing_game';
-        room.selectedGame = String(gameName || 'Crash Out').slice(0, 40);
+        room.selectedGame = String(gameName || 'Hub').slice(0, 40);
         io.to(room.code).emit('navigate-to-game', { gameName: room.selectedGame, room: publicRoom(room) });
     });
 
@@ -238,7 +233,7 @@ io.on('connection', (socket) => {
 
         const pa = parseFloat(autoCashOut), auto = pa >= 1.01 ? pa : 0, sl = slotOf(player, slot);
         if (room.status === 'betting') {
-            if (sl.bet > 0) return; // déjà misé : annuler avant de changer
+            if (sl.bet > 0) return;
             sl.bet = amount; sl.auto = auto; sl.cashed = false; sl.win = 0;
         } else if (room.status === 'playing' || room.status === 'crashed') {
             if (sl.next > 0) return;
@@ -265,7 +260,10 @@ io.on('connection', (socket) => {
         if (sl.bet > 0 && !sl.cashed) processCashOut(player, sl, room.multiplier, room, slot === 1 ? 1 : 0);
     });
 
-    // --- GESTION ICEFIELD ---
+    /* ------------------------------------------------------------------ */
+    /*  Gestion Icefield                                                  */
+    /* ------------------------------------------------------------------ */
+
     socket.on('icefield-start-game', ({ roomCode, amount, cols } = {}) => {
         const { room, player } = findPlayer(socket, roomCode);
         if (!room || !player || room.status === 'ended') return;
@@ -376,7 +374,7 @@ io.on('connection', (socket) => {
         player.balance += winnings;
         player.iceState.active = false;
 
-       const profit = winnings - player.bet;
+        const profit = winnings - player.bet;
         player.stats.gamesPlayed++;
         player.stats.wins++;
         player.stats.totalProfit += profit;
@@ -405,7 +403,7 @@ io.on('connection', (socket) => {
             if (room.status === 'waiting' || room.status === 'choosing_game') {
                 room.players.splice(idx, 1);
             } else {
-                player.connected = false; // on garde le joueur pour le classement final
+                player.connected = false;
             }
 
             if (!room.players.some(p => p.connected)) {
@@ -424,7 +422,7 @@ io.on('connection', (socket) => {
 });
 
 /* ------------------------------------------------------------------ */
-/*  Logique de jeu                                                     */
+/*  Logique de jeu Crash                                               */
 /* ------------------------------------------------------------------ */
 
 function processCashOut(player, sl, multiplier, room, idx) {
@@ -454,7 +452,6 @@ function endSession(room) {
     clearRoomTimers(room);
     room.status = 'ended';
 
-    // on rembourse les mises en cours pour que la fin de session soit équitable
     room.players.forEach(p => p.slots.forEach(sl => {
         if (sl.bet > 0 && !sl.cashed) p.balance += sl.bet;
         sl.bet = 0;
@@ -488,7 +485,6 @@ function startCrashLoop(room) {
         room.currentHash = roundData.publicHash;
         room.currentSecret = roundData.secretSeed;
 
-        // les paris "préparés" deviennent les paris actifs de cette manche
         room.players.forEach(p => p.slots.forEach(sl => {
             sl.bet = sl.next; sl.auto = sl.next > 0 ? sl.nextAuto : 0;
             sl.next = 0; sl.nextAuto = 0; sl.cashed = false; sl.win = 0;
@@ -524,7 +520,6 @@ function startCrashLoop(room) {
             const elapsedSeconds = (Date.now() - startTime) / 1000;
             room.multiplier = parseFloat(Math.max(1.00, Math.exp(0.07 * elapsedSeconds)).toFixed(2));
 
-            // auto cash-out
             room.players.forEach(p => p.slots.forEach((sl, i) => {
                 if (sl.bet > 0 && !sl.cashed && sl.auto > 0 && room.multiplier >= sl.auto && sl.auto <= room.crashPoint) {
                     processCashOut(p, sl, sl.auto, room, i);
