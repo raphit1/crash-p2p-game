@@ -34,6 +34,11 @@ function cleanName(name) {
     return String(name || '').trim().slice(0, 20);
 }
 
+function calculateIcefieldMultiplier(cols, step) {
+    const probaPerStep = (cols - 1) / cols;
+    const cumulProba = Math.pow(probaPerStep, step);
+    return parseFloat((0.98 / cumulProba).toFixed(2));
+}
 /*
  * Provably fair :
  *  - on publie AVANT la manche : publicHash = SHA256(secretSeed)  (l'engagement)
@@ -92,7 +97,7 @@ function publicRoom(room) {
         timeRemaining: room.timeRemaining,
         multiplier: room.multiplier,
         currentHash: room.currentHash,
-        players: room.players.map(p => ({
+       players: room.players.map(p => ({
             id: p.id,
             name: p.name,
             balance: p.balance,
@@ -100,6 +105,14 @@ function publicRoom(room) {
             inGame: p.inGame,
             connected: p.connected,
             slots: p.slots,
+            iceState: p.iceState ? {
+                cols: p.iceState.cols,
+                currentStep: p.iceState.currentStep,
+                active: p.iceState.active,
+                path: p.iceState.path,
+                revealedTraps: p.iceState.revealedTraps,
+                multipliers: p.iceState.multipliers
+            } : null,
             stats: p.stats
         })),
         history: room.history
@@ -250,6 +263,134 @@ io.on('connection', (socket) => {
         if (!room || !player || room.status !== 'playing') return;
         const sl = slotOf(player, slot);
         if (sl.bet > 0 && !sl.cashed) processCashOut(player, sl, room.multiplier, room, slot === 1 ? 1 : 0);
+    });
+
+    // --- GESTION ICEFIELD ---
+    socket.on('icefield-start-game', ({ roomCode, amount, cols } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        if (!room || !player || room.status === 'ended') return;
+
+        if (player.iceState && player.iceState.active) {
+            return socket.emit('error-message', 'Partie Icefield déjà en cours !');
+        }
+
+        amount = Math.floor(Number(amount));
+        cols = Math.min(10, Math.max(2, parseInt(cols) || 3));
+
+        if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
+        if (player.balance < amount) return socket.emit('error-message', 'Solde insuffisant !');
+
+        player.balance -= amount;
+        player.bet = amount;
+
+        const traps = [];
+        const multipliers = [];
+        for (let row = 0; row < 8; row++) {
+            traps.push(crypto.randomInt(cols));
+            multipliers.push(calculateIcefieldMultiplier(cols, row + 1));
+        }
+
+        player.iceState = {
+            cols,
+            active: true,
+            currentStep: 0,
+            traps,
+            multipliers,
+            path: [],
+            revealedTraps: []
+        };
+
+        broadcast(room);
+    });
+
+    socket.on('icefield-step', ({ roomCode, tileIndex } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        if (!room || !player || room.status === 'ended') return;
+        if (!player.iceState || !player.iceState.active) return;
+
+        const { cols, currentStep, traps, multipliers } = player.iceState;
+        tileIndex = parseInt(tileIndex);
+        if (tileIndex < 0 || tileIndex >= cols) return;
+
+        const trapIdx = traps[currentStep];
+        const isTrap = (trapIdx === tileIndex);
+
+        if (isTrap) {
+            player.iceState.active = false;
+            player.iceState.revealedTraps[currentStep] = trapIdx;
+            player.stats.gamesPlayed++;
+            player.stats.totalProfit -= player.bet;
+
+            socket.emit('icefield-result', {
+                success: false,
+                brokenIndex: tileIndex,
+                trapIndex: trapIdx,
+                message: '🧊 La glace s\'est brisée !'
+            });
+            player.bet = 0;
+        } else {
+            player.iceState.path.push(tileIndex);
+            player.iceState.revealedTraps[currentStep] = trapIdx;
+            player.iceState.currentStep++;
+
+            const currentMult = multipliers[player.iceState.currentStep - 1];
+
+            if (player.iceState.currentStep >= 8) {
+                const winnings = Math.floor(player.bet * currentMult);
+                player.balance += winnings;
+                player.iceState.active = false;
+
+                const profit = winnings - player.bet;
+                player.stats.gamesPlayed++;
+                player.stats.wins++;
+                player.stats.totalProfit += profit;
+
+                socket.emit('icefield-result', {
+                    success: true,
+                    completed: true,
+                    multiplier: currentMult,
+                    winnings,
+                    message: `🎉 Traversée réussie ! +${winnings} 🪙`
+                });
+                player.bet = 0;
+            } else {
+                socket.emit('icefield-result', {
+                    success: true,
+                    completed: false,
+                    step: player.iceState.currentStep
+                });
+            }
+        }
+
+        broadcast(room);
+    });
+
+    socket.on('icefield-cashout', ({ roomCode } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        if (!room || !player || room.status === 'ended') return;
+        if (!player.iceState || !player.iceState.active || player.iceState.currentStep === 0) return;
+
+        const currentMult = player.iceState.multipliers[player.iceState.currentStep - 1];
+        const winnings = Math.floor(player.bet * currentMult);
+
+        player.balance += winnings;
+        player.iceState.active = false;
+
+       const profit = winnings - player.bet;
+        player.stats.gamesPlayed++;
+        player.stats.wins++;
+        player.stats.totalProfit += profit;
+
+        socket.emit('icefield-result', {
+            success: true,
+            cashout: true,
+            multiplier: currentMult,
+            winnings,
+            message: `💰 Encaissé : +${winnings} 🪙 (x${currentMult})`
+        });
+
+        player.bet = 0;
+        broadcast(room);
     });
 
     socket.on('disconnect', () => {
