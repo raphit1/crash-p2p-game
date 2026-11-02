@@ -63,6 +63,8 @@ function generateProvablyFairRound() {
 }
 
 const ICE_STEPS = 8;
+// Just mixed : 2 chances sur 3 de gagner, gain = RTP / probabilité = 0.992 / (2/3) = x1.488
+const JM_RTP = 0.992, JM_MULT = Math.round(JM_RTP / (2 / 3) * 1000) / 1000;
 function calculateIcefieldMultiplier(cols, step) {
     return parseFloat((0.98 / Math.pow((cols - 1) / cols, step)).toFixed(2));
 }
@@ -110,6 +112,7 @@ function publicRoom(room) {
                 currentStep: p.iceState.currentStep, path: p.iceState.path,
                 revealedTraps: p.iceState.revealedTraps, multipliers: p.iceState.multipliers
             } : null,
+            jm: p.jm ? { active: p.jm.active, bet: p.jm.bet } : null,
             stats: p.stats
         })),
         history: room.history
@@ -262,6 +265,46 @@ io.on('connection', (socket) => {
         if (sl.bet > 0 && !sl.cashed) processCashOut(player, sl, room.multiplier, room, slot === 1 ? 1 : 0);
     });
 
+    /* ---------------- Just mixed (3 gobelets, RTP 99,2 %) ---------------- */
+    socket.on('jm-start', ({ roomCode, amount } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        if (!room || !player || !player.inGame || room.status === 'ended') return;
+        if (player.jm && player.jm.active) return;
+
+        amount = Math.floor(Number(amount));
+        if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
+        if (player.balance < amount) return socket.emit('error-message', 'Solde insuffisant !');
+
+        player.balance -= amount;
+        player.jm = { active: true, bet: amount };
+        socket.emit('jm-started', { bet: amount });
+        broadcast(room);
+    });
+
+    // Le gobelet vide est tiré par le serveur AU MOMENT DU CLIC : l'animation de mélange est purement visuelle
+    socket.on('jm-pick', ({ roomCode, cup } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        if (!room || !player || !player.jm || !player.jm.active || room.status === 'ended') return;
+        cup = parseInt(cup);
+        if (!(cup >= 0 && cup <= 2)) return;
+
+        const empty = crypto.randomInt(3), win = cup !== empty, bet = player.jm.bet;
+        let winnings = 0;
+        if (win) { // arrondi aléatoire pondéré : l'espérance de gain reste exactement 99,2 %
+            const raw = bet * JM_MULT, fl = Math.floor(raw);
+            winnings = fl + (crypto.randomInt(1000000) / 1000000 < raw - fl ? 1 : 0);
+        }
+        player.balance += winnings;
+        player.jm.active = false;
+        player.stats.gamesPlayed++;
+        if (win) player.stats.wins++;
+        player.stats.totalProfit += winnings - bet;
+
+        socket.emit('jm-result', { cup, empty, win, multiplier: JM_MULT, winnings,
+            message: win ? `🎉 Gagné ! +${winnings} 🪙 (x${JM_MULT})` : '😬 Gobelet vide, perdu !' });
+        broadcast(room);
+    });
+
     /* ---------------- Icefield (le Yéti avance de gauche à droite) ---------------- */
     socket.on('icefield-start-game', ({ roomCode, amount, cols } = {}) => {
         const { room, player } = findPlayer(socket, roomCode);
@@ -398,7 +441,7 @@ function endSession(room) {
     }));
 
     // une traversée Icefield en cours à la fin de la session est remboursée
-    room.players.forEach(p => { if (p.iceState && p.iceState.active) { p.balance += p.iceState.bet; p.iceState.active = false; } });
+    room.players.forEach(p => { if (p.iceState && p.iceState.active) { p.balance += p.iceState.bet; p.iceState.active = false; } if (p.jm && p.jm.active) { p.balance += p.jm.bet; p.jm.active = false; } });
 
     const leaderboard = room.players
         .map(p => ({
