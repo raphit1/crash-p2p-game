@@ -69,6 +69,14 @@ function calculateIcefieldMultiplier(cols, step) {
     return parseFloat((0.98 / Math.pow((cols - 1) / cols, step)).toFixed(2));
 }
 
+// Chicken Road : p = probabilité de mourir à chaque pas ; multiplicateur du pas k = RTP / (1 - p)^k
+// => l'espérance de gain est de 89 % quel que soit le pas où le joueur encaisse (multiplicateurs "équivalents" au risque)
+// Avec 89 % de RTP, le risque par voie doit rester >= 11 % pour que le multiplicateur de la 1re voie soit au moins x1.00
+const CR_RTP = 0.89;
+const CR_MODES = { easy: { steps: 24, p: 0.12 }, medium: { steps: 22, p: 0.20 }, hard: { steps: 20, p: 0.33 } };
+const crMultiplier = (mode, k) => Math.floor(CR_RTP / Math.pow(1 - CR_MODES[mode].p, k) * 100) / 100;
+const weightedRound = raw => { const fl = Math.floor(raw); return fl + (crypto.randomInt(1000000) / 1000000 < raw - fl ? 1 : 0); };
+
 const newSlot = () => ({ bet: 0, next: 0, auto: 0, nextAuto: 0, cashed: false, win: 0 });
 
 function newPlayer(socket, name, isAdmin) {
@@ -113,6 +121,7 @@ function publicRoom(room, full = false) {
                 revealedTraps: p.iceState.revealedTraps, multipliers: p.iceState.multipliers
             } : null,
             jm: p.jm ? { active: p.jm.active, bet: p.jm.bet } : null,
+            cr: p.cr ? { active: p.cr.active, bet: p.cr.bet, mode: p.cr.mode, step: p.cr.step } : null,
             stats: p.stats
         })),
         history: full ? room.history : undefined // l'historique n'est envoyé qu'aux joueurs de la table Crash
@@ -291,6 +300,66 @@ io.on('connection', (socket) => {
         if (sl.bet > 0 && !sl.cashed) processCashOut(player, sl, room.multiplier, room, slot === 1 ? 1 : 0);
     });
 
+    /* ---------------- Chicken Road (3 modes, RTP 89 %, équitable prouvable) ---------------- */
+    socket.on('cr-start', ({ roomCode, amount, mode } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        if (!room || !player || !player.inGame || room.status === 'ended') return;
+        if (player.cr && player.cr.active) return socket.emit('error-message', 'Partie Chicken Road déjà en cours !');
+        if (!CR_MODES[mode]) return;
+
+        amount = Math.floor(Number(amount));
+        if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
+        if (player.balance < amount) return socket.emit('error-message', 'Solde insuffisant !');
+
+        player.balance -= amount;
+        const seed = crypto.randomBytes(16).toString('hex');
+        player.cr = { active: true, bet: amount, mode, step: 0, seed };
+        socket.emit('cr-started', { hash: crypto.createHash('sha256').update(seed).digest('hex') });
+        broadcast(room);
+    });
+
+    socket.on('cr-step', ({ roomCode } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        const cr = player && player.cr;
+        if (!room || !cr || !cr.active || room.status === 'ended') return;
+
+        const cfg = CR_MODES[cr.mode], k = cr.step + 1;
+        // Le pas k est mortel si HMAC(graine, "step:k") tombe sous p : le joueur peut le vérifier quand la graine est révélée
+        const u = parseInt(crypto.createHmac('sha256', cr.seed).update('step:' + k).digest('hex').slice(0, 13), 16) / 4503599627370496;
+        if (u < cfg.p) {
+            cr.active = false;
+            player.stats.gamesPlayed++;
+            player.stats.totalProfit -= cr.bet;
+            socket.emit('cr-result', { success: false, step: k, seed: cr.seed, message: "💥 Le poulet s'est fait renverser !" });
+        } else {
+            cr.step = k;
+            const mult = crMultiplier(cr.mode, k);
+            if (k >= cfg.steps) { // dernière voie traversée : l'œuf d'or est encaissé automatiquement
+                const winnings = weightedRound(cr.bet * mult);
+                player.balance += winnings;
+                cr.active = false;
+                player.stats.gamesPlayed++; player.stats.wins++; player.stats.totalProfit += winnings - cr.bet;
+                socket.emit('cr-result', { success: true, completed: true, step: k, multiplier: mult, winnings, seed: cr.seed, message: `🥚 Œuf d'or ! +${winnings} 🪙 (x${mult})` });
+            } else {
+                socket.emit('cr-result', { success: true, completed: false, step: k, multiplier: mult });
+            }
+        }
+        broadcast(room);
+    });
+
+    socket.on('cr-cashout', ({ roomCode } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        const cr = player && player.cr;
+        if (!room || !cr || !cr.active || cr.step === 0 || room.status === 'ended') return;
+
+        const mult = crMultiplier(cr.mode, cr.step), winnings = weightedRound(cr.bet * mult);
+        player.balance += winnings;
+        cr.active = false;
+        player.stats.gamesPlayed++; player.stats.wins++; player.stats.totalProfit += winnings - cr.bet;
+        socket.emit('cr-result', { success: true, cashout: true, step: cr.step, multiplier: mult, winnings, seed: cr.seed, message: `💰 Encaissé : +${winnings} 🪙 (x${mult})` });
+        broadcast(room);
+    });
+
     /* ---------------- Just mixed (3 gobelets, RTP 99,2 %) ---------------- */
     socket.on('jm-start', ({ roomCode, amount } = {}) => {
         const { room, player } = findPlayer(socket, roomCode);
@@ -467,7 +536,7 @@ function endSession(room) {
     }));
 
     // une traversée Icefield en cours à la fin de la session est remboursée
-    room.players.forEach(p => { if (p.iceState && p.iceState.active) { p.balance += p.iceState.bet; p.iceState.active = false; } if (p.jm && p.jm.active) { p.balance += p.jm.bet; p.jm.active = false; } });
+    room.players.forEach(p => { if (p.iceState && p.iceState.active) { p.balance += p.iceState.bet; p.iceState.active = false; } if (p.jm && p.jm.active) { p.balance += p.jm.bet; p.jm.active = false; } if (p.cr && p.cr.active) { p.balance += p.cr.bet; p.cr.active = false; } });
 
     const leaderboard = room.players
         .map(p => ({
