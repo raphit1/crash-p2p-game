@@ -1,584 +1,983 @@
-const express = require('express');
-const http = require('http');
-const path = require('path');
-const { Server } = require('socket.io');
-const crypto = require('crypto');
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Crash P2P - Aviator Pro Ultimate</title>
+    <style>
+*{box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:radial-gradient(1100px 560px at 50% -8%,#3a1530 0,#150d22 45%,#07060d 100%) fixed;color:#efe9dc;margin:0;padding:18px;text-align:center;min-height:100vh}
+.container{max-width:680px;margin:0 auto}
+h1{font-size:32px;margin:6px 0 18px;letter-spacing:1px;background:linear-gradient(90deg,#f6dc9a,#d4a24c 50%,#f0707a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.card{background:linear-gradient(160deg,rgba(44,26,52,.9),rgba(18,12,28,.92));border:1px solid rgba(212,162,76,.22);padding:20px;border-radius:16px;margin-bottom:14px;text-align:left;box-shadow:0 12px 32px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.06)}
+input,select,button{display:block;width:100%;margin:10px 0;padding:13px;border-radius:10px;border:1px solid rgba(212,162,76,.2);font-size:16px;font-family:inherit}
+input,select{background:#0d0814;color:#fff;outline:none;transition:border .2s,box-shadow .2s}
+input:focus,select:focus{border-color:#d4a24c;box-shadow:0 0 0 3px rgba(212,162,76,.22)}
+button{background:linear-gradient(180deg,#3fd68b,#17a057);color:#fff;font-weight:700;cursor:pointer;border:0;transition:transform .12s,filter .2s;box-shadow:0 6px 18px rgba(34,197,94,.28)}
+button:hover{filter:brightness(1.1)}button:active{transform:scale(.97)}
+button:disabled{opacity:.5;cursor:not-allowed;filter:none}
+.hidden{display:none!important}
+#game-screen,#game-hub,#icefield-screen,#jm-screen{background:linear-gradient(180deg,#1a1026,#0c0814);border-radius:18px;padding:18px;border:1px solid rgba(212,162,76,.3);box-shadow:0 18px 50px rgba(0,0,0,.6)}
+.history-container{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.history-bar{display:flex;gap:8px;overflow-x:auto;padding:4px 0;flex-grow:1;scrollbar-width:none}
+.history-bar::-webkit-scrollbar{display:none}
+.history-pill{padding:5px 12px;border-radius:999px;font-size:13px;font-weight:700;white-space:nowrap;cursor:pointer;display:inline-block;transition:transform .15s}
+.history-pill:hover{transform:translateY(-2px)}
+.hist-low{background:#12202e;color:#5cc8ff;border:1px solid #1f4660}
+.hist-mid{background:#2a1244;color:#c58cff;border:1px solid #6b2fb3}
+.hist-high{background:#43240c;color:#ffc24d;border:1px solid #b9771a;box-shadow:0 0 12px rgba(255,194,77,.35)}
+.btn-history-more{background:#2b2036;color:#fff;width:auto;padding:6px 14px;font-size:14px;border-radius:999px;margin:0;box-shadow:none}
+.provably-fair-box{background:#0d0814;padding:10px 14px;border-radius:10px;font-size:12px;color:#9a90ad;margin-bottom:10px;border:1px dashed rgba(212,162,76,.3);text-align:left;word-break:break-all}
+.game-canvas-container{position:relative;aspect-ratio:500/260;background:radial-gradient(120% 120% at 0% 100%,#3b1236 0,#170c24 55%,#0a0610 100%);border-radius:14px;overflow:hidden;border:1px solid rgba(212,162,76,.35);box-shadow:inset 0 0 50px rgba(0,0,0,.65)}
+.rays{position:absolute;left:0;bottom:0;width:0;height:0}
+.rays::before{content:"";position:absolute;width:1000px;height:1000px;left:-500px;top:-500px;background:repeating-conic-gradient(rgba(255,214,140,.05) 0 7deg,transparent 7deg 14deg);animation:spin 60s linear infinite}
+.game-svg{width:100%;height:100%;position:absolute;inset:0}
+.multiplier-display{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:clamp(44px,13vw,80px);font-weight:900;font-variant-numeric:tabular-nums;color:#5cc8ff;text-shadow:0 0 24px currentColor,0 4px 12px rgba(0,0,0,.8);z-index:10;pointer-events:none;white-space:nowrap}
+.crashed-text{color:#ff4d5e!important}
+#boom{opacity:0;transform-box:fill-box;transform-origin:center}
+#boom.go{animation:boom .7s ease-out}
+.shake{animation:shake .5s}
+@keyframes boom{0%{transform:scale(.1);opacity:1}100%{transform:scale(2.6);opacity:0}}
+@keyframes shake{0%,100%{transform:none}20%{transform:translate(-6px,3px)}40%{transform:translate(5px,-4px)}60%{transform:translate(-4px,-2px)}80%{transform:translate(3px,3px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{50%{box-shadow:0 0 0 8px rgba(251,191,36,0)}}
+.bet-control-box{background:linear-gradient(180deg,#241731,#150d1f);padding:15px;border-radius:12px;margin-top:15px;border:1px solid rgba(212,162,76,.25)}
+#actionBtn{font-size:18px;padding:16px;letter-spacing:.4px}
+.btn-cashout{background:linear-gradient(180deg,#ffd45c,#e09a10)!important;color:#2a1700!important;font-size:20px!important;font-weight:900;box-shadow:0 0 0 0 rgba(251,191,36,.6);animation:pulse 1s infinite}
+.btn-cancel{background:linear-gradient(180deg,#f0566a,#c02338)!important;margin-top:5px;box-shadow:none}
+.quick-bet-row{display:flex;gap:6px;margin-bottom:8px}
+.quick-btn{background:#2b2036;color:#e6d9bf;padding:8px 10px;font-size:13px;border-radius:8px;border:1px solid rgba(212,162,76,.2);flex:1;margin:0;box-shadow:none}
+.quick-btn:hover{background:#3a2b49}
+.stats-badge{background:#0d0814;padding:10px;border-radius:10px;font-size:13px;margin-top:10px;border:1px solid rgba(212,162,76,.2);display:flex;justify-content:space-around;gap:6px;flex-wrap:wrap}
+.text-green{color:#3fd68b;font-weight:700}.text-red{color:#ff5d6e;font-weight:700}
+.modal-overlay{position:fixed;inset:0;background:rgba(5,3,10,.88);backdrop-filter:blur(4px);display:flex;justify-content:center;align-items:center;z-index:9999}
+.modal-content{background:linear-gradient(160deg,#2c1a34,#140d1d);padding:25px;border-radius:18px;width:90%;max-width:480px;max-height:80vh;overflow-y:auto;text-align:center;border:1px solid rgba(212,162,76,.4);box-shadow:0 20px 60px rgba(0,0,0,.7)}
+.full-history-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-height:350px;overflow-y:auto;padding:15px 5px}
+.game-thumbnail{background:linear-gradient(135deg,#8a1c3c,#d4562a 60%,#f0a63a);padding:22px;border-radius:14px;cursor:pointer;text-align:center;font-weight:800;font-size:20px;box-shadow:0 8px 24px rgba(212,86,42,.4);transition:transform .2s;margin-bottom:10px;color:#fff}
+.game-thumbnail:hover{transform:scale(1.03)}
+ul{padding-left:20px;text-align:left}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+.bet-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px}.bet-grid .bet-control-box{margin-top:0}@media(max-width:560px){.bet-grid{grid-template-columns:1fr}}.auto-row{display:flex;align-items:center;gap:8px;font-size:13px;color:#cdbf9f;margin:6px 0}.auto-row input{width:auto;margin:0}.act{font-size:16px;padding:14px;letter-spacing:.3px}
+/* ---- Icefield : vraie glace, traversée de gauche à droite ---- */
+.ice-board{position:relative;display:grid;gap:6px;padding:14px 12px;margin:10px 0;border-radius:16px;border:1px solid rgba(125,211,252,.35);background:radial-gradient(120% 90% at 50% 0,rgba(125,211,252,.22),transparent 60%),linear-gradient(180deg,#0f5a8f,#07294a 70%,#051a33);overflow:hidden;box-shadow:inset 0 0 40px rgba(0,0,0,.5)}
+.ice-board::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(100deg,rgba(255,255,255,.05) 0 14px,transparent 14px 40px);animation:wave 8s linear infinite;pointer-events:none}
+@keyframes wave{to{background-position:160px 0}}
+.ice-mult{align-self:end;text-align:center;font-size:11px;font-weight:800;color:#bae6fd;padding:3px 0;z-index:1}
+.ice-mult.reached{color:#4ade80;text-shadow:0 0 8px rgba(74,222,128,.7)}
+.ice-bank{display:flex;align-items:center;justify-content:center;font-size:26px;border-radius:12px;background:linear-gradient(180deg,#fff,#cfe9fb);color:#1e3a5f;box-shadow:inset 0 -6px 12px rgba(120,170,210,.5),0 4px 10px rgba(0,0,0,.35);z-index:1}
+.ice-tile{position:relative;z-index:1;min-height:42px;border-radius:10px;border:1px solid rgba(255,255,255,.7);background:linear-gradient(135deg,rgba(255,255,255,.92),rgba(170,228,255,.8) 38%,rgba(96,176,232,.78) 70%,rgba(214,244,255,.9));box-shadow:inset 0 0 14px rgba(255,255,255,.8),inset 0 -5px 8px rgba(70,140,200,.4),0 3px 8px rgba(0,0,0,.4);transition:transform .15s,filter .2s,opacity .3s;overflow:hidden}
+.ice-tile::before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.75) 48%,transparent 60%);transform:translateX(-130%);animation:glint 5s infinite}
+@keyframes glint{60%,100%{transform:translateX(130%)}}
+.ice-tile.dim{opacity:.5;filter:saturate(.7)}
+.ice-tile.live{cursor:pointer;box-shadow:0 0 0 2px #7dd3fc,0 0 16px rgba(125,211,252,.9),inset 0 0 14px #fff}
+.ice-tile.live:hover{transform:translateY(-3px) scale(1.05);filter:brightness(1.12)}
+.ice-tile.stepped{background:linear-gradient(135deg,#fff,#d9f2ff);box-shadow:0 0 0 2px #4ade80,0 0 12px rgba(74,222,128,.7),inset 0 0 14px #fff}
+.ice-tile.used{opacity:.35}
+.ice-tile.hole{background:radial-gradient(circle,#031325 30%,#0a3b66);border-color:#12476f;box-shadow:inset 0 0 14px #000;opacity:.9}
+.ice-tile.hole::before{display:none}
+.ice-tile.hole::after{content:"💥";position:absolute;inset:0;display:grid;place-items:center;font-size:16px;opacity:.8}
+.crack{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.crack path{fill:none;stroke:#1d4f7a;stroke-width:1.6;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1}
+.ice-tile.cracking{animation:jitter .4s}
+.ice-tile.cracking .crack path{animation:crack .38s ease-out forwards}
+@keyframes crack{to{stroke-dashoffset:0}}
+@keyframes jitter{25%{transform:translate(-1.5px,1px)}50%{transform:translate(1.5px,-1px)}75%{transform:translate(-1px,-1px)}}
+.yeti{position:absolute;left:0;top:0;width:46px;height:52px;z-index:6;pointer-events:none;will-change:transform}
+.yeti svg{width:100%;height:100%;overflow:visible;animation:bob 1.1s ease-in-out infinite alternate}
+@keyframes bob{to{transform:translateY(-3px) scaleY(1.03)}}
+.shard{position:absolute;z-index:7;background:linear-gradient(135deg,#fff,#9fd8ff);pointer-events:none}
+.splash{position:absolute;z-index:5;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;border:3px solid rgba(190,235,255,.9);pointer-events:none;animation:splash .8s ease-out forwards}
+@keyframes splash{from{transform:scale(.2);opacity:1}to{transform:scale(2.6);opacity:0}}
+.ice-toast{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.8);z-index:9;padding:10px 18px;border-radius:12px;font-weight:800;background:rgba(5,20,40,.88);border:1px solid rgba(125,211,252,.5);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;white-space:nowrap}
+.ice-toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+/* ---- Classement commun en direct ---- */
+.rankList{max-height:230px;overflow-y:auto}
+.rank-row{display:grid;grid-template-columns:40px 1fr auto auto;gap:8px;align-items:center;padding:7px 10px;border-radius:8px;font-size:13px;background:#0d0814;margin-bottom:5px;text-align:left}
+.rank-row.me{background:linear-gradient(90deg,rgba(212,162,76,.3),#0d0814);border:1px solid rgba(212,162,76,.6)}
+.rankMe{color:#f6dc9a;font-weight:700;margin-left:6px}
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server, { perMessageDeflate: false });
+/* ---- Just mixed ---- */
+.jm-stage{position:relative;border-radius:16px;overflow:hidden;border:1px solid rgba(212,162,76,.45);box-shadow:0 14px 36px rgba(0,0,0,.55);margin-bottom:10px}
+.jm-stage svg{display:block;width:100%;height:auto}
+.cup{cursor:default}.pick .cup{cursor:pointer}
+.cup-in{transition:transform .45s cubic-bezier(.3,1.35,.5,1);transform-box:fill-box;transform-origin:50% 100%}
+.pick .cup:hover .cup-in{transform:translateY(-12px)}
+.cup-in.lift{transform:translateY(-84px) rotate(-9deg)}
+#prop{transform-box:fill-box;transform-origin:center;animation:propSpin .09s linear infinite}@keyframes propSpin{50%{transform:scaleY(.3)}}
+.ice-tile.stepping{transform:scale(.95);filter:brightness(1.15);box-shadow:0 0 0 2px #fff,0 0 18px rgba(125,211,252,.9),inset 0 0 14px #fff}
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Crash P2P Arena</h1>
 
-// index.html doit être dans le dossier "public/"
-app.use(express.static(path.join(__dirname, 'public')));
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+        <!-- 1. AUTH SCREEN -->
+        <div id="auth-screen">
+            <div class="card">
+                <h3>Créer une Room</h3>
+                <input type="text" id="createName" placeholder="Ton pseudo" maxlength="20">
+                <label style="font-size: 14px; color: #94a3b8; display: block; margin-top: 8px;">Durée de la session :</label>
+                <select id="duration">
+                    <option value="1">1 minute (Test rapide)</option>
+                    <option value="3">3 minutes</option>
+                    <option value="5" selected>5 minutes</option>
+                    <option value="10">10 minutes</option>
+                    <option value="15">15 minutes</option>
+                </select>
+                <button onclick="createRoom()">Créer la partie</button>
+            </div>
+            <div class="card">
+                <h3>Rejoindre une Room</h3>
+                <input type="text" id="joinName" placeholder="Ton pseudo" maxlength="20">
+                <input type="text" id="roomCodeInput" placeholder="Code de la room (ex: CRASH-XXXX)">
+                <button onclick="joinRoom()">Rejoindre</button>
+            </div>
+        </div>
 
-const rooms = {};
-const ROOM_TTL_AFTER_END = 10 * 60 * 1000; // la room est supprimée 10 min après la fin
-const ALLOWED_DURATIONS = [1, 3, 5, 10, 15];
+        <!-- 2. LOBBY PRINCIPAL -->
+        <div id="lobby" class="hidden card">
+            <h2>Salon d'attente</h2>
+            <p>Code de la room : <b id="displayCode" style="color: #38bdf8;"></b></p>
+            <h4>Joueurs connectés :</h4>
+            <ul id="playersList"></ul>
 
-/* ------------------------------------------------------------------ */
-/*  Utilitaires                                                        */
-/* ------------------------------------------------------------------ */
+            <div id="adminControls" class="hidden" style="margin-top: 20px;">
+                <p style="color: #eab308; font-weight: bold;">Espace Admin : lancer la session de jeux</p>
+                <div class="game-thumbnail" onclick="launchGame()">
+                    🎮 Lancer la session de jeux
+                </div>
+            </div>
 
-function generateRoomCode() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code;
-    do {
-        code = 'CRASH-';
-        for (let i = 0; i < 4; i++) code += chars[crypto.randomInt(chars.length)];
-    } while (rooms[code]);
-    return code;
-}
+            <div id="playerWaitingGame" class="hidden" style="margin-top: 20px; text-align: center; color: #94a3b8;">
+                <p>L'administrateur va bientôt lancer un jeu...</p>
+            </div>
+        </div>
 
-function cleanName(name) {
-    return String(name || '').trim().slice(0, 20);
-}
+        <!-- 3. HUB CENTRAL DE SÉLECTION DES JEUX -->
+        <div id="game-hub" class="hidden card" style="text-align: center;">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <button id="musicBtn2" class="btn-history-more" onclick="toggleMusic()" title="Musique on/off">🎵</button>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h2>🎮 Centre des Jeux</h2>
+            <p style="color: #94a3b8;">Choisis ton jeu pour participer à la compétition commune !</p>
+            <div class="game-thumbnail" onclick="switchGame('Crash Out')">✈️ Crash Out (Style Aviator)</div>
+            <div class="game-thumbnail" style="background: linear-gradient(135deg, #1e3a8a, #0284c7 60%, #38bdf8);" onclick="switchGame('Icefield')">🧊 Icefield (Traversée du Yéti)</div>
+            <div class="game-thumbnail" style="background: linear-gradient(135deg, #065f46, #16a34a 60%, #fbbf24);" onclick="switchGame('Just mixed')">🥤 Just mixed (3 gobelets · RTP 99,2 %)</div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
 
-/*
- * Provably fair :
- *  - on publie AVANT la manche : publicHash = SHA256(secretSeed)  (l'engagement)
- *  - le point de crash est calculé à partir de HMAC-SHA256(secretSeed, 'crash')
- *    => impossible à deviner avec le hash public seul
- *  - APRÈS la manche on révèle secretSeed : chacun peut vérifier les deux.
- * (Dans ta version, le crash était calculé depuis le hash public : n'importe qui
- *  pouvait donc prédire le crash avant la manche.)
- */
-function generateProvablyFairRound() {
-    const secretSeed = crypto.randomBytes(16).toString('hex');
-    const publicHash = crypto.createHash('sha256').update(secretSeed).digest('hex');
-    const resultHash = crypto.createHmac('sha256', secretSeed).update('crash').digest('hex');
+        <!-- 4. ÉCRAN DE JEU AVIATOR PRO -->
+        <div id="game-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <button id="musicBtn" class="btn-history-more" onclick="toggleMusic()" title="Musique on/off">🎵</button><span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
 
-    const seedInt = parseInt(resultHash.slice(0, 13), 16); // 52 bits
-    const critical = seedInt / 4503599627370496;           // 2^52 -> [0, 1)
+            <div class="history-container">
+                <div class="history-bar" id="historyBar"></div>
+                <button class="btn-history-more" onclick="openHistoryModal()">•••</button>
+            </div>
 
-    let crashPoint = 1.00;
-    if (critical >= 0.015) {
-        const rtpFactor = 0.985;
-        const adjustedCritical = Math.min(critical, 0.9999999);
-        crashPoint = Math.floor((rtpFactor / (1 - adjustedCritical)) * 100) / 100;
-        crashPoint = Math.max(1.01, crashPoint);
+            <div class="provably-fair-box" id="provablyFairBox">
+                🔒 <b>Provably Fair Hash (SHA-256) :</b> <span id="currentHashDisplay" style="color: #38bdf8;">En attente...</span>
+            </div>
+
+            <div class="game-canvas-container" id="stage">
+                <div class="rays"></div>
+                <div id="multiplierBox" class="multiplier-display">1.00x</div>
+                <svg class="game-svg" viewBox="0 0 500 260">
+                    <defs>
+                        <linearGradient id="gBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#dfe6f1"/><stop offset="1" stop-color="#7b8ba5"/></linearGradient>
+                        <linearGradient id="gWing" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c3cfe2"/><stop offset="1" stop-color="#4d5f78"/></linearGradient>
+                        <linearGradient id="gCanopy" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b9e6ff"/><stop offset="1" stop-color="#2b6cb0"/></linearGradient>
+                        <linearGradient id="gCurve" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="500" y2="0"><stop offset="0" stop-color="#ff4d5e" stop-opacity=".1"/><stop offset=".7" stop-color="#ff7a45"/><stop offset="1" stop-color="#ffd27a"/></linearGradient>
+                        <linearGradient id="gArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4d5e" stop-opacity=".42"/><stop offset="1" stop-color="#ff4d5e" stop-opacity="0"/></linearGradient>
+                        <radialGradient id="gFlame"><stop offset="0" stop-color="#fffbc4"/><stop offset=".45" stop-color="#ff9d3c"/><stop offset="1" stop-color="#ff3c2f" stop-opacity="0"/></radialGradient>
+                        <radialGradient id="gBoom"><stop offset="0" stop-color="#fff"/><stop offset=".3" stop-color="#ffd24d"/><stop offset=".7" stop-color="#ff4d2f"/><stop offset="1" stop-color="#ff4d2f" stop-opacity="0"/></radialGradient>
+                        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                    </defs>
+                    <g id="clouds"></g>
+                    <g stroke="rgba(255,255,255,.05)"><path d="M0 60H500M0 120H500M0 180H500M0 240H500M100 0V260M200 0V260M300 0V260M400 0V260"/></g>
+                    <g id="axis" font-size="9" fill="rgba(255,255,255,.4)"></g>
+                    <path id="curveArea" fill="url(#gArea)"/>
+                    <path id="flightCurve" fill="none" stroke="url(#gCurve)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+                    <g id="trail"></g><g id="smoke"></g>
+                    <g id="planeGroup" transform="translate(24 236)">
+                        <g transform="scale(1.1)">
+                            <ellipse id="flame" cx="-48" cy="0" rx="4" ry="3.4" fill="url(#gFlame)"/>
+                            <path d="M-34 -4L-50 -28L-40 -28L-18 -6Z" fill="#b3122f"/>
+                            <path d="M-36 2L-52 12L-44 14L-22 5Z" fill="#8f0f27"/>
+                            <path d="M-2 -4L-18 -22L-8 -23L16 -6Z" fill="#a8b4c8"/>
+                            <path d="M-42 -3Q-38 -11 -14 -12L22 -11Q44 -9 52 0Q44 9 22 10L-14 10Q-38 9 -42 3Z" fill="url(#gBody)" stroke="#7d8da6" stroke-width=".6"/>
+                            <path d="M-40 1L48 1" stroke="#d6283f" stroke-width="3"/>
+                            <g fill="#4aa3df"><circle cx="-24" cy="-3" r="1.8"/><circle cx="-16" cy="-3" r="1.8"/><circle cx="-8" cy="-3" r="1.8"/><circle cx="0" cy="-3" r="1.8"/></g>
+                            <path d="M8 -11Q22 -23 35 -9L8 -9Z" fill="url(#gCanopy)" stroke="#5b7aa8" stroke-width=".7"/>
+                            <path d="M12 -12Q20 -19 28 -12" stroke="rgba(255,255,255,.75)" stroke-width="1.2" fill="none"/>
+                            <path d="M0 3L-24 30L-12 31L22 5Z" fill="url(#gWing)"/>
+                            <path d="M-24 30L-12 31L-14 33.5L-26 32.5Z" fill="#c81e3a"/>
+                            <rect x="-2" y="9" width="18" height="6" rx="3" fill="#5b6b82"/>
+                            <ellipse cx="53" cy="0" rx="4" ry="5.5" fill="#c81e3a"/>
+                            <ellipse id="prop" cx="56" cy="0" rx="2.2" ry="19" fill="rgba(215,228,246,.6)"/>
+                        </g>
+                    </g>
+                    <circle id="boom" cx="0" cy="0" r="30" fill="url(#gBoom)"/>
+                </svg>
+            </div>
+
+            <p id="gameStatusText" style="color: #94a3b8; margin: 10px 0; font-weight: bold;">En attente de la prochaine manche...</p>
+
+            <div id="betPanels" class="bet-grid"></div>
+            <div id="liveCashoutPreview" style="margin:10px 0 0;font-size:15px;color:#5cc8ff;font-weight:700;min-height:20px"></div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+
+
+            <div class="card" style="margin-top: 15px; background: #0f172a;">
+                <h4 style="margin-top:0;">👥 Mises en direct :</h4>
+                <ul id="gamePlayersList"></ul>
+                <div class="stats-badge" id="myStatsBadge">
+                    <span>📊 <b>Mes Stats :</b> 0 parties</span>
+                    <span>Victoires : 0</span>
+                    <span>Profit : <span class="text-green">0 🪙</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. ÉCRAN ICEFIELD -->
+        <div id="icefield-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h3 style="margin: 5px 0; color: #7dd3fc;">🧊 Icefield - La Traversée du Yéti</h3>
+            <p id="iceStatusText" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;"></p>
+            <div class="bet-control-box" style="margin: 0 0 10px;">
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;"><label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Blocs par colonne (2 - 10)</label>
+                        <input type="number" id="iceColsInput" value="3" min="2" max="10" oninput="onColsChange()" style="margin: 4px 0;"></div>
+                    <div style="flex: 1.5;"><label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
+                        <input type="number" id="iceBetAmount" value="50" min="1" style="margin: 4px 0;"></div>
+                </div>
+            </div>
+            <div id="iceBoard" class="ice-board"><div id="yeti" class="yeti"><svg viewBox="0 0 64 72"><ellipse cx="32" cy="67" rx="16" ry="3.5" fill="rgba(0,0,0,.3)"/><ellipse cx="22" cy="60" rx="8" ry="6" fill="#e8f4ff"/><ellipse cx="42" cy="60" rx="8" ry="6" fill="#e8f4ff"/><path d="M14 56Q8 36 18 26Q32 18 46 26Q56 36 50 56Q32 64 14 56Z" fill="#f4faff" stroke="#bcd6ea" stroke-width="1.2"/><ellipse cx="11" cy="42" rx="6" ry="10" fill="#eaf4ff" stroke="#bcd6ea" transform="rotate(14 11 42)"/><ellipse cx="53" cy="42" rx="6" ry="10" fill="#eaf4ff" stroke="#bcd6ea" transform="rotate(-14 53 42)"/><ellipse cx="32" cy="26" rx="14" ry="13" fill="#f4faff" stroke="#bcd6ea"/><ellipse cx="32" cy="28" rx="10" ry="9" fill="#7ec8f0"/><circle cx="27.5" cy="25" r="3" fill="#fff"/><circle cx="36.5" cy="25" r="3" fill="#fff"/><circle cx="28" cy="25.5" r="1.5" fill="#12263a"/><circle cx="36" cy="25.5" r="1.5" fill="#12263a"/><path d="M26 32Q32 37 38 32Z" fill="#12263a"/><path d="M20 16Q15 8 22 5Q22 12 25 14ZM44 16Q49 8 42 5Q42 12 39 14Z" fill="#cfe3f3"/></svg></div><div id="iceToast" class="ice-toast"></div></div>
+            <div style="display: flex; gap: 10px;">
+                <button id="iceStartBtn" onclick="startIcefieldGame()">Lancer la traversée 🧊</button>
+                <button id="iceCashoutBtn" class="btn-cashout hidden" onclick="cashoutIcefield()">ENCAISSER</button>
+            </div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+
+        <!-- 6. ÉCRAN JUST MIXED -->
+        <div id="jm-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h3 style="margin: 5px 0; color: #f6dc9a;">🥤 Just mixed</h3>
+            <p id="jmStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Mise, regarde le mélange, puis choisis le bon gobelet !</p>
+            <div class="bet-control-box" style="margin: 0 0 10px;">
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <div style="flex: 1.5;"><label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
+                        <input type="number" id="jmBetAmount" value="50" min="1" style="margin: 4px 0;"></div>
+                    <div style="flex: 1; text-align: center; font-size: 12px; color: #cdbf9f; line-height: 1.5;">Gain <b style="color:#ffc24d;font-size:16px">x1.488</b><br>2 chances sur 3<br>RTP 99,2 %</div>
+                </div>
+            </div>
+            <div class="jm-stage"><svg id="jmSvg" viewBox="0 0 600 300"><defs>
+<radialGradient id="jmFelt" cx="50%" cy="40%" r="75%"><stop offset="0" stop-color="#1f7a4d"/><stop offset="1" stop-color="#0b3a26"/></radialGradient>
+<linearGradient id="jmCup" x1="0" x2="1"><stop offset="0" stop-color="#9f1239"/><stop offset=".45" stop-color="#f43f5e"/><stop offset="1" stop-color="#7f0f2e"/></linearGradient>
+<linearGradient id="jmRim" x1="0" x2="1"><stop offset="0" stop-color="#b8892f"/><stop offset=".5" stop-color="#f6dc9a"/><stop offset="1" stop-color="#b8892f"/></linearGradient>
+<radialGradient id="jmBall" cx="35%" cy="30%"><stop offset="0" stop-color="#fff7c2"/><stop offset=".5" stop-color="#f5b82e"/><stop offset="1" stop-color="#a1620c"/></radialGradient>
+<radialGradient id="jmLight" cx="50%" cy="0" r="80%"><stop offset="0" stop-color="#ffe6aa" stop-opacity=".38"/><stop offset="1" stop-color="#ffe6aa" stop-opacity="0"/></radialGradient>
+</defs><rect width="600" height="300" fill="#120a1c"/>
+<rect x="14" y="14" width="572" height="272" rx="26" fill="url(#jmFelt)" stroke="#8a5a1c" stroke-width="8"/>
+<rect x="14" y="14" width="572" height="272" rx="26" fill="url(#jmLight)"/>
+<path d="M60 262Q300 214 540 262" fill="none" stroke="rgba(246,220,154,.35)" stroke-width="2"/>
+<g id="jmBalls"></g><g id="jmCups"></g><g id="jmFx"></g></svg><div id="jmToast" class="ice-toast"></div></div>
+            <button id="jmStartBtn" onclick="startJm()">Jouer 🥤</button>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+    </div>
+
+    <!-- MODALE HISTORIQUE COMPLET -->
+    <div id="historyModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 style="margin-top:0; color: #38bdf8;">📜 Historique Complet des Tours</h3>
+            <p style="font-size: 13px; color: #94a3b8; margin-bottom: 15px;">Clique sur une pastille pour voir la preuve Provably Fair.</p>
+            <div class="full-history-grid" id="fullHistoryGrid"></div>
+            <button onclick="closeHistoryModal()" style="background: #ef4444; margin-top: 20px;">Fermer</button>
+        </div>
+    </div>
+
+    <!-- MODALE RÉSULTATS DE FIN DE SESSION -->
+    <div id="gameOverModal" class="modal-overlay hidden">
+        <div class="modal-content" style="border: 2px solid #eab308;">
+            <h2 style="margin-top:0; color: #eab308;">🏁 Fin de la Session !</h2>
+            <p style="color: #94a3b8; font-size: 14px;">Le temps imparti est écoulé. Voici le classement final des joueurs :</p>
+            <div id="finalLeaderboardList" style="text-align: left; margin: 15px 0; max-height: 250px; overflow-y: auto;"></div>
+            <button onclick="location.reload()" style="background: #22c55e; margin-top: 20px;">Recommencer une partie</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+(() => {
+'use strict';
+const socket = io({ transports: ['websocket', 'polling'] }); // websocket direct : pas de long-polling
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const show = (id, on = true) => $(id).classList.toggle('hidden', !on);
+
+/* ---------- État ---------- */
+const S = { code:null, phase:'waiting', balance:1000, slots:[{},{}], iceState:null, iceBusy:false, iceAnimating:false, iceLanes:0, yetiPos:null, icePick:null, view:'hub', crashRun:false, raf:0, ang:-3, si:0, lastTxt:'', iceCol:0, iceGen:0, icePending:0, iceWait:false, yetiP:Promise.resolve(), jmPhase:'idle', jmCups:null, jmAt:[0,1,2], jmPick:0,
+            history:[], target:1, shown:1, t0:0, smoke:[], wasConnected:false };
+
+/* ---------- Audio : effets doux + musique chill générative (aucun fichier à charger) ---------- */
+const Snd = (() => {
+  let ctx, sfx, musicBus, verb, noiseBuf, timer = null, nextT = 0, step = 0, musicOn = true;
+  const BPM = 72, hz = m => 440 * Math.pow(2, (m - 69) / 12);
+  const CH = [ // Am9 · Fmaj7 · Cmaj7 · G6  (notes MIDI)
+    { b: 45, n: [57, 60, 64, 67, 71] }, { b: 41, n: [53, 57, 60, 64] },
+    { b: 48, n: [52, 55, 59, 64] },     { b: 43, n: [59, 62, 64, 67] } ];
+
+  function init() {
+    if (ctx) return;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const master = ctx.createGain(); master.gain.value = .85;
+    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.knee.value = 18; comp.ratio.value = 4; comp.attack.value = .004; comp.release.value = .2;
+    master.connect(comp); comp.connect(ctx.destination); // compresseur : plus de saturation quand plusieurs sons se superposent
+    const len = ctx.sampleRate * 2.4, ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
+    verb = ctx.createConvolver(); verb.buffer = ir;
+    const vg = ctx.createGain(); vg.gain.value = .4; verb.connect(vg); vg.connect(master);
+    sfx = ctx.createGain(); sfx.gain.value = .9;
+    const sl = ctx.createBiquadFilter(); sl.type = 'lowpass'; sl.frequency.value = 9000; // adoucit les aigus des effets
+    sfx.connect(sl); sl.connect(master); sl.connect(verb);
+    musicBus = ctx.createGain(); musicBus.gain.value = 0;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200;
+    const send = ctx.createGain(); send.gain.value = .35;
+    musicBus.connect(lp); lp.connect(master); lp.connect(send); send.connect(verb);
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const n = noiseBuf.getChannelData(0); for (let i = 0; i < n.length; i++) n[i] = Math.random() * 2 - 1;
+  }
+
+  function tone(f, t, dur, o = {}) {
+    const osc = ctx.createOscillator(), g = ctx.createGain(), v = o.v || .2, a = o.a || .008;
+    osc.type = o.type || 'sine'; osc.frequency.setValueAtTime(f, t);
+    if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + dur);
+    if (o.det) osc.detune.value = o.det;
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(v, t + a);
+    if (o.sus) { g.gain.setValueAtTime(v, t + dur - o.sus); g.gain.linearRampToValueAtTime(.0001, t + dur); }
+    else g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    osc.connect(g); g.connect(o.dest || sfx); osc.start(t); osc.stop(t + dur + .05);
+  }
+  function noise(t, dur, o = {}) {
+    const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = noiseBuf; s.loop = true; f.type = o.type || 'lowpass'; f.frequency.setValueAtTime(o.f || 1000, t);
+    if (o.to) f.frequency.exponentialRampToValueAtTime(o.to, t + dur);
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(o.v || .1, t + (o.a || .005)); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(o.dest || sfx); s.start(t, Math.random() * .5); s.stop(t + dur + .05);
+  }
+
+  // Effets : sinusoïdes/triangles arrondis + réverb, rien d'agressif
+  const FX = {
+    bet:       t => { tone(660, t, .14, { type: 'triangle', v: .16 }); tone(990, t + .06, .18, { type: 'triangle', v: .14 }); },
+    cancel:    t => tone(520, t, .2, { type: 'triangle', to: 330, v: .14 }),
+    tick:      t => tone(1250, t, .07, { v: .1 }),
+    start:     t => { tone(784, t, .5, { v: .14 }); tone(1175, t + .09, .6, { v: .1 }); },
+    takeoff:   t => { noise(t, 1.2, { f: 200, to: 1800, v: .08, a: .25 }); tone(150, t, 1.1, { to: 340, v: .06, a: .4 }); },
+    milestone: t => { tone(1047, t, .35, { type: 'triangle', v: .12 }); tone(1568, t + .07, .45, { v: .1 }); },
+    win:       t => [523, 659, 784, 1047, 1319].forEach((f, i) => { tone(f, t + i * .075, .9, { type: 'triangle', v: .15 }); tone(f * 2, t + i * .075, .6, { v: .05 }); }),
+    crash:     t => { tone(140, t, .5, { to: 45, v: .32 }); noise(t, .35, { f: 600, to: 120, v: .14 }); tone(294, t + .04, .6, { type: 'triangle', to: 175, v: .07 }); },
+    iceJump:   t => { noise(t, .08, { f: 2500, type: 'highpass', v: .09 }); tone(220, t, .12, { to: 140, v: .12 }); },
+    iceStep:   t => { tone(880, t, .25, { type: 'triangle', v: .1 }); tone(1320, t + .05, .3, { v: .07 }); },
+    // Perte : craquements secs, éclatement de la glace, plouf, puis petit accord triste
+    iceLose:   t => {
+      for (let i = 0; i < 7; i++) noise(t + i * .05 + Math.random() * .02, .05, { f: 3000 + Math.random() * 3000, type: 'highpass', v: .16 });
+      tone(95, t, .5, { to: 50, v: .2 });
+      noise(t + .4, .5, { f: 6000, to: 1200, type: 'bandpass', v: .2 });
+      for (let i = 0; i < 9; i++) tone(2000 + Math.random() * 3500, t + .4 + i * .03, .35, { v: .05 });
+      noise(t + .6, .7, { f: 900, to: 150, v: .2 });
+      [392, 330, 262].forEach((f, i) => tone(f, t + .95 + i * .22, .9, { type: 'triangle', v: .12 }));
+    },
+    slide: t => noise(t, .16, { type: 'bandpass', f: 500 + Math.random() * 500, to: 900, v: .05 }),
+    tap:   t => { tone(170, t, .12, { to: 90, v: .22 }); noise(t, .05, { f: 1800, v: .1 }); },
+    pop:   t => tone(700, t, .14, { to: 350, v: .13 }),
+    lift:  t => noise(t, .25, { f: 400, to: 1800, v: .06 }),
+    miss:  t => [330, 262].forEach((f, i) => tone(f, t + i * .18, .6, { type: 'triangle', v: .12 }))
+  };
+
+  // Musique lo-fi : accords en nappe, basse, batterie douce et petites notes aléatoires, croches swinguées
+  function pad(c, t, dur) {
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.connect(musicBus);
+    c.n.forEach(m => [-7, 7].forEach(d => tone(hz(m), t, dur, { type: 'triangle', v: .035, a: 1.1, sus: 1.2, det: d, dest: lp })));
+  }
+  function playStep(st, t) {
+    const c = CH[Math.floor(st / 8) % 4], s = st % 8;
+    if (s === 0) pad(c, t, 240 / BPM + 1);
+    if (s === 0 || s === 5) tone(hz(c.b), t, s ? .5 : .9, { v: .2, a: .02, dest: musicBus });
+    if (s === 0 || s === 4) tone(115, t, .3, { to: 42, v: .32, dest: musicBus });
+    if (s === 2 || s === 6) noise(t, .16, { type: 'bandpass', f: 1800, v: .05, dest: musicBus });
+    if (s % 2) noise(t, .05, { type: 'highpass', f: 7000, v: .025, dest: musicBus });
+    if (Math.random() < .6) {
+      const m = hz(c.n[Math.floor(Math.random() * c.n.length)] + 12);
+      tone(m, t, .9, { type: 'triangle', v: .06, a: .01, dest: musicBus });
+      tone(m * 2, t, .35, { v: .015, dest: musicBus });
     }
+  }
+  function schedule() {
+    if (nextT < ctx.currentTime - .3) nextT = ctx.currentTime + .05; // onglet resté en arrière-plan
+    while (nextT < ctx.currentTime + .5) {
+      playStep(step, nextT);
+      nextT += (30 / BPM) * (step % 2 ? .82 : 1.18);
+      step++;
+    }
+  }
+  const level = () => musicBus.gain.setTargetAtTime(musicOn ? .55 : 0, ctx.currentTime, .7);
 
-    return { secretSeed, publicHash, crashPoint };
+  return {
+    unlock() { init(); if (ctx.state === 'suspended') ctx.resume(); },
+    play(name) { if (!ctx || !FX[name]) return; try { FX[name](ctx.currentTime + .01); } catch (e) {} },
+    startMusic() { init(); if (timer) return; step = 0; nextT = ctx.currentTime + .1; timer = setInterval(schedule, 120); schedule(); level(); },
+    stopMusic() { if (!timer) return; clearInterval(timer); timer = null; musicBus.gain.setTargetAtTime(0, ctx.currentTime, .6); },
+    toggle() { musicOn = !musicOn; if (ctx && timer) level(); return musicOn; },
+    suspend() { if (ctx && ctx.state === 'running') ctx.suspend(); }, resume() { if (ctx && ctx.state === 'suspended') ctx.resume(); }
+  };
+})();
+const sound = name => Snd.play(name);
+document.addEventListener('visibilitychange', () => document.hidden ? Snd.suspend() : Snd.resume()); // onglet caché : plus de son ni de calcul audio
+const startAudio = () => { Snd.unlock(); Snd.startMusic(); };
+const toggleMusic = () => { const i = Snd.toggle() ? '🎵' : '🔇'; ['musicBtn', 'musicBtn2'].forEach(id => { if ($(id)) $(id).textContent = i; }); };
+let lastShown = 1;
+
+/* ---------- Actions (appelées par les onclick du HTML) ---------- */
+function createRoom() {
+  const playerName = $('createName').value.trim();
+  if (!playerName) return alert('Entre un pseudo !');
+  Snd.unlock(); socket.emit('create-room', { playerName, duration: $('duration').value });
+}
+function joinRoom() {
+  const playerName = $('joinName').value.trim(), roomCode = $('roomCodeInput').value.trim().toUpperCase();
+  if (!playerName || !roomCode) return alert('Remplis ton pseudo et le code !');
+  Snd.unlock(); socket.emit('join-room', { roomCode, playerName });
+}
+const launchGame = () => socket.emit('launch-game-lobby', { roomCode: S.code, gameName: 'Hub' });
+function switchGame(name) {
+  startAudio(); // dans un clic : le navigateur autorise le son
+  show('game-hub', false);
+  socket.emit('join-game-table', { roomCode: S.code });
+  S.view = name === 'Icefield' ? 'ice' : name === 'Just mixed' ? 'jm' : 'crash';
+  if (S.view === 'ice') { show('icefield-screen'); updateIce(); }
+  else if (S.view === 'jm') { show('jm-screen'); if (!S.jmCups) buildJm(); }
+  else { show('game-screen'); socket.emit('crash-join', { roomCode: S.code }); startCrashUI(); }
+}
+function returnToHub() {
+  if (S.view === 'crash') { socket.emit('crash-leave', { roomCode: S.code }); stopCrashUI(); } // le jeu Crash s'arrête chez toi ET sur le serveur si tu es seul
+  S.view = 'hub';
+  show('game-screen', false); show('icefield-screen', false); show('jm-screen', false); show('game-hub');
+}
+function buildPanels() {
+  $('betPanels').innerHTML = [0, 1].map(i => `<div class="bet-control-box">
+    <div class="quick-bet-row">${[10, 50, 100, 500].map(a => `<button class="quick-btn" data-i="${i}" data-a="${a}">${a}</button>`).join('')}</div>
+    <div class="quick-bet-row"><button class="quick-btn" data-i="${i}" data-f=".5">÷2</button><button class="quick-btn" data-i="${i}" data-f="2">×2</button><button class="quick-btn" data-i="${i}" data-f="max">Max</button></div>
+    <div style="display:flex;gap:8px"><input type="number" id="amt${i}" value="${i ? 100 : 50}" min="1" style="margin:0;flex:2"><input type="number" step="0.1" min="1.01" id="auto${i}" placeholder="Auto cash-out" style="margin:0;flex:1.5"></div>
+    <label class="auto-row"><input type="checkbox" id="ab${i}"> Relancer la mise automatiquement</label>
+    <button class="act" id="act${i}" data-i="${i}"></button>
+    <button class="btn-cancel hidden" id="cancel${i}" data-i="${i}">Annuler</button></div>`).join('');
+  $('betPanels').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const i = +b.dataset.i, amt = $('amt' + i);
+    if (b.dataset.a) amt.value = b.dataset.a;
+    else if (b.dataset.f === 'max') amt.value = S.balance;
+    else if (b.dataset.f) amt.value = Math.max(1, Math.floor((parseFloat(amt.value) || 0) * b.dataset.f));
+    else if (b.id.startsWith('act')) act(i);
+    else if (b.id.startsWith('cancel')) { sound('cancel'); socket.emit('cancel-next-bet', { roomCode: S.code, slot: i }); }
+  });
+}
+function act(i) {
+  const s = S.slots[i] || {};
+  if (S.phase === 'ended' || S.phase === 'waiting') return;
+  if (S.phase === 'playing' && s.bet > 0 && !s.cashed) return socket.emit('cash-out', { roomCode: S.code, slot: i });
+  if (S.phase === 'betting' ? s.bet > 0 : s.next > 0) return; // pari déjà posé
+  const amount = parseInt($('amt' + i).value);
+  if (!amount || amount <= 0) return alert('Entre un montant valide !');
+  sound('bet');
+  socket.emit('place-bet', { roomCode: S.code, slot: i, amount, autoCashOut: $('auto' + i).value });
+}
+function autoBets() {
+  [0, 1].forEach(i => {
+    const a = parseInt($('amt' + i).value);
+    if ($('ab' + i).checked && !(S.slots[i].bet > 0) && a > 0 && S.balance >= a) act(i);
+  });
+}
+buildPanels();
+
+/* ---------- Rendu de l'interface ---------- */
+function renderButtons() {
+  [0, 1].forEach(i => {
+    const s = S.slots[i], b = $('act' + i), ph = S.phase;
+    let text, bg = '', cash = false, dis = false, cancel = false;
+    if (ph === 'betting') {
+      if (s.bet > 0) { text = `Pari enregistré : ${s.bet} 🪙 ✅`; bg = '#3b82f6'; cancel = true; }
+      else { text = 'Parier'; bg = '#22c55e'; }
+    } else if (ph === 'playing' && s.bet > 0 && !s.cashed) { text = `CASH OUT ${Math.floor(s.bet * S.shown)} 🪙`; cash = true; }
+    else if (ph === 'playing' || ph === 'crashed') {
+      if (s.next > 0) { text = `Prochain tour : ${s.next} 🪙 ✅`; bg = '#eab308'; cancel = true; }
+      else { text = 'Parier pour le tour suivant'; bg = '#3b82f6'; }
+    } else { text = 'En attente...'; dis = true; }
+    b.textContent = text; b.style.background = bg; b.disabled = dis; b.classList.toggle('btn-cashout', cash);
+    $('cancel' + i).classList.toggle('hidden', !cancel);
+  });
 }
 
+const setH = (el, html) => { if (el && el._h !== html) { el._h = html; el.innerHTML = html; } }; // n'écrit dans le DOM que si ça a changé
+function renderPlayers(room) {
+  const me = room.players.find(p => p.id === socket.id), sg = n => n >= 0 ? '+' : '';
+  if (me) {
+    S.balance = me.balance; S.slots = me.slots;
+    document.querySelectorAll('.playerBalance').forEach(e => { if (e.textContent != me.balance) e.textContent = me.balance; });
+  }
+  if (!$('lobby').classList.contains('hidden')) {
+    setH($('playersList'), room.players.map(p => `<li>${esc(p.name)} (${p.balance} 🪙) ${p.isAdmin ? '👑 Hôte' : ''}${p.connected === false ? ' 💤 déconnecté' : ''}</li>`).join(''));
+  }
+  if (S.view === 'crash') { // la liste des mises et les stats ne servent que sur l'écran Crash
+    const avg = room.players.reduce((a, p) => a + p.stats.totalProfit, 0) / (room.players.length || 1);
+    setH($('gamePlayersList'), room.players.map(p => {
+      const st = p.slots.map(x => x.cashed ? `✅ +${x.win} 🪙` : x.bet > 0 ? `Mise ${x.bet} 🪙${x.auto ? ' (auto ' + x.auto + 'x)' : ''}` : x.next > 0 ? `Prête ${x.next} 🪙` : '').filter(Boolean).join(' · ');
+      return `<li><b>${esc(p.name)}</b> - ${st || 'Observe'} | Profit: <span class="${p.stats.totalProfit >= avg ? 'text-green' : 'text-red'}">${sg(p.stats.totalProfit)}${p.stats.totalProfit} 🪙</span> (Solde: ${p.balance} 🪙)</li>`;
+    }).join(''));
+    if (me) setH($('myStatsBadge'), `<span>📊 <b>Mes Stats :</b> ${me.stats.gamesPlayed} jouées</span><span>Victoires : ${me.stats.wins}</span>
+      <span>Profit : <span class="${me.stats.totalProfit >= 0 ? 'text-green' : 'text-red'}">${sg(me.stats.totalProfit)}${me.stats.totalProfit} 🪙</span></span>`);
+  }
+  if (room.status === 'waiting' && me) { show('adminControls', me.isAdmin); show('playerWaitingGame', !me.isAdmin); }
+}
+
+function pill(item) {
+  const d = document.createElement('div');
+  d.className = 'history-pill ' + (item.multiplier < 2 ? 'hist-low' : item.multiplier < 10 ? 'hist-mid' : 'hist-high');
+  d.textContent = item.multiplier.toFixed(2) + 'x';
+  d.onclick = () => alert(`🔍 Preuve Provably Fair :\n\n- Multiplicateur : ${item.multiplier}x\n- Hash publié avant la manche : ${item.hash}\n- Graine secrète révélée : ${item.secret}\n\nVérification :\n1) SHA-256(graine) doit être égal au hash publié\n2) Le crash est dérivé de HMAC-SHA256(graine, "crash")`);
+  return d;
+}
+function renderHistory(list) {
+  S.history = list;
+  const bar = $('historyBar'); bar.innerHTML = '';
+  list.slice(0, 8).forEach(i => bar.appendChild(pill(i)));
+}
+function openHistoryModal() {
+  const g = $('fullHistoryGrid'); g.innerHTML = '';
+  if (!S.history.length) g.innerHTML = '<p style="color:#9a90ad">Aucun historique pour l\'instant.</p>';
+  S.history.forEach(i => g.appendChild(pill(i)));
+  show('historyModal');
+}
+const closeHistoryModal = () => show('historyModal', false);
+
+// La phase de jeu vient du serveur : un joueur qui arrive en cours de manche est synchronisé
+function sync(room) {
+  if (['betting', 'playing', 'crashed'].includes(room.status) && S.phase !== 'ended') S.phase = room.status;
+  if (room.currentHash) $('currentHashDisplay').textContent = room.currentHash;
+  renderPlayers(room); renderRank(room); if (S.view === 'crash') renderButtons(); if (room.history) renderHistory(room.history);
+  const me = room.players.find(p => p.id === socket.id);
+  S.iceState = me ? me.iceState : null;
+  updateIce();
+}
+
+// Classement commun : trié sur la fortune totale (solde + mises en jeu) pour qu'il ne saute pas à chaque mise
+function renderRank(room) {
+  const eq = p => p.balance + p.slots.reduce((a, x) => a + x.bet + x.next, 0) + (p.iceState && p.iceState.active ? p.iceState.bet : 0) + (p.jm && p.jm.active ? p.jm.bet : 0);
+  const rows = [...room.players].sort((a, b) => eq(b) - eq(a));
+  const mine = rows.findIndex(p => p.id === socket.id);
+  const html = rows.map((p, i) => {
+    const pr = eq(p) - 1000;
+    return `<div class="rank-row${p.id === socket.id ? ' me' : ''}"><b>${i < 3 ? ['🥇', '🥈', '🥉'][i] : '#' + (i + 1)}</b><span>${esc(p.name)}${p.connected === false ? ' 💤' : ''}</span><b>${eq(p)} 🪙</b><span class="${pr >= 0 ? 'text-green' : 'text-red'}">${pr >= 0 ? '+' : ''}${pr}</span></div>`;
+  }).join('');
+  document.querySelectorAll('.rankList').forEach(e => setH(e, html));
+  document.querySelectorAll('.rankMe').forEach(e => e.textContent = mine >= 0 ? `Tu es #${mine + 1} sur ${rows.length}` : '');
+}
+function enterLobby(room) {
+  S.code = room.code;
+  show('auth-screen', false); show('lobby');
+  $('displayCode').textContent = room.code;
+  sync(room);
+}
+
+/* ---------- Animation du vol (60 fps) ---------- */
+const stage = $('stage'), mBox = $('multiplierBox'), curve = $('flightCurve'), area = $('curveArea'),
+      plane = $('planeGroup'), axis = $('axis'), flame = $('flame'), trail = $('trail'), boom = $('boom'), live = $('liveCashoutPreview');
+// Pools d'éléments créés une seule fois : aucune création/suppression de DOM pendant l'animation
+const SMOKE = 18; let lastT = 0, fno = 0;
+$('smoke').innerHTML = Array.from({ length: SMOKE }, () => '<circle r="0" opacity="0" fill="#ffbe78"/>').join('');
+S.sm = [...$('smoke').children].map(el => ({ el, l: 0, x: 0, y: 0 }));
+$('clouds').innerHTML = Array.from({ length: 7 }, (_, i) => `<ellipse rx="${30 + (i * 13) % 34}" ry="${6 + (i * 5) % 6}" fill="rgba(255,225,200,${(.04 + (i % 3) * .015).toFixed(3)})"/>`).join('');
+S.cl = [...$('clouds').children].map((el, i) => ({ el, x: i * 95 + (i % 2) * 40, y: 28 + (i * 47) % 180, k: .4 + (i % 3) * .3 }));
+$('axis').innerHTML = '<text x="494" text-anchor="end"></text>'.repeat(4);
+S.ax = [...$('axis').children];
+
+// Zoom automatique : l'axe vertical s'adapte au multiplicateur ; l'avion se cabre en douceur le long de la courbe
+function draw(m, now, dt) {
+  const top = Math.max(3, m * 1.2), lm = Math.log(m), xf = lm / Math.log(top), up = m > 1.001;
+  const yf = v => 236 - (v - 1) / (top - 1) * 170, pt = k => [24 + k * 420 * xf, yf(Math.exp(lm * k))];
+  let d = 'M24 236';
+  for (let i = 1; i <= 30; i++) { const q = pt(i / 30); d += 'L' + q[0].toFixed(1) + ' ' + q[1].toFixed(1); }
+  const e = pt(1), p0 = pt(.94), want = up ? Math.atan2(e[1] - p0[1], e[0] - p0[0]) * 57.3 : -3;
+  S.ang += (want - S.ang) * Math.min(1, dt * 9);
+  const y = e[1] + Math.sin(now / 330) * (m > 2.5 ? 4 : 2) + (m > 6 ? Math.sin(now / 37) * .8 : 0);
+  curve.setAttribute('d', up ? d : 'M24 236L24 236');
+  area.setAttribute('d', up ? d + 'L' + e[0].toFixed(1) + ' 260L24 260Z' : '');
+  plane.setAttribute('transform', `translate(${e[0].toFixed(1)} ${y.toFixed(1)}) rotate(${S.ang.toFixed(1)})`);
+  if (fno % 6 === 0) S.ax.forEach((t, i) => { const v = 1 + (i + 1) / 4 * (top - 1); t.setAttribute('y', (yf(v) - 3).toFixed(0)); t.textContent = v.toFixed(1) + 'x'; });
+  return { x: e[0], y };
+}
+
+function frame(now) {
+  S.raf = 0; if (!S.crashRun) return;
+  const dt = Math.min(.05, (now - lastT) / 1000), playing = S.phase === 'playing'; lastT = now; fno++;
+  if (playing) {
+    // extrapolation locale entre deux ticks serveur => mouvement continu à 60 fps
+    S.shown = Math.max(S.shown, Math.min(S.target * Math.exp(.07 * (now - S.t0) / 1000), S.target * 1.03));
+    const txt = S.shown.toFixed(2) + 'x';
+    if (txt !== S.lastTxt) { // le DOM n'est touché que lorsque la valeur affichée change
+      S.lastTxt = txt; mBox.textContent = txt;
+      mBox.style.color = S.shown < 2 ? '#5cc8ff' : S.shown < 10 ? '#c58cff' : '#ffc24d';
+      mBox.style.transform = `translate(-50%,-50%) scale(${(1 + Math.min(S.shown / 40, .25)).toFixed(3)})`;
+      for (const m of [2, 5, 10, 25]) if (lastShown < m && S.shown >= m) sound('milestone');
+      lastShown = S.shown;
+      S.slots.forEach((s, i) => { if (s.bet > 0 && !s.cashed) $('act' + i).textContent = `CASH OUT ${Math.floor(s.bet * S.shown)} 🪙`; });
+    }
+  } else if (S.phase === 'betting') { S.shown = S.target = 1; S.lastTxt = ''; mBox.style.color = ''; mBox.style.transform = 'translate(-50%,-50%)'; }
+  if (S.phase !== 'crashed') {
+    const p = draw(S.shown, now, dt);
+    flame.setAttribute('rx', playing ? 9 + Math.random() * 7 : 3 + Math.random() * 2);
+    if (playing && fno % 2 === 0) { const s = S.sm[S.si = (S.si + 1) % SMOKE]; s.l = 1; s.x = p.x - 32; s.y = p.y + 2; }
+  }
+  const sp = playing ? 14 + S.shown * 14 : 14;
+  S.cl.forEach(c => { c.x -= dt * sp * c.k; if (c.x < -60) c.x += 620; c.el.setAttribute('transform', `translate(${c.x.toFixed(1)} ${c.y})`); });
+  S.sm.forEach(s => { if (s.l > 0) { s.l -= dt * 2; s.x -= dt * sp; const l = Math.max(s.l, 0);
+    s.el.setAttribute('cx', s.x.toFixed(1)); s.el.setAttribute('cy', s.y.toFixed(1)); s.el.setAttribute('r', (2 + (1 - l) * 8).toFixed(1)); s.el.setAttribute('opacity', (l * .4).toFixed(2)); } });
+  S.raf = requestAnimationFrame(frame);
+}
+// L'animation de l'avion ne tourne QUE quand l'écran Crash est affiché
+function startCrashUI() { if (S.crashRun) return; S.crashRun = true; lastT = performance.now(); if (!S.raf) S.raf = requestAnimationFrame(frame); }
+function stopCrashUI() { S.crashRun = false; if (S.raf) cancelAnimationFrame(S.raf); S.raf = 0; }
+
+socket.on('crash-state', d => {
+  S.phase = d.status === 'choosing_game' ? 'waiting' : d.status;
+  S.target = S.shown = d.multiplier || 1; S.t0 = performance.now(); S.lastTxt = '';
+  if (d.hash) $('currentHashDisplay').textContent = d.hash;
+  sync(d.room);
+});
+
+/* ---------- Événements serveur ---------- */
+socket.on('room-created', d => enterLobby(d.room));
+socket.on('joined-success', enterLobby);
+socket.on('update-room', sync);
+socket.on('error-message', m => { alert(m); if (S.jmPhase === 'starting') S.jmPhase = 'idle'; });
+
+socket.on('navigate-to-game', () => { show('lobby', false); show('game-hub'); });
+
+socket.on('timer-update', d => {
+  const m = Math.floor(d.timeRemaining / 60), s = d.timeRemaining % 60;
+  document.querySelectorAll('.sessionTimerDisplay').forEach(e => e.textContent = `${m}:${s < 10 ? '0' : ''}${s}`);
+});
+
+socket.on('betting-phase', d => {
+  if (S.phase === 'ended') return;
+  S.phase = 'betting'; S.smoke = [];
+  sound('start');
+  mBox.classList.remove('crashed-text'); mBox.textContent = '1.00x';
+  stage.classList.remove('shake'); plane.style.opacity = 1; trail.innerHTML = '';
+  $('currentHashDisplay').textContent = d.hash;
+  $('gameStatusText').textContent = `Prochaine manche dans ${d.countdown}s... Placez vos mises !`;
+  live.textContent = '';
+  sync(d.room);
+  autoBets();
+});
+
+socket.on('betting-countdown', d => {
+  if (d.countdown <= 3) sound('tick');
+  if (S.phase !== 'ended') $('gameStatusText').textContent = `Prochaine manche dans ${d.countdown}s... Placez vos mises !`;
+});
+
+socket.on('playing-phase-started', room => {
+  if (S.phase === 'ended') return;
+  S.phase = 'playing'; S.shown = S.target = 1; S.t0 = performance.now(); S.smoke = []; lastShown = 1; sound('takeoff');
+  $('gameStatusText').textContent = "L'avion décolle ! Bon vol ✈️";
+  sync(room);
+});
+
+socket.on('multiplier-update', d => {
+  if (S.phase === 'ended') return;
+  S.target = d.multiplier; S.t0 = performance.now();
+});
+
+socket.on('game-crashed', d => {
+  if (S.phase === 'ended') return;
+  S.phase = 'crashed'; S.shown = d.multiplier;
+  sound('crash');
+  mBox.innerHTML = `<small style="display:block;font-size:.3em;letter-spacing:1px;color:#ff9aa5">L'avion s'est envolé !</small>${d.multiplier.toFixed(2)}x`; mBox.classList.add('crashed-text');
+  $('gameStatusText').textContent = 'Crash ! La manche est terminée.';
+  live.textContent = '';
+  const p = draw(S.shown, performance.now());
+  plane.style.opacity = 0; trail.innerHTML = ''; stage.classList.add('shake');
+  boom.setAttribute('cx', p.x); boom.setAttribute('cy', p.y);
+  boom.classList.remove('go'); void boom.getBoundingClientRect(); boom.classList.add('go');
+  sync(d.room);
+});
+
+socket.on('player-cashed-out', d => {
+  if (d.socketId !== socket.id) return;
+  sound('win');
+  live.textContent = `Tu as gagné ${d.winnings} 🪙 ! (x${Number(d.multiplier).toFixed(2)})`;
+});
+
+socket.on('game-session-ended', d => {
+  S.phase = 'ended'; Snd.stopMusic(); sound('win');
+  const box = $('finalLeaderboardList'); box.innerHTML = '';
+  d.leaderboard.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'background:#0d0814;padding:10px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px';
+    row.innerHTML = `<span><b>#${i + 1} ${esc(p.name)}</b></span>
+      <span>Solde : <b>${p.finalBalance} 🪙</b> (<span class="${p.profit >= 0 ? 'text-green' : 'text-red'}">${p.profit >= 0 ? '+' : ''}${p.profit}</span>)</span>`;
+    box.appendChild(row);
+  });
+  show('gameOverModal');
+});
+
+// Si la connexion saute (veille du téléphone, redémarrage Render), l'ancien id joueur n'existe plus
+socket.on('disconnect', () => { $('gameStatusText').textContent = '⚠️ Connexion perdue...'; });
+socket.on('connect', () => {
+  if (S.wasConnected && S.code && S.phase !== 'ended') { alert('Connexion perdue : retour à l\'accueil.'); location.reload(); }
+  S.wasConnected = true;
+});
+
+/* ---------- Icefield : le Yéti traverse de gauche à droite ---------- */
 const ICE_STEPS = 8;
-// Just mixed : 2 chances sur 3 de gagner, gain = RTP / probabilité = 0.992 / (2/3) = x1.488
-const JM_RTP = 0.992, JM_MULT = Math.round(JM_RTP / (2 / 3) * 1000) / 1000;
-function calculateIcefieldMultiplier(cols, step) {
-    return parseFloat((0.98 / Math.pow((cols - 1) / cols, step)).toFixed(2));
-}
-
-const newSlot = () => ({ bet: 0, next: 0, auto: 0, nextAuto: 0, cashed: false, win: 0 });
-
-function newPlayer(socket, name, isAdmin) {
-    return {
-        id: socket.id,
-        name: cleanName(name),
-        balance: 1000,
-        initialBalance: 1000,
-        isAdmin,
-        inGame: false,
-        connected: true,
-        slots: [newSlot(), newSlot()],
-        stats: { gamesPlayed: 0, wins: 0, totalProfit: 0 }
-    };
-}
-
-/*
- * IMPORTANT : on n'envoie JAMAIS l'objet "room" brut aux clients.
- *  1) il contient des timers (setInterval) => structure circulaire => Socket.IO plante
- *     (c'est LA cause du "rien ne marche" quand la partie démarre)
- *  2) il contient crashPoint et currentSecret => les joueurs pourraient tricher
- */
-function publicRoom(room, full = false) {
-    return {
-        code: room.code,
-        status: room.status,
-        selectedGame: room.selectedGame,
-        timeRemaining: room.timeRemaining,
-        multiplier: room.multiplier,
-        currentHash: room.currentHash,
-        players: room.players.map(p => ({
-            id: p.id,
-            name: p.name,
-            balance: p.balance,
-            isAdmin: p.isAdmin,
-            inGame: p.inGame,
-            connected: p.connected,
-            slots: p.slots,
-            iceState: p.iceState ? {
-                cols: p.iceState.cols, bet: p.iceState.bet, active: p.iceState.active,
-                currentStep: p.iceState.currentStep, path: p.iceState.path,
-                revealedTraps: p.iceState.revealedTraps, multipliers: p.iceState.multipliers
-            } : null,
-            jm: p.jm ? { active: p.jm.active, bet: p.jm.bet } : null,
-            stats: p.stats
-        })),
-        history: full ? room.history : undefined // l'historique n'est envoyé qu'aux joueurs de la table Crash
-    };
-}
-
-// Les changements sont regroupés : au plus un "update-room" toutes les 60 ms par room (petit serveur = moins de CPU et de bande passante)
-function broadcast(room) {
-    if (room._bt) return;
-    room._bt = setTimeout(() => {
-        room._bt = null;
-        io.to(room.code).emit('update-room', publicRoom(room));
-    }, 60);
-}
-const crashRoom = room => room.code + ':crash';
-
-function clearRoomTimers(room) {
-    Object.keys(room.timers).forEach(k => {
-        clearInterval(room.timers[k]);
-        clearTimeout(room.timers[k]);
-        room.timers[k] = null;
-    });
-}
-
-function destroyRoom(code) {
-    const room = rooms[code];
-    if (!room) return;
-    clearRoomTimers(room);
-    clearTimeout(room._bt);
-    delete rooms[code];
-}
-
-function findPlayer(socket, roomCode) {
-    const room = rooms[String(roomCode || '').toUpperCase()];
-    if (!room) return {};
-    const player = room.players.find(p => p.id === socket.id);
-    return { room, player };
-}
-
-/* ------------------------------------------------------------------ */
-/*  Sockets                                                            */
-/* ------------------------------------------------------------------ */
-
-io.on('connection', (socket) => {
-    console.log(`Connexion : ${socket.id}`);
-
-    socket.on('create-room', ({ playerName, duration } = {}) => {
-        const name = cleanName(playerName);
-        if (!name) return socket.emit('error-message', 'Pseudo invalide !');
-
-        const minutes = ALLOWED_DURATIONS.includes(parseInt(duration)) ? parseInt(duration) : 5;
-        const durationInSeconds = minutes * 60;
-        const roomCode = generateRoomCode();
-
-        rooms[roomCode] = {
-            code: roomCode,
-            duration: durationInSeconds,
-            timeRemaining: durationInSeconds,
-            status: 'waiting',
-            selectedGame: null,
-            players: [newPlayer(socket, name, true)],
-            multiplier: 1.00,
-            crashPoint: 0,
-            currentHash: '',
-            currentSecret: '',
-            loopStarted: false,
-            timers: { session: null, count: null, play: null, next: null },
-            history: []
-        };
-
-        socket.join(roomCode);
-        socket.emit('room-created', { roomCode, room: publicRoom(rooms[roomCode]) });
-    });
-
-    socket.on('join-room', ({ roomCode, playerName } = {}) => {
-        const code = String(roomCode || '').trim().toUpperCase();
-        const room = rooms[code];
-        const name = cleanName(playerName);
-
-        if (!room) return socket.emit('error-message', "Cette room n'existe pas !");
-        if (!name) return socket.emit('error-message', 'Pseudo invalide !');
-        if (room.status === 'ended') return socket.emit('error-message', 'La session est terminée !');
-        if (room.players.some(p => p.id === socket.id)) return;
-
-        room.players.push(newPlayer(socket, name, false));
-        socket.join(code);
-
-        socket.emit('joined-success', publicRoom(room));
-        // si l'hôte a déjà ouvert le jeu, on envoie directement le nouveau joueur dessus
-        if (room.status !== 'waiting') {
-            socket.emit('navigate-to-game', { gameName: room.selectedGame, room: publicRoom(room) });
-        }
-        broadcast(room);
-    });
-
-    socket.on('launch-game-lobby', ({ roomCode, gameName } = {}) => {
-        const { room, player } = findPlayer(socket, roomCode);
-        if (!room || !player || !player.isAdmin) return;
-        if (room.status !== 'waiting') return;
-
-        room.status = 'choosing_game';
-        room.selectedGame = String(gameName || 'Hub').slice(0, 40);
-        io.to(room.code).emit('navigate-to-game', { gameName: room.selectedGame, room: publicRoom(room) });
-    });
-
-    socket.on('join-game-table', ({ roomCode } = {}) => {
-        const { room, player } = findPlayer(socket, roomCode);
-        if (!room || !player) return;
-        if (room.status === 'waiting' || room.status === 'ended') return;
-
-        player.inGame = true;
-        broadcast(room);
-
-        if (!room.timers.session) startSessionTimer(room);
-    });
-
-    // La boucle Crash ne tourne QUE si au moins un joueur est à la table, et ses événements ne partent qu'à la table
-    socket.on('crash-join', ({ roomCode } = {}) => {
-        const { room, player } = findPlayer(socket, roomCode);
-        if (!room || !player || room.status === 'waiting' || room.status === 'ended') return;
-        player.inCrash = true;
-        socket.join(crashRoom(room));
-        socket.emit('crash-state', { status: room.status, multiplier: room.multiplier, hash: room.currentHash, room: publicRoom(room, true) });
-        if (!room.loopStarted) { room.loopStarted = true; startCrashLoop(room); }
-        else if (room.crashIdle) { room.crashIdle = false; room.runRound(); }
-    });
-
-    socket.on('crash-leave', ({ roomCode } = {}) => {
-        const { room, player } = findPlayer(socket, roomCode);
-        if (!room || !player) return;
-        player.inCrash = false;
-        socket.leave(crashRoom(room));
-        player.slots.forEach(sl => { // les mises qui ne sont pas encore parties sont rendues
-            if (room.status === 'betting' && sl.bet > 0) { player.balance += sl.bet; sl.bet = 0; sl.auto = 0; }
-            if (sl.next > 0) { player.balance += sl.next; sl.next = 0; sl.nextAuto = 0; }
-        });
-        broadcast(room);
-    });
-
-    const slotOf = (player, i) => player.slots[i === 1 ? 1 : 0];
-
-    socket.on('place-bet', ({ roomCode, amount, autoCashOut, slot } = {}) => {
-        const { room, player } = findPlayer(socket, roomCode);
-        if (!room || !player || !player.inGame || room.status === 'ended') return;
-
-        amount = Math.floor(Number(amount));
-        if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
-        if (player.balance < amount) return socket.emit('error-message', 'Solde insuffisant !');
-
-        const pa = parseFloat(autoCashOut), auto = pa >= 1.01 ? pa : 0, sl = slotOf(player, slot);
-        if (room.status === 'betting') {
-            if (sl.bet > 0) return; // déjà misé : annuler avant de changer
-            sl.bet = amount; sl.auto = auto; sl.cashed = false; sl.win = 0;
-        } else if (room.status === 'playing' || room.status === 'crashed') {
-            if (sl.next > 0) return;
-            sl.next = amount; sl.nextAuto = auto;
-        } else return;
-
-        player.balance -= amount;
-        broadcast(room);
-    });
-
-    socket.on('cancel-next-bet', ({ roomCode, slot } = {}) => {
-        const { room, player } = findPlayer(socket, roomCode);
-        if (!room || !player) return;
-        const sl = slotOf(player, slot);
-        if (room.status === 'betting' && sl.bet > 0) { player.balance += sl.bet; sl.bet = 0; sl.auto = 0; }
-        else if ((room.status === 'playing' || room.status === 'crashed') && sl.next > 0) { player.balance += sl.next; sl.next = 0; sl.nextAuto = 0; }
-        broadcast(room);
-    });
-
-    socket.on('cash-out', ({ roomCode, slot } = {}) => {
-        const { room, player } = findPlayer(socket, roomCode);
-        if (!room || !player || room.status !== 'playing') return;
-        const sl = slotOf(player, slot);
-        if (sl.bet > 0 && !sl.cashed) processCashOut(player, sl, room.multiplier, room, slot === 1 ? 1 : 0);
-    });
-
-    /* ---------------- Just mixed (3 gobelets, RTP 99,2 %) ---------------- */
-    socket.on('jm-start', ({ roomCode, amount } = {}) => {
-        const { room, player } = findPlayer(socket, roomCode);
-        if (!room || !player || !player.inGame || room.status === 'ended') return;
-        if (player.jm && player.jm.active) return;
-
-        amount = Math.floor(Number(amount));
-        if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
-        if (player.balance < amount) return socket.emit('error-message', 'Solde insuffisant !');
-
-        player.balance -= amount;
-        player.jm = { active: true, bet: amount };
-        socket.emit('jm-started', { bet: amount });
-        broadcast(room);
-    });
-
-    // Le gobelet vide est tiré par le serveur AU MOMENT DU CLIC : l'animation de mélange est purement visuelle
-    socket.on('jm-pick', ({ roomCode, cup } = {}) => {
-        const { room, player } = findPlayer(socket, roomCode);
-        if (!room || !player || !player.jm || !player.jm.active || room.status === 'ended') return;
-        cup = parseInt(cup);
-        if (!(cup >= 0 && cup <= 2)) return;
-
-        const empty = crypto.randomInt(3), win = cup !== empty, bet = player.jm.bet;
-        let winnings = 0;
-        if (win) { // arrondi aléatoire pondéré : l'espérance de gain reste exactement 99,2 %
-            const raw = bet * JM_MULT, fl = Math.floor(raw);
-            winnings = fl + (crypto.randomInt(1000000) / 1000000 < raw - fl ? 1 : 0);
-        }
-        player.balance += winnings;
-        player.jm.active = false;
-        player.stats.gamesPlayed++;
-        if (win) player.stats.wins++;
-        player.stats.totalProfit += winnings - bet;
-
-        socket.emit('jm-result', { cup, empty, win, multiplier: JM_MULT, winnings,
-            message: win ? `🎉 Gagné ! +${winnings} 🪙 (x${JM_MULT})` : '😬 Gobelet vide, perdu !' });
-        broadcast(room);
-    });
-
-    /* ---------------- Icefield (le Yéti avance de gauche à droite) ---------------- */
-    socket.on('icefield-start-game', ({ roomCode, amount, cols } = {}) => {
-        const { room, player } = findPlayer(socket, roomCode);
-        if (!room || !player || !player.inGame || room.status === 'ended') return;
-        if (player.iceState && player.iceState.active) return socket.emit('error-message', 'Partie Icefield déjà en cours !');
-
-        amount = Math.floor(Number(amount));
-        cols = Math.min(10, Math.max(2, parseInt(cols) || 3));
-        if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
-        if (player.balance < amount) return socket.emit('error-message', 'Solde insuffisant !');
-
-        player.balance -= amount;
-        const traps = [], multipliers = [];
-        for (let i = 0; i < ICE_STEPS; i++) {
-            traps.push(crypto.randomInt(cols));
-            multipliers.push(calculateIcefieldMultiplier(cols, i + 1));
-        }
-        player.iceState = { cols, bet: amount, active: true, currentStep: 0, traps, multipliers, path: [], revealedTraps: [] };
-        broadcast(room);
-    });
-
-    socket.on('icefield-step', ({ roomCode, tileIndex } = {}) => {
-        const { room, player } = findPlayer(socket, roomCode);
-        const st = player && player.iceState;
-        if (!room || !st || !st.active || room.status === 'ended') return;
-
-        tileIndex = parseInt(tileIndex);
-        if (!(tileIndex >= 0 && tileIndex < st.cols)) return;
-
-        const trap = st.traps[st.currentStep];
-        st.revealedTraps[st.currentStep] = trap;
-
-        if (trap === tileIndex) {
-            st.active = false;
-            player.stats.gamesPlayed++;
-            player.stats.totalProfit -= st.bet;
-            socket.emit('icefield-result', { success: false, message: "🧊 La glace s'est brisée !" });
-        } else {
-            st.path.push(tileIndex);
-            st.currentStep++;
-            if (st.currentStep >= ICE_STEPS) {
-                const mult = st.multipliers[ICE_STEPS - 1], winnings = Math.floor(st.bet * mult);
-                player.balance += winnings;
-                st.active = false;
-                player.stats.gamesPlayed++; player.stats.wins++; player.stats.totalProfit += winnings - st.bet;
-                socket.emit('icefield-result', { success: true, completed: true, multiplier: mult, winnings, message: `🎉 Traversée réussie ! +${winnings} 🪙` });
-            } else {
-                socket.emit('icefield-result', { success: true, completed: false, step: st.currentStep });
-            }
-        }
-        broadcast(room);
-    });
-
-    socket.on('icefield-cashout', ({ roomCode } = {}) => {
-        const { room, player } = findPlayer(socket, roomCode);
-        const st = player && player.iceState;
-        if (!room || !st || !st.active || st.currentStep === 0 || room.status === 'ended') return;
-
-        const mult = st.multipliers[st.currentStep - 1], winnings = Math.floor(st.bet * mult);
-        player.balance += winnings;
-        st.active = false;
-        player.stats.gamesPlayed++; player.stats.wins++; player.stats.totalProfit += winnings - st.bet;
-        socket.emit('icefield-result', { success: true, cashout: true, multiplier: mult, winnings, message: `💰 Encaissé : +${winnings} 🪙 (x${mult})` });
-        broadcast(room);
-    });
-
-    socket.on('disconnect', () => {
-        console.log(`Connexion fermée : ${socket.id}`);
-
-        for (const code of Object.keys(rooms)) {
-            const room = rooms[code];
-            const idx = room.players.findIndex(p => p.id === socket.id);
-            if (idx === -1) continue;
-
-            const player = room.players[idx];
-            if (room.status === 'waiting' || room.status === 'choosing_game') {
-                room.players.splice(idx, 1);
-            } else {
-                player.connected = false; // on garde le joueur pour le classement final
-            }
-
-            if (!room.players.some(p => p.connected)) {
-                destroyRoom(code);
-                continue;
-            }
-
-            if (player.isAdmin) {
-                player.isAdmin = false;
-                const next = room.players.find(p => p.connected);
-                if (next) next.isAdmin = true;
-            }
-            broadcast(room);
-        }
-    });
-});
-
-/* ------------------------------------------------------------------ */
-/*  Logique de jeu                                                     */
-/* ------------------------------------------------------------------ */
-
-function processCashOut(player, sl, multiplier, room, idx) {
-    const winnings = Math.floor(sl.bet * multiplier);
-    player.balance += winnings;
-    sl.cashed = true;
-    sl.win = winnings - sl.bet;
-
-    player.stats.gamesPlayed++;
-    player.stats.wins++;
-    player.stats.totalProfit += sl.win;
-
-    io.to(crashRoom(room)).emit('player-cashed-out', { socketId: player.id, playerName: player.name, slot: idx, multiplier, winnings });
-    broadcast(room);
-}
-
-function startSessionTimer(room) {
-    room.timers.session = setInterval(() => {
-        room.timeRemaining--;
-        io.to(room.code).emit('timer-update', { timeRemaining: Math.max(0, room.timeRemaining) });
-        if (room.timeRemaining <= 0) endSession(room);
-    }, 1000);
-}
-
-function endSession(room) {
-    if (room.status === 'ended') return;
-    clearRoomTimers(room);
-    room.status = 'ended';
-
-    // on rembourse les mises en cours pour que la fin de session soit équitable
-    room.players.forEach(p => p.slots.forEach(sl => {
-        if (sl.bet > 0 && !sl.cashed) p.balance += sl.bet;
-        sl.bet = 0;
-        p.balance += sl.next;
-        sl.next = 0;
-    }));
-
-    // une traversée Icefield en cours à la fin de la session est remboursée
-    room.players.forEach(p => { if (p.iceState && p.iceState.active) { p.balance += p.iceState.bet; p.iceState.active = false; } if (p.jm && p.jm.active) { p.balance += p.jm.bet; p.jm.active = false; } });
-
-    const leaderboard = room.players
-        .map(p => ({
-            name: p.name,
-            finalBalance: p.balance,
-            profit: p.balance - p.initialBalance,
-            stats: p.stats
-        }))
-        .sort((a, b) => b.finalBalance - a.finalBalance);
-
-    io.to(room.code).emit('game-session-ended', { leaderboard });
-
-    setTimeout(() => destroyRoom(room.code), ROOM_TTL_AFTER_END);
-}
-
-function startCrashLoop(room) {
-    function runRound() {
-        if (room.status === 'ended') return;
-
-        room.status = 'betting';
-        room.multiplier = 1.00;
-
-        const roundData = generateProvablyFairRound();
-        room.crashPoint = roundData.crashPoint;
-        room.currentHash = roundData.publicHash;
-        room.currentSecret = roundData.secretSeed;
-
-        // les paris "préparés" deviennent les paris actifs de cette manche
-        room.players.forEach(p => p.slots.forEach(sl => {
-            sl.bet = sl.next; sl.auto = sl.next > 0 ? sl.nextAuto : 0;
-            sl.next = 0; sl.nextAuto = 0; sl.cashed = false; sl.win = 0;
-        }));
-
-        let countdown = 5;
-        io.to(crashRoom(room)).emit('betting-phase', { countdown, hash: room.currentHash, room: publicRoom(room) });
-
-        room.timers.count = setInterval(() => {
-            if (room.status === 'ended') return clearInterval(room.timers.count);
-            countdown--;
-            if (countdown > 0) {
-                io.to(crashRoom(room)).emit('betting-countdown', { countdown });
-            } else {
-                clearInterval(room.timers.count);
-                room.timers.count = null;
-                startPlayingPhase();
-            }
-        }, 1000);
+const calcMult = (cols, step) => parseFloat((0.98 / Math.pow((cols - 1) / cols, step)).toFixed(2));
+const CRACK = '<svg class="crack" viewBox="0 0 60 44" preserveAspectRatio="none"><path pathLength="1" d="M30 22L18 8M30 22L44 5M30 22L9 31M30 22L51 37M18 8L8 11M44 5L53 14M9 31L5 41M51 37L56 42"/></svg>';
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const ctr = el => { const b = $('iceBoard').getBoundingClientRect(), r = el.getBoundingClientRect(); return { x: r.left - b.left + r.width / 2, y: r.top - b.top + r.height / 2 }; };
+const at = p => `translate(${(p.x - 23).toFixed(1)}px,${(p.y - 40).toFixed(1)}px)`;
+const place = p => { $('yeti').style.transform = at(p); S.yetiPos = p; };
+function toast(msg) { const t = $('iceToast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2400); }
+
+function buildIce(lanes) {
+  const b = $('iceBoard'); S.iceLanes = lanes;
+  b.querySelectorAll('.ice-cell').forEach(e => e.remove());
+  b.style.gridTemplateColumns = `56px repeat(${ICE_STEPS},minmax(0,1fr)) 56px`;
+  const mk = (cls, html, col, row, span) => {
+    const d = document.createElement('div'); d.className = 'ice-cell ' + cls; d.innerHTML = html;
+    d.style.gridColumn = col; d.style.gridRow = span ? `${row} / span ${span}` : row; b.appendChild(d); return d;
+  };
+  S.iceBank = mk('ice-bank', '🏔️', 1, 2, lanes); S.iceGoal = mk('ice-bank', '🏁', ICE_STEPS + 2, 2, lanes);
+  S.iceMults = []; S.iceTiles = [];
+  for (let c = 0; c < ICE_STEPS; c++) {
+    S.iceMults.push(mk('ice-mult', 'x' + calcMult(lanes, c + 1), c + 2, 1));
+    S.iceTiles.push([]);
+    for (let r = 0; r < lanes; r++) {
+      const t = mk('ice-tile dim', CRACK, c + 2, r + 2); t.onclick = () => iceClick(c, r); S.iceTiles[c].push(t);
     }
-
-    function startPlayingPhase() {
-        if (room.status === 'ended') return;
-
-        room.status = 'playing';
-        io.to(crashRoom(room)).emit('playing-phase-started', publicRoom(room));
-
-        const startTime = Date.now();
-
-        room.timers.play = setInterval(() => {
-            if (room.status === 'ended') return clearInterval(room.timers.play);
-
-            const elapsedSeconds = (Date.now() - startTime) / 1000;
-            room.multiplier = parseFloat(Math.max(1.00, Math.exp(0.07 * elapsedSeconds)).toFixed(2));
-
-            // auto cash-out
-            room.players.forEach(p => p.slots.forEach((sl, i) => {
-                if (sl.bet > 0 && !sl.cashed && sl.auto > 0 && room.multiplier >= sl.auto && sl.auto <= room.crashPoint) {
-                    processCashOut(p, sl, sl.auto, room, i);
-                }
-            }));
-
-            if (room.multiplier >= room.crashPoint) {
-                room.multiplier = room.crashPoint;
-                clearInterval(room.timers.play);
-                room.timers.play = null;
-                room.status = 'crashed';
-
-                room.history.unshift({
-                    multiplier: room.crashPoint,
-                    hash: room.currentHash,
-                    secret: room.currentSecret,
-                    time: new Date().toLocaleTimeString('fr-FR')
-                });
-                if (room.history.length > 50) room.history.pop();
-
-                room.players.forEach(p => p.slots.forEach(sl => {
-                    if (sl.bet > 0 && !sl.cashed) { p.stats.gamesPlayed++; p.stats.totalProfit -= sl.bet; }
-                    sl.bet = 0;
-                }));
-
-                io.to(crashRoom(room)).emit('game-crashed', {
-                    multiplier: room.crashPoint,
-                    secret: room.currentSecret,
-                    room: publicRoom(room, true)
-                });
-
-                room.timers.next = setTimeout(() => {
-                    if (room.status === 'ended') return;
-                    if (room.players.some(p => p.inCrash && p.connected)) runRound();
-                    else room.crashIdle = true; // personne à la table : la boucle se met en pause
-                }, 4000);
-            } else {
-                io.to(crashRoom(room)).emit('multiplier-update', { multiplier: room.multiplier });
-            }
-        }, 70);
-    }
-
-    room.runRound = runRound;
-    runRound();
+  }
 }
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`✅ Serveur prêt et lancé sur le port ${PORT}`);
+function updateIce() {
+  if ($('icefield-screen').classList.contains('hidden') || S.icePending > 0 || S.iceWait) return;
+  const inp = Math.min(10, Math.max(2, parseInt($('iceColsInput').value) || 3));
+  let st = S.iceState; if (st && !st.active && st.cols !== inp) st = null; // board vierge si on change le nombre de blocs
+  const lanes = st ? st.cols : inp;
+  if (S.iceLanes !== lanes) buildIce(lanes);
+  const step = st ? st.currentStep : 0, active = !!(st && st.active), path = st ? st.path : [], traps = st ? st.revealedTraps : [];
+  const lost = !!st && !active && step < ICE_STEPS && traps[step] !== undefined;
+  S.iceTiles.forEach((col, c) => col.forEach((t, r) => {
+    let k = 'dim';
+    if (c < step || (lost && c === step)) k = path[c] === r ? 'stepped' : traps[c] === r ? 'hole' : 'used';
+    else if (c === step && active) k = 'live';
+    t.className = 'ice-tile ' + k;
+  }));
+  S.iceMults.forEach((m, c) => m.classList.toggle('reached', c < step));
+  $('yeti').style.opacity = lost ? 0 : 1;
+  place(step === 0 || !st ? ctr(S.iceBank) : step >= ICE_STEPS && !active ? ctr(S.iceGoal) : ctr(S.iceTiles[step - 1][path[step - 1]]));
+  S.iceCol = active ? step : 0; iceControls();
+}
+
+async function jumpTo(el, ms = 230) {
+  const y = $('yeti'), from = S.yetiPos || ctr(S.iceBank), to = ctr(el), mid = { x: (from.x + to.x) / 2, y: Math.min(from.y, to.y) - 28 };
+  sound('iceJump');
+  const a = y.animate([{ transform: at(from) }, { transform: at(mid) + ' scale(.93,1.08)', offset: .5 }, { transform: at(to) + ' scale(1.1,.9)', offset: .92 }, { transform: at(to) }],
+                      { duration: ms, easing: 'cubic-bezier(.35,.1,.45,1)', fill: 'forwards' });
+  await a.finished; place(to); a.cancel();
+}
+
+function shards(p) {
+  const b = $('iceBoard');
+  for (let i = 0; i < 10; i++) {
+    const s = document.createElement('i'), w = 8 + Math.random() * 14;
+    s.className = 'shard';
+    s.style.cssText = `left:${p.x - w / 2}px;top:${p.y - w / 2}px;width:${w}px;height:${w}px;clip-path:polygon(0 0,100% ${20 + Math.random() * 60}%,${30 + Math.random() * 50}% 100%)`;
+    b.appendChild(s);
+    s.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${(Math.random() - .5) * 110}px,${30 + Math.random() * 70}px) rotate(${Math.random() * 540}deg)`, opacity: 0 }],
+              { duration: 650 + Math.random() * 350, easing: 'cubic-bezier(.2,.6,.4,1)' }).onfinish = () => s.remove();
+  }
+  const r = document.createElement('div'); r.className = 'splash'; r.style.left = p.x + 'px'; r.style.top = p.y + 'px'; b.appendChild(r); setTimeout(() => r.remove(), 900);
+}
+
+
+// Aucune attente : le clic part tout de suite au serveur, le Yéti saute déjà, et on peut enchaîner dès que le serveur a confirmé.
+// Les animations sont mises en file (chain) et ne bloquent jamais les clics.
+const chain = fn => {
+  const g = S.iceGen; S.icePending++;
+  S.yetiP = S.yetiP.then(() => g === S.iceGen ? fn(g) : null).catch(() => {}).then(() => { if (g === S.iceGen && --S.icePending === 0) updateIce(); });
+};
+function iceReset() {
+  S.iceGen++; S.icePending = 0; S.yetiP = Promise.resolve(); S.iceWait = false; S.icePick = null;
+  const y = $('yeti'); if (y.getAnimations) y.getAnimations().forEach(a => a.cancel());
+  $('iceToast').classList.remove('show'); $('iceBoard').classList.remove('shake');
+}
+function iceControls() {
+  const st = S.iceState, active = !!(st && st.active), step = S.iceCol, mult = active && step > 0 ? st.multipliers[step - 1] : 0;
+  show('iceStartBtn', !active); show('iceCashoutBtn', active && step > 0);
+  $('iceCashoutBtn').textContent = mult ? `ENCAISSER ${Math.floor(st.bet * mult)} 🪙` : 'ENCAISSER';
+  $('iceColsInput').disabled = $('iceBetAmount').disabled = active;
+  $('iceStatusText').textContent = active
+    ? (step > 0 ? `Colonne ${step}/${ICE_STEPS} — x${mult} — gain ${Math.floor(st.bet * mult)} 🪙` : 'Choisis un bloc de la première colonne : le Yéti avance vers la droite !')
+    : 'Choisis tes blocs et guide le Yéti de gauche à droite !';
+}
+function iceClick(c, r) {
+  const st = S.iceState;
+  if (S.iceWait || !st || !st.active || c !== S.iceCol) return;
+  const pick = S.icePick = { c, r }, tile = S.iceTiles[c][r];
+  S.iceWait = true;
+  S.iceTiles[c].forEach(t => { t.className = 'ice-tile dim'; });
+  tile.className = 'ice-tile stepping';
+  socket.emit('icefield-step', { roomCode: S.code, tileIndex: r });
+  chain(() => jumpTo(tile));
+  setTimeout(() => { if (S.iceWait && S.icePick === pick) { S.iceWait = false; S.icePick = null; updateIce(); } }, 2500);
+}
+function startIcefieldGame() {
+  const amount = parseInt($('iceBetAmount').value), cols = parseInt($('iceColsInput').value);
+  if (!amount || amount <= 0) return alert('Entre une mise valide !');
+  if (!(cols >= 2 && cols <= 10)) return alert('Entre 2 et 10 blocs par colonne !');
+  iceReset(); // relance immédiate : on coupe les animations de la partie précédente
+  sound('bet'); socket.emit('icefield-start-game', { roomCode: S.code, amount, cols });
+}
+const cashoutIcefield = () => { if (!S.iceWait && S.iceState && S.iceState.active) socket.emit('icefield-cashout', { roomCode: S.code }); };
+const onColsChange = () => { if (!S.iceState || !S.iceState.active) updateIce(); };
+socket.on('icefield-result', d => {
+  S.iceWait = false;
+  const end = () => { if (S.iceState) S.iceState.active = false; iceControls(); }; // le bouton "Lancer" revient tout de suite
+  if (d.cashout) { end(); return chain(async () => { sound('win'); toast(d.message); }); }
+  const p = S.icePick; S.icePick = null; if (!p) return;
+  const tile = S.iceTiles[p.c][p.r];
+  if (d.success) {
+    S.iceCol = p.c + 1;
+    if (d.completed) end(); else { S.iceTiles[S.iceCol].forEach(t => { t.className = 'ice-tile live'; }); iceControls(); }
+    chain(async g => {
+      tile.className = 'ice-tile stepped'; sound('iceStep');
+      if (d.completed) { await jumpTo(S.iceGoal); if (g === S.iceGen) { sound('win'); toast(d.message); } }
+    });
+  } else {
+    end();
+    chain(async g => {
+      const c = ctr(tile), y = $('yeti');
+      tile.classList.add('cracking'); sound('iceLose'); await wait(280); if (g !== S.iceGen) return;
+      tile.className = 'ice-tile hole'; shards(c); $('iceBoard').classList.add('shake');
+      const f = y.animate([{ transform: at(c) }, { transform: at(c) + ' translateY(74px) rotate(28deg) scale(.6)', opacity: 0 }], { duration: 450, easing: 'ease-in', fill: 'forwards' });
+      await f.finished; if (g !== S.iceGen) return; y.style.opacity = 0; f.cancel();
+      $('iceBoard').classList.remove('shake'); toast(d.message);
+    });
+  }
 });
+window.addEventListener('resize', () => updateIce());
+
+/* ---------- Just mixed : 3 gobelets, 2 billes ---------- */
+const NS = 'http://www.w3.org/2000/svg', JM_X = [150, 300, 450], JM_Y = 232;
+const tween = (ms, fn) => new Promise(res => { const t0 = performance.now(); (function f(now) { const k = Math.min(1, (now - t0) / ms); fn(k); k < 1 ? requestAnimationFrame(f) : res(); })(t0); });
+const say = t => { $('jmStatus').textContent = t; };
+const inner = id => S.jmCups[id].querySelector('.cup-in');
+const setCup = (id, x, y, s = 1) => S.jmCups[id].setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${s.toFixed(3)})`);
+const ball = i => $('jmB' + i);
+
+function buildJm() {
+  $('jmBalls').innerHTML = [0, 1, 2].map(i => `<circle id="jmB${i}" cx="${JM_X[i]}" cy="${JM_Y - 12}" r="13" fill="url(#jmBall)" opacity="0"/>`).join('');
+  $('jmCups').innerHTML = [0, 1, 2].map(i => `<g class="cup" id="jmC${i}"><ellipse cx="0" cy="4" rx="42" ry="9" fill="rgba(0,0,0,.38)"/><g class="cup-in">
+    <path d="M-37 0L-28 -88Q0 -98 28 -88L37 0Z" fill="url(#jmCup)"/><ellipse cx="0" cy="-90" rx="28" ry="7" fill="#fb7185"/>
+    <path d="M-37 0Q0 9 37 0L36 -11Q0 -2 -36 -11Z" fill="url(#jmRim)"/><path d="M-20 -14L-14 -82" stroke="rgba(255,255,255,.45)" stroke-width="6" stroke-linecap="round"/></g></g>`).join('');
+  S.jmCups = [0, 1, 2].map(i => $('jmC' + i)); S.jmAt = [0, 1, 2];
+  S.jmCups.forEach((g, i) => { setCup(i, JM_X[i], JM_Y); g.onclick = () => jmPick(i); });
+}
+
+async function jmSwap(i, j, ms) { // deux gobelets échangent leur place en passant l'un devant l'autre
+  const A = S.jmAt[i], B = S.jmAt[j], arc = 26 + Math.abs(i - j) * 12;
+  S.jmCups[A].parentNode.appendChild(S.jmCups[A]); sound('slide');
+  await tween(ms, k => {
+    const e = k * k * (3 - 2 * k), s = Math.sin(Math.PI * e);
+    setCup(A, JM_X[i] + (JM_X[j] - JM_X[i]) * e, JM_Y - arc * s, 1 + .1 * s);
+    setCup(B, JM_X[j] + (JM_X[i] - JM_X[j]) * e, JM_Y + arc * .45 * s, 1 - .07 * s);
+  });
+  S.jmAt[i] = B; S.jmAt[j] = A;
+}
+
+async function jmRound() {
+  S.jmPhase = 'anim'; $('jmSvg').classList.remove('pick'); show('jmStartBtn', false);
+  buildJm(); say('Les billes se glissent sous les gobelets...');
+  const e0 = Math.floor(Math.random() * 3);
+  [0, 1, 2].forEach(i => inner(i).classList.add('lift')); sound('lift'); await wait(650);
+  for (const i of [0, 1, 2].filter(x => x !== e0)) {            // 2 billes tombent, 1 emplacement reste vide
+    ball(i).setAttribute('opacity', 1); sound('pop');
+    await tween(420, k => ball(i).setAttribute('cy', JM_Y - 12 - 150 * (1 - (k < .7 ? (k / .7) ** 2 : 1 - .16 * Math.sin((k - .7) / .3 * Math.PI)))));
+    await wait(120);
+  }
+  await wait(350); [0, 1, 2].forEach(i => inner(i).classList.remove('lift')); sound('tap'); await wait(650);
+  [0, 1, 2].forEach(i => ball(i).setAttribute('opacity', 0));
+  say('Ça mélange...');
+  const n = 14;
+  for (let s = 0; s < n; s++) {                                   // le mélange accélère
+    const i = Math.floor(Math.random() * 3), j = (i + 1 + Math.floor(Math.random() * 2)) % 3;
+    await jmSwap(i, j, 380 - 190 * s / (n - 1));
+  }
+  say('Choisis un gobelet !'); S.jmPhase = 'pick'; $('jmSvg').classList.add('pick');
+}
+
+function jmPick(id) {
+  if (S.jmPhase !== 'pick') return;
+  S.jmPhase = 'wait'; S.jmPick = id; $('jmSvg').classList.remove('pick');
+  socket.emit('jm-pick', { roomCode: S.code, cup: S.jmAt.indexOf(id) });
+  setTimeout(() => { if (S.jmPhase === 'wait') { S.jmPhase = 'idle'; show('jmStartBtn'); } }, 5000);
+}
+
+function confetti() {
+  for (let i = 0; i < 24; i++) {
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('cx', 300 + (Math.random() - .5) * 80); c.setAttribute('cy', 140); c.setAttribute('r', 2 + Math.random() * 3);
+    c.setAttribute('fill', ['#ffd45c', '#ff4d5e', '#5cc8ff', '#4ade80'][i % 4]); $('jmFx').appendChild(c);
+    c.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${(Math.random() - .5) * 440}px,${-70 + Math.random() * 220}px)`, opacity: 0 }],
+              { duration: 900 + Math.random() * 500, easing: 'cubic-bezier(.1,.7,.3,1)' }).onfinish = () => c.remove();
+  }
+}
+
+socket.on('jm-started', jmRound);
+socket.on('jm-result', async d => {
+  if (S.jmPhase !== 'wait') return;
+  S.jmPhase = 'reveal';
+  [0, 1, 2].forEach(i => { if (i !== d.empty) ball(i).setAttribute('opacity', 1); });
+  inner(S.jmPick).classList.add('lift'); sound('lift'); await wait(800);
+  [0, 1, 2].filter(c => c !== S.jmPick).forEach(c => inner(c).classList.add('lift'));
+  const t = $('jmToast'); t.textContent = d.message; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2400);
+  if (d.win) { sound('win'); confetti(); } else sound('miss');
+  say(d.win ? 'Bien joué ! Rejoue pour enchaîner.' : 'Dommage... retente ta chance !');
+  await wait(1200); S.jmPhase = 'idle'; show('jmStartBtn');
+});
+function startJm() {
+  if (S.jmPhase !== 'idle') return;
+  const amount = parseInt($('jmBetAmount').value);
+  if (!amount || amount <= 0) return alert('Entre une mise valide !');
+  sound('bet'); S.jmPhase = 'starting'; socket.emit('jm-start', { roomCode: S.code, amount });
+}
+
+Object.assign(window, { createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm });
+})();
+</script>
+</body>
+</html>
