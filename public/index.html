@@ -105,6 +105,33 @@ ul{padding-left:20px;text-align:left}
 .cup-in.lift{transform:translateY(-84px) rotate(-9deg)}
 #prop{transform-box:fill-box;transform-origin:center;animation:propSpin .09s linear infinite}@keyframes propSpin{50%{transform:scaleY(.3)}}
 .ice-tile.stepping{transform:scale(.95);filter:brightness(1.15);box-shadow:0 0 0 2px #fff,0 0 18px rgba(125,211,252,.9),inset 0 0 14px #fff}
+
+/* ---- Chicken Road ---- */
+.cr-modes{display:flex;gap:8px;margin-bottom:8px}
+.cr-mode{flex:1;margin:0;padding:10px 6px;font-size:15px;border-radius:10px;background:#2b2036;box-shadow:none;border:1px solid rgba(212,162,76,.25);color:#e6d9bf;line-height:1.25}
+.cr-mode small{display:block;font-weight:500;font-size:11px;opacity:.85}
+.cr-mode.on{background:linear-gradient(180deg,#ffd45c,#e09a10);color:#2a1700;border-color:#ffd45c}
+.cr-mode:disabled{opacity:.55}
+.cr-info{font-size:12px;color:#cdbf9f;text-align:center;margin-bottom:8px}
+.cr-hud{display:flex;justify-content:space-around;gap:6px;background:#0d0814;border:1px solid rgba(212,162,76,.2);border-radius:10px;padding:8px;margin:10px 0;font-size:12px;color:#9a90ad}
+.cr-hud b{display:block;font-size:18px;color:#ffd45c;font-variant-numeric:tabular-nums}
+.cr-stage{position:relative;height:230px;border-radius:16px;overflow:hidden;border:1px solid rgba(212,162,76,.45);margin-bottom:10px;box-shadow:0 14px 36px rgba(0,0,0,.55);
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='120'%3E%3Cpath fill='%23182a4d' d='M0 120V70h30V40h28v30h20V55h34v65zM110 120V60h26V30h34v30h18v60zM214 120V75h24V45h30v30h32v45z'/%3E%3C/svg%3E") repeat-x 0 70%/300px 120px,linear-gradient(180deg,#1b2a4a,#0f1a30 60%,#0a1220);transition:background-position-x .45s cubic-bezier(.3,.1,.3,1)}
+.cr-world{position:absolute;left:0;top:0;height:100%;display:flex;transition:transform .45s cubic-bezier(.3,.1,.3,1);will-change:transform}
+.cr-curb,.cr-goal{flex:none;height:100%;background:linear-gradient(180deg,#3f8f4a,#2d6a37);display:flex;align-items:flex-start;justify-content:space-around;padding-top:18px;font-size:34px}
+.cr-curb{width:120px;border-right:6px solid #cfd6df}
+.cr-goal{width:150px;border-left:6px solid #cfd6df;align-items:center;font-size:46px;padding:0}
+.cr-lane{flex:none;width:92px;height:100%;position:relative;background:linear-gradient(180deg,#3a3f4c,#2c303b);border-right:2px dashed rgba(255,255,255,.28)}
+.cr-hole{position:absolute;left:50%;top:62%;transform:translate(-50%,-50%);width:58px;height:58px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8b93a3,#4a5060 70%);border:3px solid #232733;display:grid;place-items:center;font-weight:900;font-size:12px;color:#ffe9a8;text-shadow:0 1px 2px #000;box-shadow:0 4px 8px rgba(0,0,0,.5),inset 0 0 10px rgba(0,0,0,.5);transition:box-shadow .2s,background .3s}
+.cr-lane.next .cr-hole{box-shadow:0 0 0 3px #ffd45c,0 0 18px rgba(255,212,92,.9)}
+.cr-lane.done .cr-hole{background:radial-gradient(circle at 35% 30%,#6ee7a0,#15803d);color:#fff}
+.cr-lane.dead .cr-hole{background:radial-gradient(circle,#1a0b0b,#7a1717);color:#fff}
+.cr-chick{position:absolute;left:0;top:0;width:44px;height:48px;z-index:5;will-change:transform;pointer-events:none}
+.cr-chick svg{width:100%;height:100%;overflow:visible;animation:bob 1s ease-in-out infinite alternate}
+.cr-car{position:absolute;top:0;z-index:4;width:44px;height:84px;pointer-events:none;will-change:transform}
+.cr-car svg{width:100%;height:100%}
+.cr-fth{position:absolute;z-index:6;width:9px;height:5px;border-radius:50%;background:#fff;box-shadow:0 0 0 1px #e5e7eb;pointer-events:none}
+.cr-win{background:#0f2a1a;color:#4ade80;border:1px solid #166534}.cr-lose{background:#2a0f14;color:#ff6b7a;border:1px solid #7f1d1d}
 </style>
 </head>
 <body>
@@ -165,6 +192,7 @@ ul{padding-left:20px;text-align:left}
             <div class="game-thumbnail" onclick="switchGame('Crash Out')">✈️ Crash Out (Style Aviator)</div>
             <div class="game-thumbnail" style="background: linear-gradient(135deg, #1e3a8a, #0284c7 60%, #38bdf8);" onclick="switchGame('Icefield')">🧊 Icefield (Traversée du Yéti)</div>
             <div class="game-thumbnail" style="background: linear-gradient(135deg, #065f46, #16a34a 60%, #fbbf24);" onclick="switchGame('Just mixed')">🥤 Just mixed (3 gobelets · RTP 99,2 %)</div>
+            <div class="game-thumbnail" style="background: linear-gradient(135deg, #7c2d12, #ea580c 60%, #fde047);" onclick="switchGame('Chicken Road')">🐔 Chicken Road (3 modes · RTP 89 %)</div>
             <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
         </div>
 
@@ -300,6 +328,37 @@ ul{padding-left:20px;text-align:left}
             <button id="jmStartBtn" onclick="startJm()">Jouer 🥤</button>
             <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
         </div>
+
+        <!-- 7. ÉCRAN CHICKEN ROAD -->
+        <div id="cr-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h3 style="margin: 5px 0; color: #ffd45c;">🐔 Chicken Road</h3>
+            <p id="crStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Choisis un mode, mise, puis fais traverser le poulet. Encaisse avant la prochaine voiture !</p>
+            <div class="bet-control-box" style="margin: 0 0 10px;">
+                <div class="cr-modes" id="crModes"></div>
+                <div class="cr-info" id="crInfo"></div>
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
+                <input type="number" id="crBetAmount" value="50" min="1" style="margin: 4px 0 8px;">
+                <div class="quick-bet-row" id="crQuick" style="margin-bottom:0">
+                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
+                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+                </div>
+            </div>
+            <div class="provably-fair-box">🔒 <b>Hash SHA-256 de la partie :</b> <span id="crHash" style="color: #38bdf8;">—</span><br><span id="crProof"></span></div>
+            <div class="cr-hud"><div>Multiplicateur<b id="crMult">x1.00</b></div><div>Gain actuel<b id="crGain">0 🪙</b></div><div>Prochain pas<b id="crNext">—</b></div></div>
+            <div class="cr-stage" id="crStage"><div class="cr-world" id="crWorld"></div><div id="crToast" class="ice-toast"></div></div>
+            <div style="display: flex; gap: 10px;">
+                <button id="crStartBtn" onclick="crStart()">Lancer la traversée 🐔</button>
+                <button id="crGoBtn" class="hidden" onclick="crGo()" style="background: linear-gradient(180deg,#3b82f6,#1d4ed8);">AVANCER ➜</button>
+                <button id="crCashBtn" class="btn-cashout hidden" onclick="crCash()">ENCAISSER</button>
+            </div>
+            <div class="history-bar" id="crHist" style="margin-top: 10px;"></div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
     </div>
 
     <!-- MODALE HISTORIQUE COMPLET -->
@@ -332,7 +391,7 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>'
 const show = (id, on = true) => $(id).classList.toggle('hidden', !on);
 
 /* ---------- État ---------- */
-const S = { code:null, phase:'waiting', balance:1000, slots:[{},{}], iceState:null, iceBusy:false, iceAnimating:false, iceLanes:0, yetiPos:null, icePick:null, view:'hub', crashRun:false, raf:0, ang:-3, si:0, lastTxt:'', iceCol:0, iceGen:0, icePending:0, iceWait:false, yetiP:Promise.resolve(), jmPhase:'idle', jmCups:null, jmAt:[0,1,2], jmPick:0,
+const S = { code:null, phase:'waiting', balance:1000, slots:[{},{}], iceState:null, iceBusy:false, iceAnimating:false, iceLanes:0, yetiPos:null, icePick:null, view:'hub', crashRun:false, raf:0, ang:-3, si:0, lastTxt:'', iceCol:0, iceGen:0, icePending:0, iceWait:false, yetiP:Promise.resolve(), crState:null, crGen:0, crPending:0, crWait:false, crP:Promise.resolve(), crStep:0, crMode:'easy', crBuilt:'', crLanes:[], crPos:{x:0,y:0}, crDead:false, crCars:0, crTimer:0, crPick:0, crBet:0, crHist:[], jmPhase:'idle', jmCups:null, jmAt:[0,1,2], jmPick:0,
             history:[], target:1, shown:1, t0:0, smoke:[], wasConnected:false };
 
 /* ---------- Audio : effets doux + musique chill générative (aucun fichier à charger) ---------- */
@@ -407,7 +466,15 @@ const Snd = (() => {
     tap:   t => { tone(170, t, .12, { to: 90, v: .22 }); noise(t, .05, { f: 1800, v: .1 }); },
     pop:   t => tone(700, t, .14, { to: 350, v: .13 }),
     lift:  t => noise(t, .25, { f: 400, to: 1800, v: .06 }),
-    miss:  t => [330, 262].forEach((f, i) => tone(f, t + i * .18, .6, { type: 'triangle', v: .12 }))
+    miss:  t => [330, 262].forEach((f, i) => tone(f, t + i * .18, .6, { type: 'triangle', v: .12 })),
+    cluck: t => { tone(560, t, .07, { type: 'triangle', to: 820, v: .1 }); tone(380, t + .06, .06, { type: 'triangle', to: 300, v: .07 }); },
+    // Voiture : souffle qui approche, klaxon, choc sourd, plumes, puis petit accord triste
+    hit:   t => {
+      noise(t, .3, { type: 'bandpass', f: 300, to: 1400, v: .08 });
+      tone(330, t + .18, .22, { type: 'square', v: .04 }); tone(262, t + .18, .22, { type: 'square', v: .04 });
+      tone(110, t + .3, .35, { to: 40, v: .3 }); noise(t + .3, .25, { f: 2500, to: 600, v: .12 });
+      [392, 330, 262].forEach((f, i) => tone(f, t + .8 + i * .2, .8, { type: 'triangle', v: .1 }));
+    }
   };
 
   // Musique lo-fi : accords en nappe, basse, batterie douce et petites notes aléatoires, croches swinguées
@@ -469,15 +536,16 @@ function switchGame(name) {
   startAudio(); // dans un clic : le navigateur autorise le son
   show('game-hub', false);
   socket.emit('join-game-table', { roomCode: S.code });
-  S.view = name === 'Icefield' ? 'ice' : name === 'Just mixed' ? 'jm' : 'crash';
+  S.view = name === 'Icefield' ? 'ice' : name === 'Just mixed' ? 'jm' : name === 'Chicken Road' ? 'cr' : 'crash';
   if (S.view === 'ice') { show('icefield-screen'); updateIce(); }
   else if (S.view === 'jm') { show('jm-screen'); if (!S.jmCups) buildJm(); }
+  else if (S.view === 'cr') { show('cr-screen'); crInit(); }
   else { show('game-screen'); socket.emit('crash-join', { roomCode: S.code }); startCrashUI(); }
 }
 function returnToHub() {
   if (S.view === 'crash') { socket.emit('crash-leave', { roomCode: S.code }); stopCrashUI(); } // le jeu Crash s'arrête chez toi ET sur le serveur si tu es seul
   S.view = 'hub';
-  show('game-screen', false); show('icefield-screen', false); show('jm-screen', false); show('game-hub');
+  show('game-screen', false); show('icefield-screen', false); show('jm-screen', false); show('cr-screen', false); crStop(); show('game-hub');
 }
 function buildPanels() {
   $('betPanels').innerHTML = [0, 1].map(i => `<div class="bet-control-box">
@@ -583,11 +651,13 @@ function sync(room) {
   const me = room.players.find(p => p.id === socket.id);
   S.iceState = me ? me.iceState : null;
   updateIce();
+  S.crState = me ? me.cr : null;
+  crSync();
 }
 
 // Classement commun : trié sur la fortune totale (solde + mises en jeu) pour qu'il ne saute pas à chaque mise
 function renderRank(room) {
-  const eq = p => p.balance + p.slots.reduce((a, x) => a + x.bet + x.next, 0) + (p.iceState && p.iceState.active ? p.iceState.bet : 0) + (p.jm && p.jm.active ? p.jm.bet : 0);
+  const eq = p => p.balance + p.slots.reduce((a, x) => a + x.bet + x.next, 0) + (p.iceState && p.iceState.active ? p.iceState.bet : 0) + (p.jm && p.jm.active ? p.jm.bet : 0) + (p.cr && p.cr.active ? p.cr.bet : 0);
   const rows = [...room.players].sort((a, b) => eq(b) - eq(a));
   const mine = rows.findIndex(p => p.id === socket.id);
   const html = rows.map((p, i) => {
@@ -617,13 +687,15 @@ $('axis').innerHTML = '<text x="494" text-anchor="end"></text>'.repeat(4);
 S.ax = [...$('axis').children];
 
 // Zoom automatique : l'axe vertical s'adapte au multiplicateur ; l'avion se cabre en douceur le long de la courbe
-function draw(m, now, dt) {
+function draw(m, now, dt = .016) {
+  if (!(m >= 1)) m = 1; // garde-fou : aucune valeur invalide ne doit atteindre le SVG
   const top = Math.max(3, m * 1.2), lm = Math.log(m), xf = lm / Math.log(top), up = m > 1.001;
   const yf = v => 236 - (v - 1) / (top - 1) * 170, pt = k => [24 + k * 420 * xf, yf(Math.exp(lm * k))];
   let d = 'M24 236';
   for (let i = 1; i <= 30; i++) { const q = pt(i / 30); d += 'L' + q[0].toFixed(1) + ' ' + q[1].toFixed(1); }
-  const e = pt(1), p0 = pt(.94), want = up ? Math.atan2(e[1] - p0[1], e[0] - p0[0]) * 57.3 : -3;
-  S.ang += (want - S.ang) * Math.min(1, dt * 9);
+  const e = pt(1), p0 = pt(.94), raw = Math.atan2(e[1] - p0[1], e[0] - p0[0]) * 57.3, want = up && Number.isFinite(raw) ? raw : -3;
+  if (!Number.isFinite(S.ang)) S.ang = -3;
+  S.ang += (want - S.ang) * Math.min(1, Math.max(0, dt) * 9);
   const y = e[1] + Math.sin(now / 330) * (m > 2.5 ? 4 : 2) + (m > 6 ? Math.sin(now / 37) * .8 : 0);
   curve.setAttribute('d', up ? d : 'M24 236L24 236');
   area.setAttribute('d', up ? d + 'L' + e[0].toFixed(1) + ' 260L24 260Z' : '');
@@ -634,7 +706,7 @@ function draw(m, now, dt) {
 
 function frame(now) {
   S.raf = 0; if (!S.crashRun) return;
-  const dt = Math.min(.05, (now - lastT) / 1000), playing = S.phase === 'playing'; lastT = now; fno++;
+  const dt = Math.max(0, Math.min(.05, (now - lastT) / 1000)), playing = S.phase === 'playing'; lastT = now; fno++;
   if (playing) {
     // extrapolation locale entre deux ticks serveur => mouvement continu à 60 fps
     S.shown = Math.max(S.shown, Math.min(S.target * Math.exp(.07 * (now - S.t0) / 1000), S.target * 1.03));
@@ -976,7 +1048,180 @@ function startJm() {
   sound('bet'); S.jmPhase = 'starting'; socket.emit('jm-start', { roomCode: S.code, amount });
 }
 
-Object.assign(window, { createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm });
+/* ---------- Chicken Road : le poulet traverse la route voie par voie ---------- */
+const CR_RTP = 0.89;
+const CR_MODES = { easy: { name: 'Facile', steps: 24, p: .12 }, medium: { name: 'Moyen', steps: 22, p: .20 }, hard: { name: 'Difficile', steps: 20, p: .33 } };
+const crMult = (mode, k) => Math.floor(CR_RTP / Math.pow(1 - CR_MODES[mode].p, k) * 100) / 100; // mêmes formules que le serveur
+const LANE_W = 92, CURB_W = 120, GOAL_W = 150, CR_H = 230, CR_Y = .62;
+const CAR_COLORS = ['#ef4444', '#3b82f6', '#f59e0b', '#10b981', '#a855f7', '#f97316'];
+const CHICK = '<svg viewBox="0 0 48 56"><ellipse cx="24" cy="53" rx="13" ry="3" fill="rgba(0,0,0,.35)"/><path d="M10 30Q4 24 8 18Q12 24 16 26Z" fill="#f1f5f9"/><ellipse cx="22" cy="34" rx="14" ry="12" fill="#fff" stroke="#dfe5ec"/><path d="M14 34Q20 42 30 32Q24 28 14 34Z" fill="#eef2f7"/><circle cx="32" cy="20" r="9" fill="#fff" stroke="#dfe5ec"/><path d="M28 12Q30 5 33 11Q35 4 38 11Q38 14 36 14Z" fill="#e11d48"/><path d="M40 19L47 22L40 25Z" fill="#f59e0b"/><circle cx="35" cy="19" r="1.6" fill="#111827"/><path d="M19 45V52M26 45V52M16 52H22M23 52H29" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/></svg>';
+const carSvg = c => `<svg viewBox="0 0 44 84"><rect x="4" y="4" width="36" height="76" rx="11" fill="${c}"/><rect x="9" y="22" width="26" height="22" rx="6" fill="#bfe3ff" opacity=".85"/><rect x="9" y="52" width="26" height="12" rx="4" fill="#9ec9ea" opacity=".7"/><rect x="8" y="78" width="8" height="4" rx="2" fill="#fff6c0"/><rect x="28" y="78" width="8" height="4" rx="2" fill="#fff6c0"/><rect x="8" y="2" width="8" height="3" fill="#ff3b3b"/><rect x="28" y="2" width="8" height="3" fill="#ff3b3b"/></svg>`;
+const crN = () => CR_MODES[S.crBuilt || 'easy'].steps;
+const crTr = p => `translate(${(p.x - 22).toFixed(1)}px,${(p.y - 44).toFixed(1)}px)`;
+function crPt(k) { // centre de la voie k (0 = trottoir de départ, N+1 = l'œuf d'or) ; les pieds du poulet sont sur la plaque
+  const N = crN(), x = k <= 0 ? CURB_W - 34 : k > N ? CURB_W + N * LANE_W + GOAL_W / 2 : CURB_W + (k - 1) * LANE_W + LANE_W / 2;
+  return { x, y: CR_H * CR_Y };
+}
+function crCam(k = S.crStep) { // la caméra suit le poulet ; le décor défile plus lentement (parallaxe)
+  const sw = $('crStage').clientWidth || 600, worldW = CURB_W + crN() * LANE_W + GOAL_W;
+  const x = Math.max(Math.min(0, sw - worldW), Math.min(0, sw * .3 - crPt(k).x));
+  $('crWorld').style.transform = `translateX(${x.toFixed(1)}px)`; $('crStage').style.backgroundPositionX = (x * .25).toFixed(1) + 'px';
+}
+function crPlace(k) { const p = crPt(k), c = $('crChick'); c.style.transform = crTr(p); S.crPos = p; crCam(k); }
+function crBuild(mode) {
+  const N = CR_MODES[mode].steps; S.crBuilt = mode;
+  let html = '<div class="cr-curb"><span>🌳</span><span>🪧</span></div>';
+  for (let k = 1; k <= N; k++) html += `<div class="cr-lane"><div class="cr-hole">x${crMult(mode, k).toFixed(2)}</div></div>`;
+  html += `<div class="cr-goal">🥚</div><div class="cr-chick" id="crChick">${CHICK}</div>`;
+  const w = $('crWorld'); w.innerHTML = html; w.style.width = (CURB_W + N * LANE_W + GOAL_W) + 'px';
+  S.crLanes = [...w.querySelectorAll('.cr-lane')]; crPlace(0);
+}
+function crMarks() {
+  const active = !!(S.crState && S.crState.active);
+  S.crLanes.forEach((l, i) => { const k = i + 1; l.classList.toggle('done', k <= S.crStep && (active || !S.crDead)); l.classList.toggle('next', active && k === S.crStep + 1); });
+}
+function crInfo() {
+  const m = CR_MODES[S.crMode];
+  $('crInfo').textContent = `Risque : ${Math.round(m.p * 100)} % par voie · ${m.steps} voies · max x${crMult(S.crMode, m.steps).toFixed(2)} · RTP 89 %`;
+  document.querySelectorAll('#crModes .cr-mode').forEach(b => b.classList.toggle('on', b.dataset.m === S.crMode));
+}
+function crControls() {
+  const st = S.crState, active = !!(st && st.active), mode = active ? st.mode : S.crMode, N = CR_MODES[mode].steps, step = S.crStep;
+  const mult = active && step > 0 ? crMult(mode, step) : 0, next = active && step < N ? crMult(mode, step + 1) : 0;
+  show('crStartBtn', !active); show('crGoBtn', active); show('crCashBtn', active && step > 0);
+  $('crCashBtn').textContent = mult ? `ENCAISSER ${Math.floor(st.bet * mult)} 🪙` : 'ENCAISSER';
+  $('crMult').textContent = 'x' + (mult || 1).toFixed(2);
+  $('crGain').textContent = active ? `${Math.floor(st.bet * (mult || 1))} 🪙` : '0 🪙';
+  $('crNext').textContent = next ? 'x' + next.toFixed(2) : '—';
+  $('crBetAmount').disabled = active; document.querySelectorAll('#crModes .cr-mode').forEach(b => { b.disabled = active; });
+  $('crStatus').textContent = active ? (step ? `Voie ${step}/${N} — avance ou encaisse !` : 'Clique sur AVANCER : le poulet traverse la première voie.') : 'Choisis un mode, mise, puis fais traverser le poulet. Encaisse avant la prochaine voiture !';
+}
+function crSync() {
+  if (S.view !== 'cr' || S.crPending > 0 || S.crWait) return;
+  const st = S.crState, active = !!(st && st.active);
+  if (active && st.mode !== S.crBuilt) { S.crMode = st.mode; crBuild(st.mode); crInfo(); }
+  if (active) { S.crStep = st.step; crPlace(S.crStep); }
+  crMarks(); crControls();
+}
+function crToast(msg) { const t = $('crToast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2400); }
+function crHistPush(win, text) {
+  S.crHist.unshift({ win, text }); S.crHist.length = Math.min(S.crHist.length, 12);
+  setH($('crHist'), S.crHist.map(h => `<div class="history-pill ${h.win ? 'cr-win' : 'cr-lose'}">${h.text}</div>`).join(''));
+}
+
+// Les animations sont mises en file : elles ne bloquent jamais les clics (pas de temps d'attente)
+const crChain = fn => {
+  const g = S.crGen; S.crPending++;
+  S.crP = S.crP.then(() => g === S.crGen ? fn(g) : null).catch(() => {}).then(() => { if (g === S.crGen && --S.crPending === 0) crSync(); });
+};
+function crReset() {
+  S.crGen++; S.crPending = 0; S.crP = Promise.resolve(); S.crWait = false; S.crPick = 0; S.crDead = false; S.crStep = 0;
+  const c = $('crChick'); if (c && c.getAnimations) c.getAnimations().forEach(a => a.cancel());
+  if (S.crBuilt !== S.crMode) crBuild(S.crMode); else { S.crLanes.forEach(l => l.classList.remove('done', 'next', 'dead')); crPlace(0); }
+  $('crChick').style.opacity = 1; $('crStage').classList.remove('shake'); $('crToast').classList.remove('show');
+  $('crHash').textContent = '—'; $('crProof').textContent = '';
+}
+async function crHop(k, ms = 260) {
+  const el = $('crChick'), a = S.crPos, b = crPt(k), mid = { x: (a.x + b.x) / 2, y: Math.min(a.y, b.y) - 34 };
+  sound('cluck'); crCam(k);
+  const an = el.animate([{ transform: crTr(a) }, { transform: crTr(mid) + ' scale(.94,1.1)', offset: .5 }, { transform: crTr(b) + ' scale(1.1,.9)', offset: .92 }, { transform: crTr(b) }],
+                        { duration: ms, easing: 'cubic-bezier(.35,.1,.45,1)', fill: 'forwards' });
+  await an.finished; el.style.transform = crTr(b); S.crPos = b; an.cancel();
+}
+function crBurst(x, y, n = 12) {
+  const w = $('crWorld');
+  for (let i = 0; i < n; i++) {
+    const f = document.createElement('i'); f.className = 'cr-fth'; f.style.left = x + 'px'; f.style.top = y + 'px'; w.appendChild(f);
+    f.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${(Math.random() - .5) * 150}px,${-30 - Math.random() * 90}px) rotate(${Math.random() * 540}deg)`, opacity: 0 }],
+              { duration: 700 + Math.random() * 500, easing: 'cubic-bezier(.2,.7,.4,1)' }).onfinish = () => f.remove();
+  }
+}
+async function crHit(k, g) { // une voiture fonce sur la voie où le poulet vient d'atterrir
+  const lane = S.crLanes[k - 1], ch = $('crChick'), p = crPt(k), car = document.createElement('div'), hitY = p.y - 80;
+  car.className = 'cr-car'; car.style.left = (LANE_W / 2 - 22) + 'px'; car.innerHTML = carSvg(CAR_COLORS[k % CAR_COLORS.length]); lane.appendChild(car);
+  sound('hit');
+  const a = car.animate([{ transform: 'translateY(-100px)' }, { transform: `translateY(${hitY}px)` }], { duration: 380, easing: 'cubic-bezier(.5,0,1,1)', fill: 'forwards' });
+  await a.finished; if (g !== S.crGen) return;
+  lane.classList.add('dead'); $('crStage').classList.add('shake'); crBurst(p.x, p.y - 20, 14);
+  car.animate([{ transform: `translateY(${hitY}px)` }, { transform: 'translateY(340px)' }], { duration: 650, easing: 'ease-in', fill: 'forwards' }).onfinish = () => car.remove();
+  const f = ch.animate([{ transform: crTr(p) }, { transform: crTr({ x: p.x + 90, y: p.y - 130 }) + ' rotate(720deg) scale(.4)', opacity: 0 }], { duration: 650, easing: 'cubic-bezier(.2,.7,.4,1)', fill: 'forwards' });
+  await f.finished; if (g !== S.crGen) return;
+  ch.style.opacity = 0; f.cancel(); $('crStage').classList.remove('shake');
+}
+function crTraffic() { // circulation d'ambiance : seulement sur l'écran visible, au plus 7 voitures à la fois
+  if (S.view !== 'cr' || document.hidden || !S.crLanes.length || S.crCars > 6) return;
+  const N = S.crLanes.length, cand = [];
+  for (let k = Math.max(1, S.crStep - 2); k <= Math.min(N, S.crStep + 6); k++) if (k !== S.crStep && k !== S.crStep + 1) cand.push(k);
+  if (!cand.length) return;
+  const k = cand[Math.floor(Math.random() * cand.length)], down = k % 2 === 1, car = document.createElement('div');
+  car.className = 'cr-car'; car.style.left = (LANE_W / 2 - 22) + 'px'; car.innerHTML = carSvg(CAR_COLORS[(k * 7 + S.crCars) % CAR_COLORS.length]);
+  S.crLanes[k - 1].appendChild(car); S.crCars++;
+  const a = down ? -100 : CR_H + 20, b = down ? CR_H + 20 : -100, rot = down ? 0 : 180;
+  car.animate([{ transform: `translateY(${a}px) rotate(${rot}deg)` }, { transform: `translateY(${b}px) rotate(${rot}deg)` }], { duration: 1400 + Math.random() * 1300, easing: 'linear' })
+     .onfinish = () => { car.remove(); S.crCars--; };
+}
+function crInit() {
+  if (!$('crModes').children.length) {
+    $('crModes').innerHTML = Object.entries(CR_MODES).map(([id, m]) => `<button class="cr-mode" data-m="${id}">${m.name}<small>${Math.round(m.p * 100)} % de risque</small></button>`).join('');
+    $('crModes').addEventListener('click', e => {
+      const b = e.target.closest('.cr-mode'); if (!b || (S.crState && S.crState.active)) return;
+      S.crMode = b.dataset.m; crBuild(S.crMode); crInfo(); crControls();
+    });
+    $('crQuick').addEventListener('click', e => {
+      const b = e.target.closest('button'), amt = $('crBetAmount'); if (!b || amt.disabled) return;
+      if (b.dataset.a) amt.value = b.dataset.a;
+      else if (b.dataset.f === 'max') amt.value = S.balance;
+      else amt.value = Math.max(1, Math.floor((parseFloat(amt.value) || 0) * b.dataset.f));
+    });
+  }
+  if (S.crBuilt !== S.crMode || !S.crLanes.length) crBuild(S.crMode);
+  crInfo(); crSync(); crCam();
+  clearInterval(S.crTimer); S.crTimer = setInterval(crTraffic, 600);
+}
+const crStop = () => { clearInterval(S.crTimer); S.crTimer = 0; };
+
+function crStart() {
+  const amount = parseInt($('crBetAmount').value);
+  if (!amount || amount <= 0) return alert('Entre une mise valide !');
+  if (S.crState && S.crState.active) return;
+  crReset(); S.crBet = amount; sound('bet');
+  socket.emit('cr-start', { roomCode: S.code, amount, mode: S.crMode });
+}
+function crGo() { // le clic part tout de suite au serveur et le poulet saute déjà : on peut enchaîner dès la confirmation
+  const st = S.crState;
+  if (S.crWait || !st || !st.active || S.crStep >= CR_MODES[st.mode].steps) return;
+  const pick = S.crPick = S.crStep + 1; S.crWait = true;
+  socket.emit('cr-step', { roomCode: S.code });
+  crChain(() => crHop(pick));
+  setTimeout(() => { if (S.crWait && S.crPick === pick) { S.crWait = false; crSync(); } }, 2500);
+}
+const crCash = () => { if (!S.crWait && S.crState && S.crState.active && S.crStep > 0) socket.emit('cr-cashout', { roomCode: S.code }); };
+
+socket.on('cr-started', d => {
+  S.crState = { active: true, bet: S.crBet, mode: S.crMode, step: 0 }; S.crStep = 0;
+  $('crHash').textContent = d.hash; crMarks(); crControls();
+});
+socket.on('cr-result', d => {
+  S.crWait = false;
+  const mode = S.crState ? S.crState.mode : S.crMode, N = CR_MODES[mode].steps;
+  const end = () => { if (S.crState) S.crState.active = false; crControls(); }; // le bouton "Lancer" revient tout de suite
+  if (d.seed) $('crProof').textContent = `Graine révélée : ${d.seed} — SHA-256(graine) = hash ci-dessus ; la voie k est mortelle si HMAC-SHA256(graine, "step:k") < ${CR_MODES[mode].p}`;
+  if (d.cashout) {
+    end(); crHistPush(true, 'x' + d.multiplier.toFixed(2));
+    return crChain(async () => { sound('win'); crBurst(S.crPos.x, S.crPos.y - 20, 10); crToast(d.message); });
+  }
+  if (d.success) {
+    S.crStep = d.step; crMarks();
+    if (d.completed) { end(); crHistPush(true, 'x' + d.multiplier.toFixed(2)); } else crControls();
+    if (d.completed) crChain(async g => { await crHop(N + 1); if (g === S.crGen) { sound('win'); crBurst(S.crPos.x, S.crPos.y - 20, 18); crToast(d.message); } });
+  } else {
+    S.crDead = true; S.crStep = d.step - 1; end(); crHistPush(false, 'perdu');
+    crChain(async g => { await crHit(d.step, g); if (g === S.crGen) crToast(d.message); });
+  }
+});
+window.addEventListener('resize', () => { if (S.view === 'cr') crCam(); });
+
+Object.assign(window, { createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash });
 })();
 </script>
 </body>
