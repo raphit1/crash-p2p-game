@@ -6,7 +6,7 @@ const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, { perMessageDeflate: false });
 
 // index.html doit être dans le dossier "public/"
 app.use(express.static(path.join(__dirname, 'public')));
@@ -91,7 +91,7 @@ function newPlayer(socket, name, isAdmin) {
  *     (c'est LA cause du "rien ne marche" quand la partie démarre)
  *  2) il contient crashPoint et currentSecret => les joueurs pourraient tricher
  */
-function publicRoom(room) {
+function publicRoom(room, full = false) {
     return {
         code: room.code,
         status: room.status,
@@ -115,13 +115,19 @@ function publicRoom(room) {
             jm: p.jm ? { active: p.jm.active, bet: p.jm.bet } : null,
             stats: p.stats
         })),
-        history: room.history
+        history: full ? room.history : undefined // l'historique n'est envoyé qu'aux joueurs de la table Crash
     };
 }
 
+// Les changements sont regroupés : au plus un "update-room" toutes les 60 ms par room (petit serveur = moins de CPU et de bande passante)
 function broadcast(room) {
-    io.to(room.code).emit('update-room', publicRoom(room));
+    if (room._bt) return;
+    room._bt = setTimeout(() => {
+        room._bt = null;
+        io.to(room.code).emit('update-room', publicRoom(room));
+    }, 60);
 }
+const crashRoom = room => room.code + ':crash';
 
 function clearRoomTimers(room) {
     Object.keys(room.timers).forEach(k => {
@@ -135,6 +141,7 @@ function destroyRoom(code) {
     const room = rooms[code];
     if (!room) return;
     clearRoomTimers(room);
+    clearTimeout(room._bt);
     delete rooms[code];
 }
 
@@ -219,11 +226,30 @@ io.on('connection', (socket) => {
         player.inGame = true;
         broadcast(room);
 
-        if (!room.loopStarted) {
-            room.loopStarted = true;
-            startSessionTimer(room);
-            startCrashLoop(room);
-        }
+        if (!room.timers.session) startSessionTimer(room);
+    });
+
+    // La boucle Crash ne tourne QUE si au moins un joueur est à la table, et ses événements ne partent qu'à la table
+    socket.on('crash-join', ({ roomCode } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        if (!room || !player || room.status === 'waiting' || room.status === 'ended') return;
+        player.inCrash = true;
+        socket.join(crashRoom(room));
+        socket.emit('crash-state', { status: room.status, multiplier: room.multiplier, hash: room.currentHash, room: publicRoom(room, true) });
+        if (!room.loopStarted) { room.loopStarted = true; startCrashLoop(room); }
+        else if (room.crashIdle) { room.crashIdle = false; room.runRound(); }
+    });
+
+    socket.on('crash-leave', ({ roomCode } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        if (!room || !player) return;
+        player.inCrash = false;
+        socket.leave(crashRoom(room));
+        player.slots.forEach(sl => { // les mises qui ne sont pas encore parties sont rendues
+            if (room.status === 'betting' && sl.bet > 0) { player.balance += sl.bet; sl.bet = 0; sl.auto = 0; }
+            if (sl.next > 0) { player.balance += sl.next; sl.next = 0; sl.nextAuto = 0; }
+        });
+        broadcast(room);
     });
 
     const slotOf = (player, i) => player.slots[i === 1 ? 1 : 0];
@@ -415,7 +441,7 @@ function processCashOut(player, sl, multiplier, room, idx) {
     player.stats.wins++;
     player.stats.totalProfit += sl.win;
 
-    io.to(room.code).emit('player-cashed-out', { socketId: player.id, playerName: player.name, slot: idx, multiplier, winnings });
+    io.to(crashRoom(room)).emit('player-cashed-out', { socketId: player.id, playerName: player.name, slot: idx, multiplier, winnings });
     broadcast(room);
 }
 
@@ -476,13 +502,13 @@ function startCrashLoop(room) {
         }));
 
         let countdown = 5;
-        io.to(room.code).emit('betting-phase', { countdown, hash: room.currentHash, room: publicRoom(room) });
+        io.to(crashRoom(room)).emit('betting-phase', { countdown, hash: room.currentHash, room: publicRoom(room) });
 
         room.timers.count = setInterval(() => {
             if (room.status === 'ended') return clearInterval(room.timers.count);
             countdown--;
             if (countdown > 0) {
-                io.to(room.code).emit('betting-countdown', { countdown });
+                io.to(crashRoom(room)).emit('betting-countdown', { countdown });
             } else {
                 clearInterval(room.timers.count);
                 room.timers.count = null;
@@ -495,7 +521,7 @@ function startCrashLoop(room) {
         if (room.status === 'ended') return;
 
         room.status = 'playing';
-        io.to(room.code).emit('playing-phase-started', publicRoom(room));
+        io.to(crashRoom(room)).emit('playing-phase-started', publicRoom(room));
 
         const startTime = Date.now();
 
@@ -531,21 +557,24 @@ function startCrashLoop(room) {
                     sl.bet = 0;
                 }));
 
-                io.to(room.code).emit('game-crashed', {
+                io.to(crashRoom(room)).emit('game-crashed', {
                     multiplier: room.crashPoint,
                     secret: room.currentSecret,
-                    room: publicRoom(room)
+                    room: publicRoom(room, true)
                 });
 
                 room.timers.next = setTimeout(() => {
-                    if (room.status !== 'ended') runRound();
+                    if (room.status === 'ended') return;
+                    if (room.players.some(p => p.inCrash && p.connected)) runRound();
+                    else room.crashIdle = true; // personne à la table : la boucle se met en pause
                 }, 4000);
             } else {
-                io.to(room.code).emit('multiplier-update', { multiplier: room.multiplier });
+                io.to(crashRoom(room)).emit('multiplier-update', { multiplier: room.multiplier });
             }
         }, 70);
     }
 
+    room.runRound = runRound;
     runRound();
 }
 
