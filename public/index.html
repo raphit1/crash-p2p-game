@@ -170,8 +170,8 @@ ul{padding-left:20px;text-align:left}
 .rl-c2to1{background:linear-gradient(180deg,#1f6f47,#123c28);font-size:11px;padding:0 4px}
 .rl-racetrack-wrap{margin-top:10px}
 .rl-rt-label{font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:#bfe9cd;opacity:.85;margin-bottom:4px;text-align:center}
-.rl-wheel-wrap{position:relative;display:flex;align-items:center;justify-content:center;gap:16px;background:#0d0814;border:1px solid rgba(212,162,76,.25);border-radius:14px;padding:14px;margin-bottom:10px}
-.rl-res{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-size:26px;font-weight:900;color:#fff;border:3px solid #ffd45c;box-shadow:0 0 18px rgba(255,212,92,.35);flex:none;transition:background .3s}
+.rl-wheel-wrap{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:16px;background:#0d0814;border:1px solid rgba(212,162,76,.25);border-radius:14px;padding:14px;margin-bottom:10px}
+.rl-res{margin:0 0 14px;width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-size:26px;font-weight:900;color:#fff;border:3px solid #ffd45c;box-shadow:0 0 18px rgba(255,212,92,.35);flex:none;transition:background .3s}
 .rl-betrow{display:flex;gap:8px;align-items:center;margin:8px 0}
 .rl-betrow input{margin:0;flex:1}
 .rl-total{display:flex;justify-content:space-between;font-size:13px;color:#cdbf9f;background:#0d0814;border-radius:8px;padding:7px 10px;margin-bottom:8px}
@@ -180,6 +180,10 @@ ul{padding-left:20px;text-align:left}
 .rl-pointer{position:absolute;left:50%;top:-3px;transform:translateX(-50%);width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:13px solid #ffd45c;z-index:4;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6))}
 .rl-ball{position:absolute;left:50%;top:50%;width:11px;height:11px;margin:-5.5px;border-radius:50%;background:radial-gradient(circle at 32% 28%,#ffffff,#cfd6df 55%,#7c8794);box-shadow:0 0 6px rgba(255,255,255,.8),0 2px 4px rgba(0,0,0,.6)}
 .rl-spinning{pointer-events:none;opacity:.55;transition:opacity .25s}
+.rl-res.rl-pop{animation:rlPop .7s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes rlPop{0%{transform:scale(.2);opacity:0;box-shadow:0 0 0 0 rgba(255,212,92,.9)}55%{transform:scale(1.35);opacity:1}100%{transform:scale(1);box-shadow:0 0 28px 6px rgba(255,212,92,.45)}}
+.rl-res.rl-wait{animation:rlWait 1s ease-in-out infinite}
+@keyframes rlWait{50%{opacity:.35}}
 
 /* ---- Blackjack ---- */
 .bj-felt{position:relative;border-radius:16px;border:1px solid rgba(212,162,76,.45);padding:16px 12px 18px;margin-bottom:10px;box-shadow:0 14px 36px rgba(0,0,0,.55);
@@ -194,7 +198,8 @@ ul{padding-left:20px;text-align:left}
 .bj-scorebox.bust{color:#ff8b98;border-color:#7f1d1d}.bj-scorebox.bj{color:#ffd45c;border-color:#ffd45c;box-shadow:0 0 14px rgba(255,212,92,.5)}
 .bj-label{font-size:11px;letter-spacing:2px;color:#bfe9cd;text-transform:uppercase}
 .bj-cards{display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap}
-.bj-card{width:58px;height:82px;border-radius:8px;background:#fdfdf8;box-shadow:0 3px 8px rgba(0,0,0,.45);position:relative;font-weight:900;font-size:16px;display:flex;flex-direction:column;justify-content:space-between;padding:5px 6px;animation:bjIn .3s ease both}
+.bj-card{width:58px;height:82px;border-radius:8px;background:#fdfdf8;box-shadow:0 3px 8px rgba(0,0,0,.45);position:relative;font-weight:900;font-size:16px;display:flex;flex-direction:column;justify-content:space-between;padding:5px 6px}
+.bj-card.new{animation:bjIn .3s ease both}
 @keyframes bjIn{from{transform:translateY(-26px) scale(.85);opacity:0}}
 .bj-card.red{color:#c2253a}.bj-card.blk{color:#14213d}
 .bj-card i{align-self:flex-end;font-style:normal;transform:rotate(180deg)}
@@ -203,7 +208,18 @@ ul{padding-left:20px;text-align:left}
 .bj-flip{perspective:420px}
 .bj-flipface{animation:bjFlip .5s cubic-bezier(.4,.2,.3,1) both;transform-origin:50% 50%;backface-visibility:hidden}
 @keyframes bjFlip{0%{transform:rotateY(90deg);opacity:.2}55%{transform:rotateY(-14deg);opacity:1}100%{transform:rotateY(0)}}
-.bj-actions{display:flex;gap:8px}
+.bj-hands{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0}
+.bj-hand{display:flex;align-items:center;gap:10px;padding:5px;border-radius:12px;border:2px solid transparent;flex-wrap:wrap}
+.bj-hand.act{border-color:#ffd45c;background:rgba(255,212,92,.08)}
+.bj-hand .bj-cards{min-height:88px;flex:1;justify-content:flex-start}
+.bj-hand .bj-scorebox small{white-space:nowrap}
+.bj-tag{font-size:11px;font-weight:900;letter-spacing:1px;padding:3px 8px;border-radius:999px;text-transform:uppercase;background:#334155;color:#e2e8f0}
+.bj-tag.win,.bj-tag.blackjack{background:#15803d;color:#fff}.bj-tag.lose,.bj-tag.bust{background:#7f1d1d;color:#fecaca}.bj-tag.push{background:#a16207;color:#fff}
+.bj-rules{margin:0 0 10px;font-size:13px;color:#cbd5e1;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:8px 12px;text-align:left}
+.bj-rules summary{cursor:pointer;font-weight:800;color:#ffd45c}
+.bj-rules ul{margin:6px 0 2px 18px;padding:0;line-height:1.5}
+.bj-actions{display:flex;gap:8px;flex-wrap:wrap}
+.bj-actions button{flex:1 1 120px}
 .bj-actions button{margin:0}
 
 /* ---- Panneau latéral : Historique des paris en direct ---- */
@@ -525,9 +541,7 @@ ul{padding-left:20px;text-align:left}
             <div class="rl-wheel-wrap">
                 <div id="rlWheelBox" style="position:relative;flex:none;width:230px;height:230px">
                     <svg id="rlWheelSvg" viewBox="0 0 100 100" width="230" height="230"></svg>
-                    <div id="rlBallFx" style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;transform-origin:50% 50%"><i class="rl-ball"></i></div>
-                    <div class="rl-pointer"></div>
-                </div>
+                    </div>
                 <div style="flex:1">
                     <div class="rl-res" id="rlRes" style="background:#0f7a44;display:inline-block">?</div>
                     <div style="font-size:12px;color:#9a90ad;margin:6px 0;">Derniers numéros</div>
@@ -566,7 +580,7 @@ ul{padding-left:20px;text-align:left}
                 <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
             </div>
             <h3 style="margin: 5px 0; color: #ffd45c;">🃏 Blackjack</h3>
-            <p id="bjStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Règles classiques : un jeu de 52 cartes, mélangé à chaque main. Le croupier tire jusqu'à 17. Blackjack payé 3:2, égalité = mise rendue.</p>
+            <p id="bjStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Blackjack classique : 52 cartes, mélangées à chaque main. Approche 21 sans le dépasser et bats le croupier.</p>
             <div class="bet-control-box" id="bjBetBox" style="margin: 0 0 10px;">
                 <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
                 <input type="number" id="bjBetAmount" value="50" min="1" style="margin: 4px 0 8px;">
@@ -575,6 +589,15 @@ ul{padding-left:20px;text-align:left}
                     <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
                 </div>
             </div>
+            <details class="bj-rules"><summary>📖 Règles du blackjack</summary><ul>
+                <li><b>But :</b> avoir un total plus proche de 21 que le croupier, sans dépasser 21 (sinon tu « sautes » et tu perds).</li>
+                <li><b>Cartes :</b> 2 à 10 = leur valeur, Valet/Dame/Roi = 10, <b>As = 11 ou 1</b> (le meilleur choix pour toi). « 7/17 » = main souple (l'As vaut 1 ou 11).</li>
+                <li><b>Blackjack :</b> As + carte de 10 sur les 2 premières cartes → payé <b>3 pour 2</b> (mise 100 → +150).</li>
+                <li><b>Croupier :</b> tire jusqu'à 16, <b>reste sur tous les 17</b> (même souple). Il regarde sa carte cachée s'il montre un As ou un 10 : en cas de blackjack, la main s'arrête.</li>
+                <li><b>Doubler :</b> sur tes 2 premières cartes, tu doubles ta mise et tu reçois <b>une seule</b> carte.</li>
+                <li><b>Séparer :</b> 2 cartes de même valeur (ex. 8+8, ou Roi+10) → 2 mains, 1 mise chacune. Un seul split ; un As séparé ne reçoit qu'une carte ; 21 après split = paiement 1:1 (pas un blackjack).</li>
+                <li><b>Assurance :</b> si le croupier montre un As, tu peux miser la moitié de ta mise : payée 2:1 s'il a blackjack.</li>
+                <li><b>Égalité :</b> mise rendue. Paiements : victoire 1:1, blackjack 3:2.</li></ul></details>
             <div class="provably-fair-box">🔒 <b>Graine de mélange (révélée en fin de main) :</b> <span id="bjSeed" style="color: #38bdf8;">—</span></div>
             <div class="bj-felt">
                 <div class="bj-zone">
@@ -582,11 +605,10 @@ ul{padding-left:20px;text-align:left}
                     <div class="bj-cards" id="bjDealer"></div>
                     <div class="bj-scorebox" id="bjDealerScore"></div>
                 </div>
-                <div class="bj-banner">BLACKJACK PAYÉ 3:2 · LE CROUPIER TIRE JUSQU'À 17 · ÉGALITÉ = MISE RENDUE</div>
+                <div class="bj-banner">BLACKJACK PAYÉ 3:2 · LE CROUPIER TIRE À 16 ET RESTE SUR 17 · ÉGALITÉ = MISE RENDUE</div>
                 <div class="bj-zone">
                     <div class="bj-label">Toi</div>
-                    <div class="bj-cards" id="bjPlayer"></div>
-                    <div class="bj-scorebox" id="bjPlayerScore"></div>
+                    <div class="bj-hands" id="bjPlayer"></div>
                 </div>
                 <div id="bjMsg" style="text-align:center;font-size:15px;font-weight:800;color:#ffe9a8;min-height:22px;"></div>
             </div>
@@ -595,6 +617,9 @@ ul{padding-left:20px;text-align:left}
                 <button id="bjHitBtn" class="hidden" onclick="bjHit()" style="background: linear-gradient(180deg,#3b82f6,#1d4ed8);">Tirer ➕</button>
                 <button id="bjStandBtn" class="hidden" onclick="bjStand()" style="background: linear-gradient(180deg,#eab308,#a16207);color:#241202;">Rester ✋</button>
                 <button id="bjDoubleBtn" class="hidden" onclick="bjDouble()" style="background: linear-gradient(180deg,#22c55e,#15803d);">Doubler 💰</button>
+                <button id="bjSplitBtn" class="hidden" onclick="bjSplit()" style="background: linear-gradient(180deg,#a855f7,#7e22ce);">Séparer ✂️</button>
+                <button id="bjInsBtn" class="hidden" onclick="bjInsurance(true)" style="background: linear-gradient(180deg,#22c55e,#15803d);">Assurance 🛡️</button>
+                <button id="bjNoInsBtn" class="hidden" onclick="bjInsurance(false)" style="background: #475569;">Non merci</button>
             </div>
             <div class="history-bar" id="bjHist" style="margin-top: 10px;"></div>
             <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
@@ -718,6 +743,8 @@ const Snd = (() => {
     slide: t => noise(t, .16, { type: 'bandpass', f: 500 + Math.random() * 500, to: 900, v: .05 }),
     tap:   t => { tone(170, t, .12, { to: 90, v: .22 }); noise(t, .05, { f: 1800, v: .1 }); },
     pop:   t => tone(700, t, .14, { to: 350, v: .13 }),
+    tick:  t => tone(2400, t, .035, { type: 'square', v: .03 }),
+    twang: t => { tone(300, t, .22, { to: 170, type: 'triangle', v: .13 }); noise(t, .05, { f: 2600, v: .07 }); },
     lift:  t => noise(t, .25, { f: 400, to: 1800, v: .06 }),
     miss:  t => [330, 262].forEach((f, i) => tone(f, t + i * .18, .6, { type: 'triangle', v: .12 })),
     cluck: t => { tone(560, t, .07, { type: 'triangle', to: 820, v: .1 }); tone(380, t + .06, .06, { type: 'triangle', to: 300, v: .07 }); },
@@ -1570,25 +1597,82 @@ function arRadii(mode) {
   return out; // out[i] ∈ (0,1], out[0] (petit gain) ≈ ... en réalité out[i] correspond au cumul des anneaux i..fin
 }
 const AR_COLS = ['#f43f5e','#fb923c','#fbbf24','#4ade80','#38bdf8','#a78bfa','#e879f9','#2dd4bf']; // couleurs vibrantes, centre → extérieur
-const ARROW = '<g class="ar-arrow"><path d="M-2 -3L-26 -3L-26 3L-2 3Z" fill="#cbd5e1"/><path d="M-26 -3L-38 -8L-32 0L-38 8L-26 3Z" fill="#f43f5e"/><path d="M-20 -3L-24 -9M-14 -3L-18 -9" stroke="#94a3b8" stroke-width="1.6"/><polygon points="0,0 -7,-4.5 -7,4.5" fill="#fde68a"/></g>';
-// Le tireur à la corde : silhouette stylisée animée (bras + arc pivotent autour de l'épaule au moment du lancer).
+const ARROW = '<g class="ar-arrow"><path d="M-3 -1.3L-31 -1.3L-31 1.3L-3 1.3Z" fill="#e2e8f0"/><path d="M-3 .2L-31 .2L-31 1.3L-3 1.3Z" fill="#aab4c4"/><path d="M-25 -1.3L-31 -6.2L-37 -6.2L-33 0L-37 6.2L-31 6.2L-25 1.3Z" fill="#f43f5e"/><path d="M-27 0L-32 0" stroke="#fde68a" stroke-width=".8"/><rect x="-39" y="-1.8" width="2.4" height="3.6" rx="1" fill="#fde68a"/><polygon points="1,0 -8,-3.4 -6,0 -8,3.4" fill="#fde68a" stroke="#b98a1f" stroke-width=".5" stroke-linejoin="round"/></g>';
+// Le tireur : archer de profil (capuche, plume, carquois). Tout bouge via arPose() : levée de l'arc, bandage de la corde jusqu'à la
+// joue, tremblement, relâchement (la corde vibre, la main recule), retour au repos. Coordonnées locales : pieds en (0,0), regarde à droite.
+const AR_A = { x: 9, y: -55.5 }; // point d'ancrage (joue) : la main de corde y arrive à pleine traction
+const AR_SC = 1.5, AR_OX = 74, AR_OY = 270, AR_ARW = AR_SC * .87; // placement du tireur dans la scène (translate + scale) ; AR_ARW = échelle de la flèche en vol
+const arL2G = (x, y) => [AR_OX + AR_SC * x, AR_OY + AR_SC * y];
+const arLerp = (a, b, k) => a + (b - a) * k, arClamp = (v, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
+const arSmooth = k => k * k * (3 - 2 * k);
 const ARCHER = `<g id="arArcher">
-  <ellipse cx="0" cy="4" rx="26" ry="5" fill="rgba(0,0,0,.4)"/>
-  <path d="M-13 -4 Q-17 -28 -9 -42 L-2 -42 L-4 -14 Q-4 -8 -6 -4 Z" fill="#2b2036" stroke="rgba(212,162,76,.45)" stroke-width="1.2"/>
-  <path d="M1 -42 Q10 -30 8 -6 L0 -6 L2 -28 Z" fill="#34284a"/>
-  <path d="M-9 -42 L7 -42 Q11 -34 8 -28 L-10 -28 Q-13 -35 -9 -42 Z" fill="#3d2f57" stroke="rgba(212,162,76,.5)" stroke-width="1.2"/>
-  <line x1="-6" y1="-2" x2="-9" y2="-12" stroke="#e8c39e" stroke-width="5.5" stroke-linecap="round"/>
-  <line x1="3" y1="-2" x2="5" y2="-12" stroke="#e8c39e" stroke-width="5.5" stroke-linecap="round"/>
-  <path d="M-11 -12 Q-3 -20 7 -12" stroke="#171028" stroke-width="2" fill="none"/>
-  <circle cx="-1" cy="-54" r="10" fill="#e8c39e"/>
-  <path d="M-11 -57 Q-1 -72 9 -57 L9 -53 Q-1 -61 -11 -53 Z" fill="#d4a24c"/>
-  <path d="M6 -46 Q18 -48 26 -42" stroke="#e8c39e" stroke-width="5.5" fill="none" stroke-linecap="round"/>
-  <g id="arArmGrp" transform="rotate(0 8 -42)">
-    <path d="M8 -42 Q26 -44 33 -34" stroke="#e8c39e" stroke-width="5.5" fill="none" stroke-linecap="round"/>
-    <path d="M34 -60 A34 34 0 0 1 34 -8" stroke="#8a5a1c" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-    <path d="M34 -60 Q26 -34 34 -8" stroke="rgba(255,255,255,.65)" stroke-width="1.2" fill="none"/>
+  <ellipse cx="2" cy="3" rx="30" ry="5.5" fill="rgba(0,0,0,.42)"/>
+  <path id="arCape" d="" fill="#4a2f7a" stroke="rgba(212,162,76,.55)" stroke-width="1" stroke-linejoin="round"/>
+  <g stroke-linecap="round" fill="none">
+    <path d="M-3 -28L-10 -14L-13 -2" stroke="#241b38" stroke-width="7"/>
+    <path d="M3 -28L11 -14L15 -2" stroke="#2c2244" stroke-width="7"/>
+    <path d="M-11.5 -9L-13.3 -1.5M12.5 -9L15.3 -1.5" stroke="#3b2814" stroke-width="8"/>
+    <path d="M-16.5 .6h8.5M12 .6h9" stroke="#2a1a0c" stroke-width="4"/>
+  </g>
+  <g id="arUpper">
+    <path id="arBackArm" d="" fill="none" stroke="#e8c39e" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="arBackSleeve" d="" fill="none" stroke="#1b6b5a" stroke-width="6.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <g transform="translate(-8,-46) rotate(-24)"><rect x="-3.2" y="-2" width="7" height="28" rx="3" fill="#6b3f12" stroke="#d4a24c" stroke-width=".9"/>
+      <path d="M-1.5 -2L-2 -8M.8 -2L1 -9M3 -2L4 -7" stroke="#e2e8f0" stroke-width="1.4"/><path d="M-2.4 -7.5l-.9-3.6 2.1 1zM1.7 -8.5l.2-3.6 1.9 1.4zM4 -6.5l1-3.5 1.5 1.6z" fill="#f43f5e"/></g>
+    <g id="arTorso">
+      <path d="M-6.5 -27L-5 -50Q3 -55 11 -50L9 -27Z" fill="#1b6b5a" stroke="rgba(212,162,76,.5)" stroke-width="1"/>
+      <path d="M-6.7 -30.5H9.4L9.1 -27H-6.9Z" fill="#8a5a1c"/><rect x="1" y="-31.2" width="4" height="4.6" rx="1" fill="#ffd45c"/>
+      <path d="M-5 -50Q3 -55 11 -50L9.6 -45Q3 -49 -4 -45Z" fill="#4a2f7a" stroke="rgba(212,162,76,.55)" stroke-width="1"/>
+      <rect x="0" y="-54" width="5.2" height="7" rx="2" fill="#d8ac84"/>
+      <circle cx="3" cy="-61" r="8.2" fill="#e8c39e"/>
+      <path d="M-6 -57Q-8.5 -74 4 -73.5Q14.5 -72 12.8 -63Q6 -69 0 -57Z" fill="#4a2f7a" stroke="rgba(212,162,76,.6)" stroke-width="1" stroke-linejoin="round"/>
+      <path id="arFeather" d="" fill="#f43f5e"/>
+      <circle cx="8.3" cy="-62" r="1.15" fill="#241b38"/><path d="M6.8 -64.7q2.2-1 3.8-.2" stroke="#4a2f20" stroke-width=".9" fill="none" stroke-linecap="round"/><path d="M11 -60.6l1.7 1.7-2 .3" stroke="#c9976c" stroke-width=".9" fill="none" stroke-linejoin="round"/>
+    </g>
+    <path id="arBowBack" d="" fill="none" stroke="#4a2a0a" stroke-width="3.8" stroke-linecap="round"/>
+    <path id="arBow" d="" fill="none" stroke="#c98a2e" stroke-width="2.1" stroke-linecap="round"/>
+    <path id="arString" d="" fill="none" stroke="#f1ead6" stroke-width=".9" stroke-linejoin="round"/>
+    <g id="arNock" opacity="0">${ARROW}</g>
+    <path id="arFrontArm" d="" fill="none" stroke="#e8c39e" stroke-width="4.6" stroke-linecap="round"/>
+    <path id="arFrontSleeve" d="" fill="none" stroke="#1b6b5a" stroke-width="6.2" stroke-linecap="round"/>
+    <circle id="arGripHand" r="3" fill="#e8c39e" stroke="#c9976c" stroke-width=".6"/>
+    <circle id="arPullHand" r="2.7" fill="#e8c39e" stroke="#c9976c" stroke-width=".6"/>
   </g>
 </g>`;
+// État de pose (0 = repos, 1 = plein) ; arPose() en déduit chaque forme, à chaque image.
+//   u : levée de l'arc / ouverture · p : traction de la CORDE · hp : position de la MAIN (peut dépasser 1 : recul après le tir)
+//   rel : vibration de la corde (px) · th : angle de visée (rad) · nock : flèche encochée visible · hold : tremblement
+const arNewPose = () => ({ u: 0, p: 0, hp: 0, rel: 0, th: -.25, nock: false, hold: false });
+function arPose(now) {
+  const E = S.arEls; if (!E || !E.cape.isConnected) return;
+  const P = S.arP, th = arLerp(.5, P.th, P.u), d = [Math.cos(th), Math.sin(th)], n = [-d[1], d[0]];
+  const aim = [AR_A.x + 27 * Math.cos(P.th), AR_A.y + 27 * Math.sin(P.th)], G0 = [33, -37];
+  const tr = P.hold ? Math.sin(now / 21) * .45 : 0; // tremblement à pleine traction
+  const G = [arLerp(G0[0], aim[0], P.u), arLerp(G0[1], aim[1], P.u) + tr];
+  const br = Math.sin(now / 620) * .55 * (1 - .7 * P.u); // respiration
+  const R0 = [G[0] - d[0] * 6, G[1] - d[1] * 6], bend = 4 * P.p;
+  const T = [R0[0] - n[0] * 33 - d[0] * bend, R0[1] - n[1] * 33 - d[1] * bend], B = [R0[0] + n[0] * 33 - d[0] * bend, R0[1] + n[1] * 33 - d[1] * bend];
+  const C = [G[0] + d[0] * 8, G[1] + d[1] * 8];
+  const N = [G[0] - d[0] * (6 + 21 * P.p) + d[0] * P.rel, G[1] - d[1] * (6 + 21 * P.p) + d[1] * P.rel]; // point d'encoche sur la corde
+  const Hd = [G[0] - d[0] * (6 + 21 * P.hp), G[1] - d[1] * (6 + 21 * P.hp)], Hr = [11, -35];
+  const ha = arClamp(P.hp * 8); // la main « saisit » la corde dès que la traction commence : elle la suit ensuite exactement
+  const H = [arLerp(Hr[0], Hd[0], ha), arLerp(Hr[1], Hd[1], ha)];
+  const k = Math.min(P.hp, 1.15), Sb = [1, -47], Sf = [9, -46.5];
+  const El = [arLerp(15, -4, k), arLerp(-33, -57, k)]; // coude arrière : monte et recule quand on bande
+  const f = v => v.map(x => x.toFixed(1)).join(' ');
+  E.bow.setAttribute('d', `M${f(T)}Q${f(C)} ${f(B)}`); E.bowB.setAttribute('d', `M${f(T)}Q${f(C)} ${f(B)}`);
+  E.str.setAttribute('d', `M${f(T)}L${f(N)}L${f(B)}`);
+  E.back.setAttribute('d', `M${f(Sb)}L${f(El)}L${f(H)}`); E.backS.setAttribute('d', `M${f(Sb)}L${f(El)}`);
+  E.front.setAttribute('d', `M${f(Sf)}L${f(G)}`); E.frontS.setAttribute('d', `M${f(Sf)}L${f([arLerp(Sf[0], G[0], .55), arLerp(Sf[1], G[1], .55)])}`);
+  E.gh.setAttribute('cx', G[0].toFixed(1)); E.gh.setAttribute('cy', G[1].toFixed(1)); E.ph.setAttribute('cx', H[0].toFixed(1)); E.ph.setAttribute('cy', H[1].toFixed(1));
+  const tip = [N[0] + d[0] * 33, N[1] + d[1] * 33];
+  E.nock.setAttribute('opacity', P.nock ? 1 : 0); E.nock.setAttribute('transform', `translate(${f(tip).replace(' ', ',')}) rotate(${(th * 57.2958).toFixed(1)}) scale(.87)`);
+  const sw = Math.sin(now / 340) * 2 - 3 * P.u; // cape et plume qui flottent
+  E.cape.setAttribute('d', `M-4 -50Q${(-13 + sw).toFixed(1)} -42 ${(-20 + sw * 1.6).toFixed(1)} -18L-8 -24Q-6 -38 -4 -46Z`);
+  E.feather.setAttribute('d', `M3 -73Q${(-6 + sw).toFixed(1)} -81 ${(-15 + sw * 1.4).toFixed(1)} -77Q${(-6 + sw).toFixed(1)} -76 3 -71Z`);
+  E.torso.setAttribute('transform', `translate(0 ${br.toFixed(2)}) rotate(${(-2.2 * P.p).toFixed(2)} 0 -28)`);
+}
+function arArcherLoop(now) { if (S.view !== 'ar') { S.arLoop = false; return; } arPose(now); requestAnimationFrame(arArcherLoop); }
 function arBuild(mode) {
   const svg = $('arSvg'), cx = 420, cy = 132, R = 104, rows = AR_MODES[mode].rows;
   const rad = arRadii(mode); // rad[i] = rayon extérieur normalisé de l'anneau i (l'anneau i va de rad[i+1]… à rad[i])
@@ -1625,10 +1709,16 @@ function arBuild(mode) {
   s += `<circle id="arBullEye" cx="${cx}" cy="${cy}" r="9" fill="url(#arBull)" stroke="rgba(120,70,10,.8)" stroke-width="1.4"/>`; // bullseye doré
   s += `<circle cx="${cx}" cy="${cy}" r="2.4" fill="#fff" opacity=".95"/>`;
   s += `<g id="arStuck"></g>`; // les fléchettes plantées s'accumulent ici (jusqu'à 8, puis on purge)
-  s += `<g transform="translate(84,262) scale(1.15)">` + ARCHER + `</g>`; // le tireur, à gauche, vise la cible
-  s += `<g id="arArrowWrap" transform="translate(126,224) rotate(-14)" opacity="0">${ARROW}</g>`; // fléchette au repos, près de la corde
+  s += `<path id="arTrail" d="" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0"/>`; // traînée de la flèche
+  s += `<g transform="translate(${AR_OX},${AR_OY}) scale(${AR_SC})">` + ARCHER + `</g>`; // le tireur, à gauche, vise la cible
+  s += `<g id="arArrowWrap" transform="translate(130,190) rotate(-14)" opacity="0">${ARROW}</g>`; // flèche en vol
   svg.innerHTML = s;
   S.arBuilt = mode;
+  const g = id => $(id);
+  S.arEls = { cape: g('arCape'), feather: g('arFeather'), bow: g('arBow'), bowB: g('arBowBack'), str: g('arString'), back: g('arBackArm'), backS: g('arBackSleeve'),
+    front: g('arFrontArm'), frontS: g('arFrontSleeve'), gh: g('arGripHand'), ph: g('arPullHand'), nock: g('arNock'), torso: g('arTorso') };
+  S.arP = arNewPose(); arPose(performance.now());
+  if (!S.arLoop) { S.arLoop = true; requestAnimationFrame(arArcherLoop); } // respiration / cape en continu
 }
 function arInfo() {
   const c = AR_MODES[S.arMode];
@@ -1683,62 +1773,93 @@ function arPop(mult, win, amount) {
   p.classList.add('show');
   clearTimeout(S.arPopT); S.arPopT = setTimeout(() => p.classList.remove('show'), 2000);
 }
-// petite fléchette « plantée » qui reste affichée dans la cible (accumulation visuelle, max 8)
-function arStuckArrow(x, y, rot) {
-  const g = $('arStuck'); if (!g) return;
+// flèche « plantée » : la précédente s'estompe, la nouvelle vibre un court instant (retour élastique)
+function arStuckArrow(x, y, rot, scale = AR_ARW * .85) {
+  const g = $('arStuck'); if (!g) return null;
   while (g.children.length >= 8) g.removeChild(g.firstChild);
+  [...g.children].forEach(c => c.setAttribute('opacity', '.45'));
   const el = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  el.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${rot}) scale(.6)`);
-  el.setAttribute('opacity', '.5');
-  el.innerHTML = ARROW;
-  g.appendChild(el);
+  const set = off => el.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${(rot + off).toFixed(1)}) scale(${scale})`);
+  set(0); el.innerHTML = ARROW; g.appendChild(el);
+  tween(560, k => set(Math.sin(k * 34) * 7 * Math.pow(1 - k, 2)));
+  return el;
 }
-async function arAnimateThrow(d) { // tireur qui arme, trajectoire en clocher, impact ; si x0 la flèche dépasse la cible et plante le sol
+function arRipple(x, y, color = '#ffd45c') { // onde de choc à l'impact
+  const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  c.setAttribute('cx', x.toFixed(1)); c.setAttribute('cy', y.toFixed(1)); c.setAttribute('fill', 'none'); c.setAttribute('stroke', color); c.setAttribute('stroke-width', '2');
+  $('arSvg').appendChild(c);
+  tween(480, k => { c.setAttribute('r', (3 + 26 * k).toFixed(1)); c.setAttribute('opacity', (.85 * (1 - k)).toFixed(2)); c.setAttribute('stroke-width', (2.4 * (1 - k) + .3).toFixed(2)); }).then(() => c.remove());
+}
+async function arAnimateThrow(d) { // armement → traction → tenue → relâchement → vol (trajectoire réaliste) → impact
   S.arThrowing = true;
-  const svg = $('arSvg'), wrap = $('arArrowWrap'), archer = $('arArcher'), armGrp = $('arArmGrp');
+  const tok = S.arTok = (S.arTok || 0) + 1, alive = () => S.arTok === tok;
+  const wrap = $('arArrowWrap'), trail = $('arTrail'), P = S.arP || (S.arP = arNewPose());
   const cx = 420, cy = 132, R = 104, mode = d.mode || S.arBuilt || 'easy', rows = AR_MODES[mode].rows, rad = arRadii(mode);
-  let end, rot, feathers = 0;
+  const tipOf = th => arL2G(AR_A.x + 33 * Math.cos(th), AR_A.y + 33 * Math.sin(th)); // pointe de la flèche encochée (repère scène)
+  let end, th, feathers = 0, hitIdx = -1;
   if (d.success) {
-    const i = rows.findIndex(r => r[0] === d.multiplier);
+    hitIdx = rows.findIndex(r => r[0] === d.multiplier);
     // point d'impact aléatoire DANS la bande annulaire de l'anneau gagné (géométrie cohérente avec les probabilités)
-    const rOut = i >= 0 ? R * rad[i] : 6, rIn = i >= 0 && i + 1 < rows.length ? R * rad[i + 1] : 0;
-    const rr = Math.sqrt(Math.random() * (rOut * rOut - rIn * rIn) + rIn * rIn);
-    const ang = Math.random() * Math.PI * 2;
+    const rOut = hitIdx >= 0 ? R * rad[hitIdx] : 6, rIn = hitIdx >= 0 && hitIdx + 1 < rows.length ? R * rad[hitIdx + 1] : 0;
+    const rr = Math.sqrt(Math.random() * (rOut * rOut - rIn * rIn) + rIn * rIn), ang = Math.random() * Math.PI * 2;
     end = { x: cx + Math.cos(ang) * rr, y: cy + Math.sin(ang) * rr };
-    rot = -14; feathers = Math.max(6, Math.round(rows.length - i));
-  } else { // raté : elle survole la cible et se plante au sol, loin derrière
-    const side = Math.random() < .5 ? -1 : 1;
-    end = { x: cx + side * (R + 90 + Math.random() * 60), y: 286 + Math.random() * 10 };
-    rot = 55;
+    feathers = Math.max(6, Math.round(rows.length - (hitIdx >= 0 ? hitIdx : 0)));
+  } else if (Math.random() < .62) end = { x: 235 + Math.random() * 105, y: 285 + Math.random() * 7 };   // tir mou : retombe au sol AVANT la cible
+  else end = { x: 545 + Math.random() * 60, y: 285 + Math.random() * 7 };                                  // tir trop long : passe devant et se plante derrière
+  let S0 = tipOf(-.25); // visée : la flèche part le long de son axe, la gravité courbe le reste (3 passes : la pointe dépend de l'angle)
+  for (let it = 0; it < 3; it++) {
+    th = d.success ? Math.atan2(end.y - S0[1], end.x - S0[0]) - (5 + Math.random() * 5) * Math.PI / 180
+      : Math.atan2(cy - S0[1], cx - S0[0]) - (end.x < cx ? 4 : 6) * Math.PI / 180;
+    S0 = tipOf(th);
   }
-  const start = { x: 126, y: 224 }, peak = Math.min(start.y, end.y) - 90 - Math.random() * 30;
-  wrap.setAttribute('opacity', 1);
-  sound('lift');
-  // le tireur s'anime : bras + arc pivotent vers l'arrière (armement) puis suivent le geste (libération)
-  if (armGrp) {
-    armGrp.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(-16deg)', offset: .35 }, { transform: 'rotate(10deg)', offset: .7 }, { transform: 'rotate(0deg)' }],
-                   { duration: 700, easing: 'ease-out' });
-  }
-  if (archer) archer.animate([{ transform: 'translateX(0px)' }, { transform: 'translateX(-5px)', offset: .35 }, { transform: 'translateX(2px)' }],
-                             { duration: 420, easing: 'ease-out' });
-  await tween(760, k => {
-    const e = k, x = start.x + (end.x - start.x) * e, y = (1 - e) * (1 - e) * start.y + 2 * (1 - e) * e * peak + e * e * end.y; // courbe de Bézier quadratique
-    const nx = 1 - e, dx = nx * (end.x - start.x), dy = nx * (end.y - start.y) + e * 0; // tangente ≈ direction finale simplifiée
-    const a = Math.atan2(dy === 0 ? (end.y - peak) : dy, dx === 0 ? 1 : dx) * 57.3;
-    wrap.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${(k < 1 ? a : rot).toFixed(1)})`);
+  const p1x = (S0[0] + end.x) / 2, p1y = S0[1] + Math.tan(th) * (p1x - S0[0]); // parabole lancée dans l'axe de la flèche
+  const bez = k => { const m = 1 - k; return { x: m * m * S0[0] + 2 * m * k * p1x + k * k * end.x, y: m * m * S0[1] + 2 * m * k * p1y + k * k * end.y,
+    a: Math.atan2(2 * m * (p1y - S0[1]) + 2 * k * (end.y - p1y), 2 * m * (p1x - S0[0]) + 2 * k * (end.x - p1x)) }; };
+  // 1) le tireur arme : il lève l'arc, encoche et bande la corde jusqu'à la joue
+  sound('lift'); P.th = th; P.rel = 0; P.hold = false;
+  const u0 = P.u, p0 = P.p, h0 = P.hp;
+  await tween(310, k => { if (!alive()) return; const e = arSmooth(k), q = arSmooth(arClamp((k - .25) / .75));
+    P.u = arLerp(u0, 1, e); P.nock = P.u > .35; P.p = arLerp(p0, 1, q); P.hp = arLerp(h0, 1, q); });
+  if (!alive()) return;
+  // 2) tenue : il vise, léger tremblement
+  P.hold = true; await wait(80 + Math.random() * 60); P.hold = false;
+  if (!alive()) return;
+  // 3) relâchement : la corde claque et vibre, la main recule, la flèche part
+  sound('twang'); P.nock = false;
+  wrap.setAttribute('opacity', 1); trail.setAttribute('opacity', .6);
+  const pts = [];
+  (async () => { // geste du tireur, en parallèle du vol
+    await tween(260, k => { if (!alive()) return; const t = k * .26;
+      P.p = Math.max(0, 1 - k * 9); P.rel = 6 * Math.sin(t * 52) * Math.exp(-t * 12); P.hp = 1 + .26 * (1 - Math.exp(-k * 14)) - .3 * arSmooth(k); });
+    if (!alive()) return;
+    const hp1 = P.hp; P.rel = 0; P.p = 0;
+    await tween(420, k => { if (!alive()) return; const e = arSmooth(k); P.u = 1 - e; P.hp = hp1 * (1 - e); P.th = arLerp(th, -.25, e); });
+    if (alive()) { P.u = 0; P.hp = 0; }
+  })();
+  const dist = Math.hypot(end.x - S0[0], end.y - S0[1]);
+  await tween(360 + dist * .42, k0 => {
+    const k = k0 * (1.2 - .2 * k0), q = bez(k);
+    wrap.setAttribute('transform', `translate(${q.x.toFixed(1)},${q.y.toFixed(1)}) rotate(${(q.a * 57.2958).toFixed(1)}) scale(${AR_ARW.toFixed(3)})`);
+    pts.push(q.x.toFixed(1) + ' ' + q.y.toFixed(1)); if (pts.length > 10) pts.shift();
+    trail.setAttribute('d', 'M' + pts.join('L'));
   });
+  const fin = bez(1), rot = fin.a * 57.2958;
+  wrap.setAttribute('opacity', 0); wrap.setAttribute('transform', 'translate(130,190) rotate(-14)');
+  tween(260, k => trail.setAttribute('opacity', (.6 * (1 - k)).toFixed(2))); // la traînée s'efface
+  // 4) impact
   if (d.success) {
-    sound('tap'); arFeathers(end.x, end.y, feathers); arRingFlash(rows.findIndex(r => r[0] === d.multiplier));
-    arStuckArrow(end.x, end.y, rot); // la fléchette reste plantée dans la cible
+    sound('tap'); arFeathers(end.x, end.y, feathers); arRingFlash(hitIdx); arRipple(end.x, end.y);
+    arStuckArrow(end.x, end.y, rot);
     if (d.multiplier >= 8) sound('win');
   } else {
-    sound('miss'); arDust(end.x, end.y - 4, 8); // petit nuage de poussière
+    sound('miss'); arDust(end.x, end.y - 4, 9); arRipple(end.x, end.y, '#c9b89a');
+    const st = arStuckArrow(end.x, end.y, rot); // plantée dans le sol, puis disparaît doucement
+    setTimeout(() => { if (st && st.isConnected) tween(500, k => st.setAttribute('opacity', (.9 * (1 - k)).toFixed(2))).then(() => st.remove()); }, 1100);
     $('arStage').classList.add('shake'); setTimeout(() => $('arStage').classList.remove('shake'), 400);
   }
   arPop(d.multiplier, d.success, d.winnings); // ← le multiplicateur apparaît dans l'air, pas sur la cible
-  await wait(450);
-  wrap.setAttribute('opacity', 0); wrap.setAttribute('transform', 'translate(126,224) rotate(-14)');
-  S.arThrowing = false;
+  await wait(350);
+  if (alive()) S.arThrowing = false;
   if (S.arState && S.arState.active) arControls(); // partie relancée entre-temps : on réaffiche tout de suite le bouton LANCER
 }
 function arInit() {
@@ -1826,7 +1947,7 @@ function rlBuildTable() {
   // Écouteurs attachés APRÈS création du HTML (et donc ré-attachés si on quitte puis revient sur la Roulette) :
   // c'est ce qui remplace bindOnce, dont l'écouteur « une seule fois » mourait avec l'ancien innerHTML → jeu gelé.
   $('rlTable').addEventListener('click', e => {
-    const c = e.target.closest('.rl-cell'); if (!c || S.rlBusy) return;
+    const c = e.target.closest('.rl-cell'); if (!c || S.rlBusy || S.rlSpinning) return;
     const amount = parseInt($('rlBetAmount').value);
     if (!amount || amount <= 0) return alert('Choisis un montant de jeton valide !');
     S.rlBusy = true; // verrou temporaire : libéré dès que le serveur renvoie la table synchronisée (sync → rlRenderChips)
@@ -1851,110 +1972,204 @@ function rlRenderChips() { // jetons dorés sur chaque case jouée + total de la
   const total = S.rlBets.reduce((a, b) => a + b.amount, 0);
   $('rlTotalVal').textContent = total;
   $('rlBetsCount').textContent = S.rlBets.length + (S.rlBets.length > 1 ? ' paris' : ' pari');
-  $('rlSpinBtn').disabled = !total;
+  $('rlSpinBtn').disabled = !total || !!S.rlSpinning;
   S.rlBusy = false; // la table reçue du serveur est la preuve que le dernier jeton est passé → on déverrouille les clics
 }
 function rlHistPush(num, color, win) {
   S.rlHist.unshift({ num, color, win }); S.rlHist.length = Math.min(S.rlHist.length, 14);
   setH($('rlHist'), S.rlHist.map(h => `<div class="history-pill rl-${h.color}${h.win ? ' cr-win' : ''}" style="background:${h.color === 'red' ? '#b32633' : h.color === 'green' ? '#0f7a44' : '#1c2230'}">${h.num}</div>`).join(''));
 }
-function rlWheelSpin(num, cb) { // animation : la roue tourne puis tombe pile sur le numéro sorti (ordre réel de la roue)
-  const fx = $('rlWheelFx'); if (!fx) return cb();
-  const idx = RL_ORDER.indexOf(num), seg = 360 / 37, target = -(idx * seg + seg / 2);
-  const turns = 4 + Math.floor(Math.random() * 2);
-  fx.animate([{ transform: 'rotate(0deg)' }, { transform: `rotate(${target - turns * 360}deg)` }], { duration: 3400, easing: 'cubic-bezier(.15,.75,.2,1)', fill: 'forwards' })
-    .finished.then(() => { setTimeout(() => { fx.style.transform = `rotate(${target}deg)`; cb(); }, 350); }).catch(() => cb());
+/* ---- Roue : dessin SVG (ordre réel européen) + animation image par image ---- */
+const RL_SEG = 360 / 37;
+const rlPolar = (r, deg) => [50 + r * Math.sin(deg * Math.PI / 180), 50 - r * Math.cos(deg * Math.PI / 180)]; // deg : 0 = haut, sens horaire
+function rlSector(i, r0, r1) {
+  const a0 = i * RL_SEG, a1 = (i + 1) * RL_SEG, [x0, y0] = rlPolar(r1, a0), [x1, y1] = rlPolar(r1, a1), [x2, y2] = rlPolar(r0, a1), [x3, y3] = rlPolar(r0, a0);
+  return `M${x0.toFixed(2)} ${y0.toFixed(2)}A${r1} ${r1} 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)}L${x2.toFixed(2)} ${y2.toFixed(2)}A${r0} ${r0} 0 0 0 ${x3.toFixed(2)} ${y3.toFixed(2)}Z`;
+}
+function rlBuildWheel() {
+  let pockets = '', frets = '', nums = '';
+  RL_ORDER.forEach((n, i) => {
+    const fill = n === 0 ? '#0f8a4c' : RL_RED.has(n) ? '#c1283a' : '#161a26';
+    pockets += `<path d="${rlSector(i, 25, 40.5)}" fill="${fill}"/>`;
+    const [fx0, fy0] = rlPolar(25, i * RL_SEG), [fx1, fy1] = rlPolar(40.5, i * RL_SEG);
+    frets += `<path d="M${fx0.toFixed(2)} ${fy0.toFixed(2)}L${fx1.toFixed(2)} ${fy1.toFixed(2)}" />`;
+    nums += `<text transform="rotate(${((i + .5) * RL_SEG).toFixed(2)} 50 50)" x="50" y="14.4">${n}</text>`;
+  });
+  $('rlWheelSvg').innerHTML = `
+  <defs>
+    <radialGradient id="rlWood" cx="50%" cy="40%" r="65%"><stop offset="0" stop-color="#b9772f"/><stop offset=".6" stop-color="#7a4515"/><stop offset="1" stop-color="#3d210a"/></radialGradient>
+    <radialGradient id="rlCone" cx="50%" cy="45%" r="60%"><stop offset="0" stop-color="#3a2a52"/><stop offset=".7" stop-color="#1c1230"/><stop offset="1" stop-color="#0d0818"/></radialGradient>
+    <radialGradient id="rlBallG" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#d7dde6"/><stop offset="1" stop-color="#7d8896"/></radialGradient>
+    <radialGradient id="rlHub" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#ffe9a8"/><stop offset=".6" stop-color="#d4a24c"/><stop offset="1" stop-color="#7a5316"/></radialGradient>
+  </defs>
+  <circle cx="50" cy="50" r="49.6" fill="url(#rlWood)"/>
+  <circle cx="50" cy="50" r="46.6" fill="#0d0814" stroke="rgba(255,225,150,.55)" stroke-width=".5"/>
+  <circle cx="50" cy="50" r="43.8" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="4.4"/>
+  <g id="rlWheelRot">
+    <circle cx="50" cy="50" r="41.2" fill="#d4a24c"/>
+    ${pockets}
+    <g stroke="#e8c26a" stroke-width=".35">${frets}</g>
+    <circle cx="50" cy="50" r="25" fill="url(#rlCone)" stroke="#d4a24c" stroke-width=".9"/>
+    <g fill="#fff" font-size="3.7" font-weight="800" text-anchor="middle" dominant-baseline="central" font-family="Inter,Arial,sans-serif">${nums}</g>
+    <path id="rlHi" d="" fill="none" stroke="#ffd45c" stroke-width="1.1" stroke-linejoin="round" opacity="0"/>
+    <g stroke="#d4a24c" stroke-width="1.3" stroke-linecap="round" opacity=".9"><path d="M50 36V64M36 50H64"/></g>
+    <circle cx="50" cy="50" r="6.3" fill="url(#rlHub)"/><circle cx="50" cy="50" r="2.3" fill="#2b1a05"/>
+  </g>
+  <circle id="rlBallShadow" r="1.9" fill="rgba(0,0,0,.45)" opacity="0"/>
+  <circle id="rlBall" r="1.85" fill="url(#rlBallG)" opacity="0"/>`;
+  rlSetWheel(S.rlWheelAngle = 0);
+}
+function rlSetWheel(a) { $('rlWheelRot').setAttribute('transform', `rotate(${a.toFixed(2)} 50 50)`); }
+function rlSetBall(worldDeg, r) {
+  const [x, y] = rlPolar(r, worldDeg), b = $('rlBall'), sh = $('rlBallShadow');
+  b.setAttribute('cx', x.toFixed(2)); b.setAttribute('cy', y.toFixed(2)); b.setAttribute('opacity', 1);
+  sh.setAttribute('cx', (x + .5).toFixed(2)); sh.setAttribute('cy', (y + .9).toFixed(2)); sh.setAttribute('opacity', 1);
+}
+// La roue ralentit sur D ms (3-6 s, tirée par le serveur) ; la bille tourne en sens inverse sur la piste, puis tombe, rebondit
+// et se pose pile dans la case du numéro tiré (position calculée dans le repère de la roue : elle ne peut pas se tromper).
+function rlAnimate(num, D, done) {
+  const wTotal = (2.4 + Math.random() * 1.2) * 360, w0 = S.rlWheelAngle || 0;
+  const pocket = RL_ORDER.indexOf(num) * RL_SEG + RL_SEG / 2;
+  const dropAt = Math.max(D - 1700, D * 0.5), dropT = D - dropAt;
+  const b0 = Math.random() * 360, bTotal = (5 + Math.random() * 2) * 360;
+  const easeW = x => 1 - Math.pow(1 - x, 2.4);
+  const wAt = t => w0 + wTotal * easeW(Math.min(t / D, 1));
+  const bAt = t => b0 - bTotal * (1 - Math.pow(1 - Math.min(t / dropAt, 1), 1.9)); // sens inverse de la roue
+  const phiDrop = bAt(dropAt) - wAt(dropAt);
+  const delta = -(((phiDrop - pocket) % 360 + 360) % 360 + 360); // encore ~1 tour (relatif à la roue) avant de se poser
+  const t0 = performance.now(); S.rlHi && S.rlHi(false);
+  $('rlHi').setAttribute('opacity', 0);
+  let ticked = 0;
+  const frame = now => {
+    const t = Math.min(now - t0, D), w = wAt(t);
+    rlSetWheel(w);
+    if (t < dropAt) rlSetBall(bAt(t), 43.6);
+    else {
+      const y = (t - dropAt) / dropT, e = 1 - Math.pow(1 - y, 3);
+      const hop = y > .5 ? Math.abs(Math.sin((y - .5) * Math.PI * 4.5)) * Math.pow(1 - y, 1.6) : 0;
+      const r = 33 + 10.6 * Math.pow(1 - e, 1.4) + 4.2 * hop;
+      rlSetBall(w + phiDrop + delta * e + Math.sin(y * 40) * 2.2 * (1 - y) * (y > .45 ? 1 : 0), r);
+    }
+    const tk = Math.floor(t / 230); if (t < dropAt && tk > ticked) { ticked = tk; if (tk % 2 === 0) sound('tick'); } // cliquetis de la bille
+    if (t < D) return requestAnimationFrame(frame);
+    S.rlWheelAngle = w % 360; rlSetWheel(S.rlWheelAngle);
+    rlSetBall(S.rlWheelAngle + pocket, 33); // posée dans sa case, tourne avec la roue
+    const hi = $('rlHi'); hi.setAttribute('d', rlSector(RL_ORDER.indexOf(num), 25, 40.5)); hi.setAttribute('opacity', 1);
+    done();
+  };
+  requestAnimationFrame(frame);
 }
 function rlInit() {
-  if (!$('rlTable').children.length) {
-    rlBuildTable();
-    // roue SVG (secteurs aux couleurs réelles, ordre européen) dessinée une fois
-    let sectors = '';
-    RL_ORDER.forEach((n, i) => {
-      const a0 = (i * 360 / 37 - 90) * Math.PI / 180, a1 = ((i + 1) * 360 / 37 - 90) * Math.PI / 180, r = 46;
-      const x0 = 50 + r * Math.cos(a0), y0 = 50 + r * Math.sin(a0), x1 = 50 + r * Math.cos(a1), y1 = 50 + r * Math.sin(a1);
-      const fill = n === 0 ? '#0f7a44' : RL_RED.has(n) ? '#b32633' : '#1c2230';
-      sectors += `<path d="M50 50L${x0.toFixed(2)} ${y0.toFixed(2)}A46 46 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)}Z" fill="${fill}" stroke="rgba(212,162,76,.5)" stroke-width=".4"/>`;
-    });
-    $('rlWheel').innerHTML = `<svg viewBox="0 0 100 100" style="width:110px;height:110px;border-radius:50%;box-shadow:0 0 0 5px #8a5a1c,0 0 0 9px #2b2036,0 8px 22px rgba(0,0,0,.6)">
-      <g id="rlWheelRot" style="transform-origin:50% 50%">${sectors}</g><circle cx="50" cy="50" r="14" fill="#d4a24c"/><circle cx="50" cy="50" r="9" fill="#2b2036"/>
-      <circle cx="50" cy="7" r="2.6" fill="#fff"/></svg>`;
-    S.rlWheelG = $('rlWheelRot');
-    $('rlWheel').appendChild(Object.assign(document.createElement('div'), { className: 'rl-wheelfx', id: 'rlWheelFx' }));
-  }
+  if (!$('rlTable').children.length) rlBuildTable();
+  if (!$('rlWheelRot')) rlBuildWheel();
   rlRenderChips();
-  $('rlSpinBtn').disabled = !S.rlBets.length;
+  $('rlSpinBtn').disabled = !S.rlBets.length || !!S.rlSpinning;
 }
 function rlSpin() {
-  if (S.rlBusy || !S.rlBets.length) return;
+  if (S.rlBusy || S.rlSpinning || !S.rlBets.length) return;
   S.rlBusy = true; sound('bet');
-  $('rlStatus').textContent = 'Les jeux sont faits… la roue tourne !';
+  $('rlStatus').textContent = 'Les jeux sont faits…';
   socket.emit('rl-spin', { roomCode: S.code });
 }
-const rlClear = () => { if (!S.rlBusy && S.rlBets.length) socket.emit('rl-clear', { roomCode: S.code }); };
+const rlClear = () => { if (!S.rlBusy && !S.rlSpinning && S.rlBets.length) socket.emit('rl-clear', { roomCode: S.code }); };
+const rlUndo = () => { if (!S.rlBusy && !S.rlSpinning && S.rlBets.length) socket.emit('rl-undo', { roomCode: S.code }); };
 function rlRepeat() { // rejoue la même combinaison de paris (nouvelle mise débitée par le serveur)
-  if (S.rlBusy || !S.rlLast) return;
+  if (S.rlBusy || S.rlSpinning || !S.rlLast) return;
   S.rlBusy = true;
   S.rlLast.forEach(b => socket.emit('rl-bet', { roomCode: S.code, kind: b.kind, sel: b.sel, amount: b.amount }));
 }
+// 1) le serveur lance le tour : numéro (caché dans l'animation), durée 3-6 s tirée au hasard, empreinte publique
+socket.on('rl-spin-start', d => {
+  if (!$('rlWheelRot')) rlBuildWheel();
+  S.rlBusy = false; S.rlSpinning = true; $('rlSpinBtn').disabled = true;
+  document.getElementById('rlTable').classList.add('rl-spinning');
+  const res = $('rlRes'); res.textContent = '?'; res.style.background = '#2b2036'; res.className = 'rl-res rl-wait';
+  $('rlHash').textContent = d.publicHash; $('rlProof').textContent = 'Empreinte publiée AVANT le tirage : le résultat est déjà fixé.';
+  $('rlStatus').textContent = 'Rien ne va plus… la roue tourne !';
+  S.rlAnim = new Promise(resolve => rlAnimate(d.number, d.duration, () => {
+    // la bille est posée : le numéro « tombe » (révélation)
+    res.textContent = d.number; res.style.background = d.number === 0 ? '#0f7a44' : RL_RED.has(d.number) ? '#b32633' : '#1c2230';
+    res.className = 'rl-res rl-pop'; sound('pop');
+    $('rlStatus').textContent = `Le ${d.number} ${({ red: 'rouge', black: 'noir', green: 'vert' })[rlColor(d.number)]} !`;
+    resolve();
+  }));
+  clearTimeout(S.rlSafeT); S.rlSafeT = setTimeout(() => { S.rlSpinning = false; document.getElementById('rlTable').classList.remove('rl-spinning'); }, d.duration + 5000);
+});
+// 2) le serveur règle le tour (solde, gains) juste après : on attend la fin de l'animation avant de l'afficher
 socket.on('rl-result', d => {
-  S.rlBusy = false; S.rlLast = d.betsSnapshot || null;
-  const res = $('rlRes');
-  res.textContent = d.number;
-  res.style.background = d.color === 'red' ? '#b32633' : d.color === 'green' ? '#0f7a44' : '#1c2230';
-  $('rlHash').textContent = d.publicHash;
-  $('rlProof').textContent = `Numéro ${d.number} tiré depuis HMAC-SHA256(graine,"roulette") — graine révélée : ${d.seed} (SHA-256(graine) = hash ci-dessus)`;
-  rlHistPush(d.number, d.color, d.winnings > 0);
-  $('rlStatus').textContent = d.message;
-  sound(d.winnings > 0 ? 'win' : 'miss');
+  S.rlLast = d.betsSnapshot || null;
+  (S.rlAnim || Promise.resolve()).then(() => {
+    clearTimeout(S.rlSafeT); S.rlAnim = null; S.rlSpinning = false; S.rlBusy = false;
+    document.getElementById('rlTable').classList.remove('rl-spinning');
+    $('rlProof').textContent = `Numéro ${d.number} tiré depuis HMAC-SHA256(graine,"roulette") — graine révélée : ${d.seed} (SHA-256(graine) = hash ci-dessus)`;
+    rlHistPush(d.number, d.color, d.winnings > 0);
+    $('rlStatus').textContent = d.message;
+    $('rlSpinBtn').disabled = !S.rlBets.length;
+    sound(d.winnings > 0 ? 'win' : 'miss');
+  });
 });
 
 /* ============================================================
-   BLACKJACK 🃏 — règles classiques : 52 cartes, mélange provably fair,
-   croupier stand 17, blackjack payé 3:2, égalité = mise rendue.
-   Probabilités naturelles du jeu, aucun facteur maison artificiel.
+   BLACKJACK 🃏 — les règles vivent côté serveur (blackjack.js) ; le client ne fait qu'afficher l'état reçu :
+   mains du joueur (split possible), croupier (carte cachée jamais envoyée), totaux exacts, boutons autorisés.
    ============================================================ */
-const BJ_NAMES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-const BJ_SUITS = ['♠', '♥', '♦', '♣']; // 0=pique, 1=cœur, 2=carreau, 3=trèfle (mêmes indices côté serveur)
-const bjCardHtml = (c, hidden) => hidden ? '<div class="bj-card bj-back"></div>'
-  : `<div class="bj-card ${c.s === 1 || c.s === 2 ? 'red' : 'blk'}">${BJ_NAMES[c.r]}${BJ_SUITS[c.s]}<i>${BJ_NAMES[c.r]}${BJ_SUITS[c.s]}</i></div>`;
-// Valeur "soft" d'une carte : as = 11 sinon la valeur faciale (10 pour les figures) — comme le serveur.
-// Le client n'a que les cartes visibles : on affiche donc une fourchette de total quand la cachée est un as.
-const bjSoftVal = c => c.r === 12 ? 11 : Math.min(c.r + 1, 10);
-const bjSum = cards => cards.reduce((a, c) => a + bjSoftVal(c), 0);
-const bjTotalText = (cards, extraMax) => {
-  if (!cards || !cards.length) return '';
-  const sMin = bjSum(cards) - 10 * cards.filter(c => c.r === 12).length; // as revalués à 1
-  const sMax = bjSum(cards) + (extraMax || 0);
-  if (extraMax != null && sMin !== sMax) return `${sMin}-${sMax}`;
-  return String(sMax > 21 && sMin <= 21 ? sMin : sMax); // on privilégie le total qui ne fait pas sauter
-};
-function bjSync(state) { // piloté par sync() : le client suit l'état serveur (main en cours, phase, cartes)
+const BJ_NAMES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']; // r : 0 = As … 12 = Roi
+const BJ_SUITS = ['♠', '♥', '♦', '♣']; // 0=pique, 1=cœur, 2=carreau, 3=trèfle
+const bjCardHtml = (c, cls = '') => c === null ? `<div class="bj-card bj-back ${cls}"></div>`
+  : `<div class="bj-card ${c.s === 1 || c.s === 2 ? 'red' : 'blk'} ${cls}">${BJ_NAMES[c.r]}${BJ_SUITS[c.s]}<i>${BJ_NAMES[c.r]}${BJ_SUITS[c.s]}</i></div>`;
+// total affiché : "7/17" pour une main souple (l'As vaut 1 ou 11), "BLACKJACK" pour un naturel
+const bjTotalText = h => h.bj ? 'BJ' : (h.soft && h.total < 21 ? `${h.total - 10}/${h.total}` : String(h.total));
+const BJ_TAG = { blackjack: 'Blackjack !', win: 'Gagné', push: 'Égalité', lose: 'Perdu', bust: 'Sauté' };
+S.bjPrev = { d: 0, h: [] }; // nb de cartes déjà affichées : seules les NOUVELLES cartes s'animent
+
+function bjSync(state) { // piloté par sync() : le client suit l'état serveur
   if (S.view !== 'bj' || S.bjBusy) return;
   bjPaint(state);
 }
+function bjBusyOn() { S.bjBusy = true; clearTimeout(S.bjBusyT); S.bjBusyT = setTimeout(() => { S.bjBusy = false; }, 4000); }
 function bjPaint(st) {
-  const playing = !!(st && (st.phase === 'player' || st.phase === 'dealer'));
-  const dealerHidden = !!(st && st.phase === 'player');
-  bjRender($('bjPlayer'), st ? st.player : null, st && st.player && st.player.length ? bjTotalText(st.player) : null);
-  bjRender($('bjDealer'), st ? st.dealer : null, st && st.dealer && st.dealer.length ? bjTotalText(st.dealer, dealerHidden ? 11 : 0) : null, dealerHidden);
+  const phase = st ? st.phase : 'idle';
+  const playing = phase === 'player' || phase === 'insurance';
+  const prev = S.bjPrev;
+  // --- croupier
+  if (!st || !st.dealer.cards.length) { setH($('bjDealer'), ''); $('bjDealerScore').innerHTML = ''; prev.d = 0; }
+  else {
+    const d = st.dealer, flip = prev.dHidden && !d.hidden;
+    const cards = d.cards.map((c, i) => bjCardHtml(c, (i >= prev.d ? 'new ' : '') + (flip && i === 1 ? 'bj-flipface' : ''))).join('')
+      + (d.hidden ? bjCardHtml(null, prev.d >= 2 ? '' : 'new') : '');
+    setH($('bjDealer'), cards);
+    prev.d = d.cards.length + (d.hidden ? 1 : 0); prev.dHidden = d.hidden;
+    $('bjDealerScore').className = 'bj-scorebox' + (d.total > 21 ? ' bust' : d.bj ? ' bj' : '');
+    setH($('bjDealerScore'), `<small>${d.hidden ? 'VISIBLE' : 'TOTAL'}</small>${d.bj ? 'BJ' : d.total > 21 ? d.total : bjTotalText({ total: d.total, soft: d.soft })}`);
+  }
+  // --- joueur (1 ou 2 mains)
+  const hands = st ? st.hands : [];
+  if (!hands.length) prev.h = [];
+  setH($('bjPlayer'), hands.map((h, i) => {
+    const n = prev.h[i] || 0;
+    const cards = h.cards.map((c, k) => bjCardHtml(c, k >= n ? 'new' : '')).join('');
+    prev.h[i] = h.cards.length;
+    const cls = h.total > 21 ? ' bust' : h.bj ? ' bj' : '';
+    return `<div class="bj-hand${phase === 'player' && st.active === i && hands.length > 1 ? ' act' : ''}"><div class="bj-cards">${cards}</div>`
+      + `<div class="bj-scorebox${cls}"><small>MISE ${h.bet} 🪙${h.doubled ? ' ×2' : ''}</small>${bjTotalText(h)}</div>`
+      + (h.outcome ? `<span class="bj-tag ${h.outcome}">${BJ_TAG[h.outcome]}</span>` : '') + `</div>`;
+  }).join(''));
+  // --- boutons
   show('bjDealBtn', !playing);
-  show('bjHitBtn', !!(st && st.phase === 'player'));
-  show('bjStandBtn', !!(st && st.phase === 'player'));
-  show('bjDoubleBtn', !!(st && st.phase === 'player' && st.player && st.player.length === 2 && !st.doubled));
+  show('bjHitBtn', phase === 'player'); show('bjStandBtn', phase === 'player');
+  show('bjDoubleBtn', phase === 'player' && !!st.can.double);
+  show('bjSplitBtn', phase === 'player' && !!st.can.split);
+  show('bjInsBtn', phase === 'insurance'); show('bjNoInsBtn', phase === 'insurance');
+  if (phase === 'insurance') $('bjInsBtn').textContent = `Assurance 🛡️ (${st.insuranceOffer} 🪙)`;
   $('bjBetAmount').disabled = playing;
-  $('bjStatus').textContent = playing ? (st.phase === 'player' ? 'À toi : tirer, rester ou doubler.' : 'Le croupier joue…') : 'Mise, puis distribue !';
+  $('bjStatus').textContent = phase === 'insurance' ? 'Le croupier montre un As : veux-tu t\'assurer contre son blackjack ?'
+    : phase === 'player' ? (hands.length > 1 ? `Main ${st.active + 1} sur 2 : tirer, rester ou doubler.` : 'À toi : tirer, rester, doubler' + (st.can.split ? ' ou séparer.' : '.'))
+    : 'Mise, puis distribue !';
 }
-function bjRender(el, cards, score, hideSecond) {
-  if (!el) return;
-  if (!cards || !cards.length) { el.innerHTML = ''; return; }
-  const shown = hideSecond ? [cards[0], null] : cards;
-  el.innerHTML = shown.map(c => bjCardHtml(c, c === null)).join('') +
-    (score ? `<span class="bj-score">${score}</span>` : '');
-}
-function bjHistPush(outcome) {
-  const cls = outcome === 'win' || outcome === 'blackjack' ? 'cr-win' : outcome === 'push' ? '' : 'cr-lose';
-  const txt = { win: 'Gagné', lose: 'Perdu', push: 'Nul', bust: 'Sauté', blackjack: 'BJ!' }[outcome] || outcome;
+function bjHistPush(net, outcomes) {
+  const bj = outcomes.includes('blackjack');
+  const cls = net > 0 ? 'cr-win' : net === 0 ? '' : 'cr-lose';
+  const txt = bj ? 'BJ!' : net > 0 ? 'Gagné' : net === 0 ? 'Nul' : outcomes.every(o => o === 'bust') ? 'Sauté' : 'Perdu';
   S.bjHist.unshift({ cls, txt }); S.bjHist.length = Math.min(S.bjHist.length, 12);
   setH($('bjHist'), S.bjHist.map(h => `<div class="history-pill ${h.cls}">${h.txt}</div>`).join(''));
 }
@@ -1973,42 +2188,30 @@ function bjInit() {
 function bjDeal() {
   const amount = parseInt($('bjBetAmount').value);
   if (!amount || amount <= 0) return alert('Entre une mise valide !');
-  S.bjBusy = true; S.bjWaitDeal = true; sound('bet');
+  bjBusyOn(); sound('bet');
+  S.bjPrev = { d: 0, h: [] }; // nouvelle main : toutes les cartes s'animent
   $('bjMsg').textContent = ''; $('bjSeed').textContent = '—';
   socket.emit('bj-deal', { roomCode: S.code, amount });
 }
-const bjHit = () => { if (!S.bjBusy) { S.bjBusy = true; socket.emit('bj-hit', { roomCode: S.code }); } };
-const bjStand = () => { if (!S.bjBusy) { S.bjBusy = true; socket.emit('bj-stand', { roomCode: S.code }); } };
-const bjDouble = () => { if (!S.bjBusy) { S.bjBusy = true; socket.emit('bj-double', { roomCode: S.code }); } };
+const bjAct = ev => () => { if (!S.bjBusy) { bjBusyOn(); socket.emit(ev, { roomCode: S.code }); } };
+const bjHit = bjAct('bj-hit'), bjStand = bjAct('bj-stand'), bjDouble = bjAct('bj-double'), bjSplit = bjAct('bj-split');
+const bjInsurance = take => { if (!S.bjBusy) { bjBusyOn(); socket.emit('bj-insurance', { roomCode: S.code, take }); } };
 socket.on('bj-state', d => {
-  S.bjBusy = false; S.bjWaitDeal = false;
+  S.bjBusy = false;
   if (d.seed) $('bjSeed').textContent = d.seed;
-  // le serveur envoie l'état public + le total exact du joueur ; la carte cachée du croupier n'est pas dans state.dealer
-  const st = d.state;
-  bjRender($('bjPlayer'), st ? st.player : null, d.pScore != null ? String(d.pScore) : '');
-  bjRender($('bjDealer'), st ? st.dealer : null, st && st.phase === 'player' && st.dealer && st.dealer.length ? '?' : '');
-  const playing = !!(st && (st.phase === 'player' || st.phase === 'dealer'));
-  show('bjDealBtn', !playing);
-  show('bjHitBtn', !!(st && st.phase === 'player'));
-  show('bjStandBtn', !!(st && st.phase === 'player'));
-  show('bjDoubleBtn', !!(st && st.phase === 'player' && st.player && st.player.length === 2 && !st.doubled));
-  $('bjBetAmount').disabled = playing;
-  $('bjStatus').textContent = playing ? (st.phase === 'player' ? 'À toi : tirer, rester ou doubler.' : 'Le croupier joue…') : 'Mise, puis distribue !';
+  bjPaint(d.state);
   if (d.message) $('bjMsg').textContent = d.message;
 });
 socket.on('bj-result', d => {
-  S.bjBusy = false; S.bjWaitDeal = false;
+  S.bjBusy = false;
   $('bjSeed').textContent = d.seed;
-  bjRender($('bjPlayer'), d.player, d.pScore);
-  bjRender($('bjDealer'), d.dealer, d.dScore);
-  show('bjHitBtn', false); show('bjStandBtn', false); show('bjDoubleBtn', false); show('bjDealBtn');
-  $('bjBetAmount').disabled = false;
+  bjPaint(d.state);
   $('bjMsg').textContent = d.message;
-  bjHistPush(d.outcome);
-  sound(d.outcome === 'win' || d.outcome === 'blackjack' ? 'win' : d.outcome === 'push' ? 'pop' : 'miss');
+  bjHistPush(d.net, d.outcomes);
+  sound(d.net > 0 ? 'win' : d.net === 0 ? 'pop' : 'miss');
 });
 
-Object.assign(window, { setStake, onStakeInput, leaveRoom, authSubmit, logout, createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash, arStart, arThrow, rlSpin, rlClear, rlRepeat, bjDeal, bjHit, bjStand, bjDouble, toggleFeed });
+Object.assign(window, { setStake, onStakeInput, leaveRoom, authSubmit, logout, createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash, arStart, arThrow, rlSpin, rlClear, rlRepeat, bjDeal, bjHit, bjStand, bjDouble, bjSplit, bjInsurance, rlUndo, toggleFeed });
 
 /* ============================================================
    PANNEAU LATÉRAL « 📡 PARIS EN DIRECT » (feed) — flux temps réel
