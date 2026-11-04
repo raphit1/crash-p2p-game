@@ -600,9 +600,9 @@ io.on('connection', (socket) => {
         cr.active = false;
         player.stats.gamesPlayed++; player.stats.wins++; player.stats.totalProfit += winnings - cr.bet;
         if (cr.feedId) feedUpdate(room, cr.feedId, { status: 'won', mult, win: winnings, net: winnings - cr.bet });
-        const cfgN = CR_MODES[cr.mode]; let nextDeadly = null;
-        if (cr.step < cfgN.steps) { const u = parseInt(crypto.createHmac('sha256', cr.seed).update('step:' + (cr.step + 1)).digest('hex').slice(0, 13), 16) / 4503599627370496; nextDeadly = u < cfgN.p; }
-        socket.emit('cr-result', { success: true, cashout: true, step: cr.step, multiplier: mult, winnings, seed: cr.seed, nextDeadly, message: `💰 Encaissé : +${winnings} 🪙 (x${mult})` });
+        const cfgN = CR_MODES[cr.mode]; let deadlyAt = null; // première voie mortelle après celle où il s'arrête (null = il pouvait aller jusqu'au bout)
+        for (let k = cr.step + 1; k <= cfgN.steps; k++) { const u = parseInt(crypto.createHmac('sha256', cr.seed).update('step:' + k).digest('hex').slice(0, 13), 16) / 4503599627370496; if (u < cfgN.p) { deadlyAt = k; break; } }
+        socket.emit('cr-result', { success: true, cashout: true, step: cr.step, multiplier: mult, winnings, seed: cr.seed, deadlyAt, message: `💰 Encaissé : +${winnings} 🪙 (x${mult})` });
         broadcast(room);
     });
 
