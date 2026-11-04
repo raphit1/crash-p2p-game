@@ -223,6 +223,9 @@ ul{padding-left:20px;text-align:left}
 .bj-actions button{margin:0}
 
 /* ---- Panneau latéral : Historique des paris en direct ---- */
+#stopBar{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:950;display:flex;align-items:center;gap:10px;background:rgba(27,18,40,.95);border:1px solid rgba(212,162,76,.45);border-radius:999px;padding:6px 6px 6px 16px;font-size:13px;font-weight:700;color:#e6d9bf;box-shadow:0 8px 24px rgba(0,0,0,.55);max-width:calc(100vw - 24px)}
+#stopBar button{width:auto;margin:0;padding:8px 14px;font-size:13px;border-radius:999px;background:linear-gradient(180deg,#b91c1c,#7f1d1d);white-space:nowrap}
+#stopBar button.on{background:#475569}
 #feedPanel{position:fixed;top:76px;right:14px;width:320px;max-width:calc(100vw - 24px);z-index:900;display:flex;flex-direction:column;
   background:linear-gradient(165deg,rgba(30,18,42,.92),rgba(14,9,22,.95));border:1px solid rgba(212,162,76,.35);border-radius:14px;
   box-shadow:0 16px 44px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
@@ -427,6 +430,10 @@ ul{padding-left:20px;text-align:left}
                     <div style="flex: 1.5;"><label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
                         <input type="number" id="iceBetAmount" value="50" min="1" style="margin: 4px 0;"></div>
                 </div>
+                <div class="quick-bet-row" id="iceQuick" style="margin:6px 0 0">
+                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
+                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+                </div>
             </div>
             <div id="iceBoard" class="ice-board"><div id="yeti" class="yeti"><svg viewBox="0 0 64 72"><ellipse cx="32" cy="67" rx="16" ry="3.5" fill="rgba(0,0,0,.3)"/><ellipse cx="22" cy="60" rx="8" ry="6" fill="#e8f4ff"/><ellipse cx="42" cy="60" rx="8" ry="6" fill="#e8f4ff"/><path d="M14 56Q8 36 18 26Q32 18 46 26Q56 36 50 56Q32 64 14 56Z" fill="#f4faff" stroke="#bcd6ea" stroke-width="1.2"/><ellipse cx="11" cy="42" rx="6" ry="10" fill="#eaf4ff" stroke="#bcd6ea" transform="rotate(14 11 42)"/><ellipse cx="53" cy="42" rx="6" ry="10" fill="#eaf4ff" stroke="#bcd6ea" transform="rotate(-14 53 42)"/><ellipse cx="32" cy="26" rx="14" ry="13" fill="#f4faff" stroke="#bcd6ea"/><ellipse cx="32" cy="28" rx="10" ry="9" fill="#7ec8f0"/><circle cx="27.5" cy="25" r="3" fill="#fff"/><circle cx="36.5" cy="25" r="3" fill="#fff"/><circle cx="28" cy="25.5" r="1.5" fill="#12263a"/><circle cx="36" cy="25.5" r="1.5" fill="#12263a"/><path d="M26 32Q32 37 38 32Z" fill="#12263a"/><path d="M20 16Q15 8 22 5Q22 12 25 14ZM44 16Q49 8 42 5Q42 12 39 14Z" fill="#cfe3f3"/></svg></div><div id="iceToast" class="ice-toast"></div></div>
             <div style="display: flex; gap: 10px;">
@@ -450,6 +457,10 @@ ul{padding-left:20px;text-align:left}
                     <div style="flex: 1.5;"><label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
                         <input type="number" id="jmBetAmount" value="50" min="1" style="margin: 4px 0;"></div>
                     <div style="flex: 1; text-align: center; font-size: 12px; color: #cdbf9f; line-height: 1.5;">Gain <b style="color:#ffc24d;font-size:16px">x1.478</b><br>2 chances sur 3<br>RTP 98,5 %</div>
+                </div>
+                <div class="quick-bet-row" id="jmQuick" style="margin:6px 0 0">
+                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
+                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
                 </div>
             </div>
             <div class="jm-stage"><svg id="jmSvg" viewBox="0 0 600 300"><defs>
@@ -553,7 +564,7 @@ ul{padding-left:20px;text-align:left}
                 <label style="font-size:12px;color:#94a3b8;white-space:nowrap;">Jeton</label>
                 <input type="number" id="rlBetAmount" value="25" min="1">
                 <div class="quick-bet-row" id="rlQuick" style="margin:0;">
-                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="25">25</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button>
+                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="25">25</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
                 </div>
                 <button id="rlUndoBtn" onclick="rlUndo()" style="width:auto;margin:0;padding:8px 12px;background:#475569;" title="Annuler le dernier jeton posé">↩︎</button>
             </div>
@@ -625,6 +636,8 @@ ul{padding-left:20px;text-align:left}
             <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
         </div>
     </div>
+
+    <div id="stopBar" class="hidden"><span id="stopMsg"></span><button id="stopBtn" onclick="voteStop()">🛑 Arrêter la partie</button></div>
 
     <!-- MODALE HISTORIQUE COMPLET -->
     <div id="historyModal" class="modal-overlay hidden">
@@ -963,6 +976,7 @@ function sync(room) {
   if (S.view === 'rl') rlRenderChips(); // pas à pas : sur les autres écrans, rien ne touche le tapis (les écouteurs restent intacts)
   S.meBj = me ? me.bj : null;
   bjSync(me ? me.bj : null);
+  renderStopBar(room);
 }
 
 // Classement commun : trié sur la fortune totale (solde + mises en jeu) pour qu'il ne saute pas à chaque mise
@@ -1067,7 +1081,7 @@ socket.on('error-message', m => {
   if (S.view === 'bj') bjPaint(S.meBj || null);
 });
 
-socket.on('navigate-to-game', () => { show('lobby', false); show('game-hub'); });
+socket.on('navigate-to-game', d => { show('lobby', false); show('game-hub'); if (d && d.room) renderStopBar(d.room); });
 
 socket.on('timer-update', d => {
   const m = Math.floor(d.timeRemaining / 60), s = d.timeRemaining % 60;
@@ -1956,6 +1970,8 @@ function rlBuildTable() {
   $('rlQuick').addEventListener('click', e => {
     const b = e.target.closest('button'), amt = $('rlBetAmount'); if (!b) return;
     if (b.dataset.a) amt.value = b.dataset.a;
+    else if (b.dataset.f === 'max') amt.value = S.balance;
+    else if (b.dataset.f) amt.value = Math.max(1, Math.floor((parseFloat(amt.value) || 0) * b.dataset.f));
   });
 }
 function rlRenderChips() { // jetons dorés sur chaque case jouée + total de la table
@@ -2211,7 +2227,29 @@ socket.on('bj-result', d => {
   sound(d.net > 0 ? 'win' : d.net === 0 ? 'pop' : 'miss');
 });
 
-Object.assign(window, { setStake, onStakeInput, leaveRoom, authSubmit, logout, createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash, arStart, arThrow, rlSpin, rlClear, rlRepeat, bjDeal, bjHit, bjStand, bjDouble, bjSplit, bjInsurance, rlUndo, toggleFeed });
+// Boutons de mise rapide communs (10 / 50 / 100 / 500 / ÷2 / ×2 / Max) : mêmes réglages dans tous les jeux
+[['iceQuick', 'iceBetAmount'], ['jmQuick', 'jmBetAmount']].forEach(([row, input]) => $(row).addEventListener('click', e => {
+  const b = e.target.closest('button'), amt = $(input); if (!b || amt.disabled) return;
+  if (b.dataset.a) amt.value = b.dataset.a;
+  else if (b.dataset.f === 'max') amt.value = S.balance;
+  else amt.value = Math.max(1, Math.floor((parseFloat(amt.value) || 0) * b.dataset.f));
+}));
+
+/* ============================================================
+   ARRÊTER LA PARTIE : vote (unanimité des joueurs connectés) + arrêt automatique décidé par le serveur
+   ============================================================ */
+function renderStopBar(room) {
+  const bar = $('stopBar'), live = !!room.live && S.phase !== 'ended';
+  bar.classList.toggle('hidden', !live); if (!live) return;
+  const me = room.players.find(p => p.id === socket.id), votes = room.stopVotes || [], n = room.players.filter(p => p.connected).length;
+  S.iVoted = !!(me && votes.includes(me.name));
+  $('stopMsg').textContent = S.stopMsg || (votes.length ? `🛑 ${votes.length}/${n} veulent arrêter` : 'Partie en cours');
+  const btn = $('stopBtn'); btn.textContent = S.iVoted ? '✋ Annuler mon vote' : '🛑 Arrêter la partie'; btn.classList.toggle('on', S.iVoted);
+}
+function voteStop() { socket.emit('vote-stop', { roomCode: S.code, vote: !S.iVoted }); }
+socket.on('stop-notice', d => { S.stopMsg = d.message; $('stopMsg').textContent = d.message; clearTimeout(S.stopMsgT); S.stopMsgT = setTimeout(() => { S.stopMsg = ''; }, 3200); });
+
+Object.assign(window, { voteStop, setStake, onStakeInput, leaveRoom, authSubmit, logout, createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash, arStart, arThrow, rlSpin, rlClear, rlRepeat, bjDeal, bjHit, bjStand, bjDouble, bjSplit, bjInsurance, rlUndo, toggleFeed });
 
 /* ============================================================
    PANNEAU LATÉRAL « 📡 PARIS EN DIRECT » (feed) — flux temps réel
