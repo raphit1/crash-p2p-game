@@ -326,10 +326,12 @@ io.on('connection', (socket) => {
         try { const r = await A.login(username, password, ip); r.error ? socket.emit('auth-error', r.error) : authOk(r.name, r.token); }
         catch (e) { console.error(e); socket.emit('auth-error', 'Erreur serveur.'); }
     });
-    socket.on('auth-token', ({ token } = {}) => {
-        const r = A.resume(token);
-        if (!r) return socket.emit('auth-invalid');
-        authOk(r.name, token);
+    socket.on('auth-token', async ({ token } = {}) => {
+        try {
+            const r = await A.resume(token);
+            if (!r) return socket.emit('auth-invalid');
+            authOk(r.name, token);
+        } catch (e) { console.error(e); }
     });
     socket.on('auth-logout', () => { A.logout(socket.data.token); socket.data.user = null; socket.data.token = null; });
 
