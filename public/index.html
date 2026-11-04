@@ -1519,16 +1519,18 @@ function crBurst(x, y, n = 12) {
               { duration: 700 + Math.random() * 500, easing: 'cubic-bezier(.2,.7,.4,1)' }).onfinish = () => f.remove();
   }
 }
-async function crZoom(g, nextDeadly) { // à l'encaissement : une voiture passe à toute vitesse sur la voie suivante
-  const k = S.crStep + 1, lane = S.crLanes[k - 1];
-  if (!lane) return;
+async function crZoom(g, deadlyAt, N) { // à l'encaissement : une voiture fonce sur la première voie qui t'aurait été fatale (même hors écran, on l'entend)
+  if (deadlyAt == null) { crToast('🐔 Tu pouvais traverser jusqu\'au bout !'); return; }
+  const lane = S.crLanes[deadlyAt - 1]; if (!lane) return;
   const car = document.createElement('div');
-  car.className = 'cr-car'; car.style.left = (LANE_W / 2 - 22) + 'px'; car.innerHTML = carSvg(CAR_COLORS[k % CAR_COLORS.length]); lane.appendChild(car);
+  car.className = 'cr-car'; car.style.left = (LANE_W / 2 - 22) + 'px'; car.innerHTML = carSvg(CAR_COLORS[deadlyAt % CAR_COLORS.length]); lane.appendChild(car);
   sound('zoom');
   const a = car.animate([{ transform: 'translateY(-200px)' }, { transform: 'translateY(' + (CR_H + 200) + 'px)' }], { duration: 650, easing: 'cubic-bezier(.6,0,.9,.6)', fill: 'forwards' });
   await a.finished; car.remove();
-  if (g === S.crGen && nextDeadly) lane.classList.add('dead');
-  if (g === S.crGen && nextDeadly !== null && nextDeadly !== undefined) crToast(nextDeadly ? '🚗 Bien joué ! La voie suivante était mortelle.' : '🚗 La voie suivante était libre... dommage !');
+  if (g !== S.crGen) return;
+  lane.classList.add('dead');
+  const away = deadlyAt - S.crStep;
+  crToast(away === 1 ? '🚗 La voie suivante était mortelle !' : `🚗 Tu pouvais encore passer ${away - 1} voie${away - 1 > 1 ? 's' : ''}… la ${deadlyAt}e était mortelle !`);
 }
 async function crHit(k, g) { // une voiture fonce sur la voie où le poulet vient d'atterrir
   const lane = S.crLanes[k - 1], ch = $('crChick'), p = crPt(k), car = document.createElement('div'), hitY = p.y - 80;
@@ -1602,7 +1604,7 @@ socket.on('cr-result', d => {
   if (d.seed) $('crProof').textContent = `Graine révélée : ${d.seed} — SHA-256(graine) = hash ci-dessus ; la voie k est mortelle si HMAC-SHA256(graine, "step:k") < ${CR_MODES[mode].p}`;
   if (d.cashout) {
     end(); crHistPush(true, 'x' + d.multiplier.toFixed(2));
-    return crChain(async g => { sound('win'); crBurst(S.crPos.x, S.crPos.y - 20, 10); crToast(d.message); await wait(500); if (g === S.crGen) await crZoom(g, d.nextDeadly); });
+    return crChain(async g => { sound('win'); crBurst(S.crPos.x, S.crPos.y - 20, 10); crToast(d.message); await wait(500); if (g === S.crGen) await crZoom(g, d.deadlyAt); });
   }
   if (d.success) {
     S.crStep = d.step; crMarks();
