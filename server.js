@@ -138,6 +138,8 @@ function publicRoom(room, full = false) {
         status: room.status,
         selectedGame: room.selectedGame,
         timeRemaining: room.timeRemaining,
+        live: sessionLive(room), // la session (chrono) a démarré : le vote « arrêter » a un sens
+        stopVotes: room.stopVotes ? [...room.stopVotes] : [], // noms des joueurs qui votent « arrêter »
         multiplier: room.multiplier,
         currentHash: room.currentHash,
         players: room.players.map(p => ({
@@ -172,6 +174,7 @@ function broadcast(room) {
     room._bt = setTimeout(() => {
         room._bt = null;
         io.to(room.code).emit('update-room', publicRoom(room));
+        checkAutoStop(room);
     }, 60);
 }
 
@@ -724,6 +727,19 @@ io.on('connection', (socket) => {
         broadcast(room);
     });
 
+    // vote « arrêter la partie » : la partie s'arrête quand TOUS les joueurs connectés ont voté oui (un joueur seul peut donc arrêter)
+    socket.on('vote-stop', ({ roomCode, vote } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        if (!room || !player || !sessionLive(room)) return;
+        if (!room.stopVotes) room.stopVotes = new Set();
+        if (vote) room.stopVotes.add(player.name); else room.stopVotes.delete(player.name);
+        const voters = room.players.filter(p => p.connected);
+        if (voters.length && voters.every(p => room.stopVotes.has(p.name))) stopRoomSoon(room, 'Tout le monde a voté : la partie s\'arrête.', () => {
+            const v = room.players.filter(p => p.connected); return v.length > 0 && room.stopVotes && v.every(p => room.stopVotes.has(p.name));
+        });
+        broadcast(room);
+    });
+
     // annule le dernier jeton posé (remboursé)
     socket.on('rl-undo', ({ roomCode } = {}) => {
         const { room, player } = findPlayer(socket, roomCode);
@@ -1021,6 +1037,42 @@ function processCashOut(player, sl, multiplier, room, idx) {
     broadcast(room);
 }
 
+/* ------------------------------------------------------------------ */
+/*  Fin de partie anticipée : vote unanime + arrêt automatique         */
+/* ------------------------------------------------------------------ */
+const sessionLive = room => room.status !== 'waiting' && room.status !== 'ended' && !!room.timers.session;
+// un joueur a de l'argent « dehors » (mise en cours dans un jeu) : il peut encore gagner, il n'est donc pas à zéro
+const hasStake = p => p.slots.some(sl => (sl.bet > 0 && !sl.cashed) || sl.next > 0)
+    || !!(p.iceState && p.iceState.active) || !!(p.jm && p.jm.active) || !!(p.cr && p.cr.active) || !!(p.ar && p.ar.active)
+    || !!(p.rl && (p.rl.active || p.rl.bets.length)) || bjPending(p.bj) > 0;
+const isBroke = p => p.balance <= 0 && !hasStake(p);
+// Arrêt automatique : tout le monde à zéro, OU tous à zéro sauf un (rien à jouer entre soi).
+// Un joueur seul continue tant qu'il lui reste des jetons ; il s'arrête seulement à zéro.
+function autoStopReason(room) {
+    const n = room.players.length; if (!n) return null;
+    const alive = room.players.filter(p => !isBroke(p)).length;
+    if (alive === 0) return n === 1 ? 'Tu n\'as plus de jetons : la partie s\'arrête.' : 'Tout le monde est à 0 : la partie s\'arrête.';
+    if (n >= 2 && alive === 1) return 'Tous les autres joueurs sont à 0 : la partie s\'arrête.';
+    return null;
+}
+function stopRoomSoon(room, message, check) { // petit délai pour laisser finir les animations (bille de roulette, etc.)
+    if (room._stopPending) return;
+    room._stopPending = true;
+    io.to(room.code).emit('stop-notice', { message });
+    setTimeout(() => {
+        room._stopPending = false;
+        if (sessionLive(room) && (!check || check())) endSession(room);
+    }, 2500);
+}
+function checkAutoStop(room) {
+    if (!sessionLive(room) || room._stopPending) return;
+    const why = autoStopReason(room);
+    if (why) return stopRoomSoon(room, why, () => !!autoStopReason(room));
+    const v = room.players.filter(p => p.connected); // vote déjà unanime (ex. un joueur déconnecté ne bloque plus)
+    if (room.stopVotes && v.length && v.every(p => room.stopVotes.has(p.name)))
+        stopRoomSoon(room, 'Tout le monde a voté : la partie s\'arrête.', () => { const w = room.players.filter(p => p.connected); return w.length > 0 && !!room.stopVotes && w.every(p => room.stopVotes.has(p.name)); });
+}
+
 function startSessionTimer(room) {
     room.timers.session = setInterval(() => {
         room.timeRemaining--;
@@ -1033,6 +1085,7 @@ function endSession(room) {
     if (room.status === 'ended') return;
     clearRoomTimers(room);
     room.status = 'ended';
+    room.stopVotes = null;
 
     // on rembourse les mises en cours pour que la fin de session soit équitable
     room.players.forEach(p => p.slots.forEach(sl => {
