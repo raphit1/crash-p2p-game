@@ -226,10 +226,33 @@ function findPlayer(socket, roomCode) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Helpers partagés par les jeux de la room                           */
+/* ------------------------------------------------------------------ */
+
+// Table Arrows X normalisée, construite une seule fois puis mise en cache (identique côté client).
+const _arrowCache = {};
+function buildArrowTable(mode) {
+    if (!_arrowCache[mode]) _arrowCache[mode] = arrowTable(mode);
+    return _arrowCache[mode];
+}
+
+// État public d'une main de Blackjack : la pile reste secrète, la carte cachée n'est révélée qu'au bon moment.
+// Défini au niveau module (et non dans le handler de connexion) car publicRoom() s'en sert aussi.
+function bjPublic(bj) {
+    if (!bj || !bj.player) return null;
+    return {
+        phase: bj.phase === 'dealing' ? 'player' : bj.phase,
+        bet: bj.bet, doubled: !!bj.doubled,
+        player: bj.player.slice(), dealer: bj.dealer.slice(0, bj.holeRevealed ? 99 : 1)
+    };
+}
+
+/* ------------------------------------------------------------------ */
 /*  Sockets                                                            */
 /* ------------------------------------------------------------------ */
 
 io.on('connection', (socket) => {
+    socket.arRows = mode => buildArrowTable(mode); // la table normalisée du mode choisi (avec bornes from/to)
     console.log(`Connexion : ${socket.id}`);
 
     socket.on('create-room', ({ playerName, duration } = {}) => {
@@ -487,18 +510,17 @@ io.on('connection', (socket) => {
         const ar = player && player.ar;
         if (!room || !ar || !ar.active || room.status === 'ended') return;
 
-        arrowTable(ar.mode); // construit/cache la table normalisée
         const cfg = AR_MODES[ar.mode];
+        const t = buildArrowTable(ar.mode); // construit/cache la table normalisée (espérance garantie = AR_RTP)
         // u = HMAC(secretSeed,"arrow") -> [0,1) : provably fair, vérifiable à la révélation de la graine
         const u = parseInt(crypto.createHmac('sha256', ar.seed).update('arrow').digest('hex').slice(0, 13), 16) / 4503599627370496;
+        // ⚠️ BUG CORRIGÉ (cause du RTP dément et des millions de pièces) : les "to" de la table sont des
+        // probabilités CUMULÉES sur [0, hit] (ex. last.to ≈ 0,1685 en hard). L'ancien code comparait v∈[0,1]
+        // à ces bornes non normalisées → dès que v > hit (~83 % des hits en hard) aucune ligne ne matchait et
+        // le filet "mult = t[t.length-1].m" servait x500/x100/x20 quasi systématiquement (RTP simulé ≈ 7000 %).
+        // On compare désormais u directement aux bornes cumulées : le trou [0, 1-hit] avant first.from = RATÉ (x0).
         let mult = 0;
-        if (u >= 1 - cfg.hit) { // la flèche touche la cible : on cherche l'anneau (recherche par bornes from/to)
-            const v = (u - (1 - cfg.hit)) / cfg.hit;
-            const t = cfg._t;
-            let i = 0, hi = t.length - 1;
-            while (i < hi) { const mid = (i + hi) >> 1; if (v < t[mid].to) hi = mid; else i = mid + 1; }
-            mult = t[i].m;
-        }
+        for (let i = 0; i < t.length; i++) { if (u <= t[i].to) { mult = t[i].m; break; } }
         const hit = mult > 0, winnings = hit ? weightedRound(ar.bet * mult) : 0;
         if (hit) player.balance += winnings;
         ar.active = false;
@@ -576,16 +598,13 @@ io.on('connection', (socket) => {
 
     /* ---------------- Blackjack classique (règles et probabilités naturelles du jeu) ---------------- */
     // player.bj = { phase:'idle'|'dealing'|'player'|'dealer', bet, doubled, seed, deck, player[], dealer[], holeRevealed }
-    function bjPublic(bj) { // état public d'une main : la pile reste secrète, la carte cachée n'est révélée qu'au bon moment
-        if (!bj) return null;
-        return { phase: bj.phase === 'dealing' ? 'player' : bj.phase, bet: bj.bet, doubled: !!bj.doubled,
-            player: bj.player, dealer: bj.dealer.slice(0, bj.holeRevealed ? 99 : 1) };
-    }
+    // (bjPublic est défini au niveau module : publicRoom() l'utilise aussi)
 
     socket.on('bj-deal', ({ roomCode, amount } = {}) => {
         const { room, player } = findPlayer(socket, roomCode);
         if (!room || !player || !player.inGame || room.status === 'ended') return;
         if (player.bj && (player.bj.phase === 'dealing' || player.bj.phase === 'player')) return socket.emit('error-message', 'Main déjà en cours !');
+        if (player.bj && player.bj.deck && player.bj.deck.length < 12) player.bj = null; // pioche épuisée : on repart sur une main neuve
 
         amount = Math.floor(Number(amount));
         if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
