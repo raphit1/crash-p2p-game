@@ -3,6 +3,9 @@ const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
 const crypto = require('crypto');
+// Constantes et formules de probabilité PARTAGÉES avec le client (une seule source de vérité).
+// Servi au navigateur via GET /shared-constants.js (voir plus bas) : le client l'expose en window.GAMES.
+const G = require('./shared-constants');
 
 const app = express();
 const server = http.createServer(app);
@@ -11,13 +14,15 @@ const io = new Server(server, { perMessageDeflate: false });
 // index.html doit être dans le dossier "public/"
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+// Le client charge les mêmes constantes que le serveur (window.GAMES) : zéro duplication.
+app.get('/shared-constants.js', (req, res) => res.type('application/javascript').sendFile(path.join(__dirname, 'shared-constants.js')));
 
 const rooms = {};
 const ROOM_TTL_AFTER_END = 10 * 60 * 1000; // la room est supprimée 10 min après la fin
 const ALLOWED_DURATIONS = [1, 3, 5, 10, 15];
 
 // Jeu -> petit picto utilisé dans le flux "Historique des paris" (panneau latéral droit)
-const GAME_ICONS = { crash: '✈️', ice: '🧊', jm: '🥤', cr: '🐔', ar: '🎯', rl: '🎡', bj: '🃏' };
+const GAME_ICONS = G.GAME_ICONS;
 
 /* ------------------------------------------------------------------ */
 /*  Utilitaires                                                        */
@@ -55,79 +60,36 @@ function generateProvablyFairRound() {
     const critical = seedInt / 4503599627370496;           // 2^52 -> [0, 1)
 
     let crashPoint = 1.00;
-    if (critical >= 0.015) {
-        const rtpFactor = 0.985;
+    if (critical >= G.CRASH_INSTANT_CHANCE) {
         const adjustedCritical = Math.min(critical, 0.9999999);
-        crashPoint = Math.floor((rtpFactor / (1 - adjustedCritical)) * 100) / 100;
+        crashPoint = Math.floor((G.RTP / (1 - adjustedCritical)) * 100) / 100;
         crashPoint = Math.max(1.01, crashPoint);
     }
 
     return { secretSeed, publicHash, crashPoint };
 }
 
-const ICE_STEPS = 8;
-// Just mixed : 2 chances sur 3 de gagner, gain = RTP / probabilité = 0.985 / (2/3) = x1.478
-const JM_RTP = 0.985, JM_MULT = Math.round(JM_RTP / (2 / 3) * 1000) / 1000;
-function calculateIcefieldMultiplier(cols, step) {
-    return parseFloat((0.985 / Math.pow((cols - 1) / cols, step)).toFixed(2));
-}
-
+/* Constantes et formules des jeux : définies dans shared-constants.js (source unique,
+   identique côté client). On les re-exporte ici sous leurs noms locaux pour ne rien casser. */
+const ICE_STEPS = G.ICE_STEPS;                                  // Just mixed : 2 chances sur 3 de gagner, gain = RTP / probabilité = x1.478
+const JM_MULT = G.JM_MULT;
+// Icefield : multiplicateur = RTP / ((cols-1)/cols)^pas → espérance = RTP à chaque palier encaissable
+const calculateIcefieldMultiplier = G.iceMultiplier;
 // Chicken Road : p = probabilité de mourir à chaque pas ; multiplicateur du pas k = RTP / (1 - p)^k
 // => l'espérance de gain est de 98,5 % quel que soit le pas où le joueur encaisse (multiplicateurs "équivalents" au risque)
-// Avec 98,5 % de RTP, le risque par voie doit rester >= 1,5 % pour que le multiplicateur de la 1re voie soit au moins x1.00
-const CR_RTP = 0.985;
-const CR_MODES = { easy: { steps: 24, p: 0.12 }, medium: { steps: 22, p: 0.20 }, hard: { steps: 20, p: 0.33 } };
-const crMultiplier = (mode, k) => Math.floor(CR_RTP / Math.pow(1 - CR_MODES[mode].p, k) * 100) / 100;
-const weightedRound = raw => { const fl = Math.floor(raw); return fl + (crypto.randomInt(1000000) / 1000000 < raw - fl ? 1 : 0); };
-
-/*
- * Arrows X : fléchettes sur cible annulaire, RTP exact 98,5 %.
- * Chaque table = [multiplicateur, poids]. "hit" est résolu algébriquement pour que l'espérance
- * soit exactement 0,985 : hit = AR_RTP × Σpoids / Σ(multiplicateur × poids)  (aucun arrondi).
- * Probabilité d'un anneau = poids/Σpoids × hit ; le reste (1 - hit) = la flèche tombe à côté -> x0.
- * Les mêmes constantes sont codées en dur côté client (comme CR_MODES) pour les animations et l'affichage.
- */
-const AR_RTP = 0.985;
-const AR_MODES = {
-    easy:   { name: 'Facile',    max: 20,  rows: [[0.5,2],[0.6,5],[0.7,7],[0.8,7],[0.9,7],[1,11],[1.25,6],[1.5,5],[2,4],[3,3],[4,2],[5,1.5],[8,1],[10,0.6],[20,0.3]] },
-    medium: { name: 'Moyen',     max: 100, rows: [[0.5,5],[0.6,7],[0.7,8],[0.8,12],[0.9,10],[1,10],[1.5,10],[2,8],[3,6],[4,4],[5,3],[8,2.5],[10,1.7],[25,1],[50,0.5],[100,0.3]] },
-    hard:   { name: 'Difficile', max: 500, rows: [[0.5,10],[0.6,10],[0.7,10],[0.8,12],[0.9,10],[1,8],[1.5,7],[2,6],[3,5],[4,4],[5,3],[8,2.5],[10,2],[25,1.5],[100,1],[500,0.5]] }
-};
-// Table normalisée [{ m, p, from, to }] — calculée une seule fois puis mise en cache ("_t").
-// Le raté (flèche à côté, x0) vaut (1 - hit) et est testé avant le tirage de l'anneau.
-function arrowTable(mode) {
-    const cfg = AR_MODES[mode];
-    if (!cfg) return null;
-    if (!cfg._t) {
-        const tot = cfg.rows.reduce((a, r) => a + r[1], 0);
-        const wsum = cfg.rows.reduce((a, [m, w]) => a + m * w, 0);
-        const hit = AR_RTP * tot / wsum; // espérance garantie = AR_RTP
-        let acc = 0;
-        cfg._t = cfg.rows.map(([m, w]) => { const p = w / tot * hit; const from = acc; acc += p; return { m, p, from, to: acc }; });
-        cfg.hit = hit;
-    }
-    return cfg._t;
-}
-
+const CR_MODES = G.CR_MODES;
+const crMultiplier = G.crMultiplier;
+// Arrows X : tables et résolution algébrique du "hit" (espérance exacte = RTP), voir shared-constants.js
+const AR_MODES = G.AR_MODES;
+const arrowTable = G.arrowTable;
 // Roulette européenne : tapis classique 0-36 (roue et probabilités réelles), payout plein x36 (avantage du 0 = house edge 2,70 %)
-const RL_RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
-const RL_ORDER = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
-const rlColor = n => n === 0 ? 'green' : RL_RED.has(n) ? 'red' : 'black';
-const RL_BETS = { red: 2, black: 2, odd: 2, even: 2, low: 2, high: 2, dozen: 3, column: 3, straight: 36 };
-function rlWin(kind, num, sel) { // sel = numéro visé (ou groupe : 1-12/1-3/0-35 selon le type)
-    switch (kind) {
-        case 'straight': return num === sel;
-        case 'red':   return rlColor(num) === 'red';
-        case 'black': return rlColor(num) === 'black';
-        case 'odd':   return num !== 0 && num % 2 === 1;
-        case 'even':  return num !== 0 && num % 2 === 0;
-        case 'low':   return num >= 1 && num <= 18;
-        case 'high':  return num >= 19 && num <= 36;
-        case 'dozen': return Math.floor((num - 1) / 12) + 1 === sel && num !== 0;
-        case 'column': return num !== 0 && ((num - 1) % 3) + 1 === sel;
-        default: return false;
-    }
-}
+const RL_RED = G.RL_RED;
+const RL_ORDER = G.RL_ORDER;
+const rlColor = G.rlColor;
+const RL_BETS = G.RL_BETS;
+const rlWin = G.rlWin;
+// Arrondi aléatoire pondéré : E[résultat] = valeur exacte -> n'importe quel arrondi préserve le RTP
+const weightedRound = raw => { const fl = Math.floor(raw); return fl + (crypto.randomInt(1000000) / 1000000 < raw - fl ? 1 : 0); };
 
 // Blackjack classique : règles standard, probabilités naturelles du jeu (pas de facteur maison artificiel).
 // Croupier tire jusqu'à 17 (stand 17), blackjack naturel payé 3:2, assurance et split non proposés.
@@ -147,8 +109,8 @@ function newPlayer(socket, name, isAdmin) {
     return {
         id: socket.id,
         name: cleanName(name),
-        balance: 1000,
-        initialBalance: 1000,
+        balance: G.START_BALANCE,
+        initialBalance: G.START_BALANCE,
         isAdmin,
         inGame: false,
         connected: true,
@@ -260,12 +222,8 @@ function findPlayer(socket, roomCode) {
 /*  Helpers partagés par les jeux de la room                           */
 /* ------------------------------------------------------------------ */
 
-// Table Arrows X normalisée, construite une seule fois puis mise en cache (identique côté client).
-const _arrowCache = {};
-function buildArrowTable(mode) {
-    if (!_arrowCache[mode]) _arrowCache[mode] = arrowTable(mode);
-    return _arrowCache[mode];
-}
+// Table Arrows X normalisée : le cache vit désormais dans shared-constants.js (partagé client/serveur).
+const buildArrowTable = G.arrowTable;
 
 // État public d'une main de Blackjack : la pile reste secrète, la carte cachée n'est révélée qu'au bon moment.
 // Défini au niveau module (et non dans le handler de connexion) car publicRoom() s'en sert aussi.
@@ -387,13 +345,22 @@ io.on('connection', (socket) => {
 
     const slotOf = (player, i) => player.slots[i === 1 ? 1 : 0];
 
+    /* Validation commune des montants misés : entier > 0, solde suffisant, plafond anti-abus.
+       Renvoie le montant net ou null (message d'erreur émis). */
+    const stakeOf = (socket, player, raw) => {
+        const amount = Math.floor(Number(raw));
+        if (!Number.isFinite(amount) || amount <= 0) { socket.emit('error-message', 'Montant invalide !'); return null; }
+        if (amount > G.MAX_BET) { socket.emit('error-message', `Mise maximale : ${G.MAX_BET} 🪙 !`); return null; }
+        if (player.balance < amount) { socket.emit('error-message', 'Solde insuffisant !'); return null; }
+        return amount;
+    };
+
     socket.on('place-bet', ({ roomCode, amount, autoCashOut, slot } = {}) => {
         const { room, player } = findPlayer(socket, roomCode);
         if (!room || !player || !player.inGame || room.status === 'ended') return;
 
-        amount = Math.floor(Number(amount));
-        if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
-        if (player.balance < amount) return socket.emit('error-message', 'Solde insuffisant !');
+        amount = Math.floor(Number(amount)); // entier > 0
+        { const a2 = stakeOf(socket, player, amount); if (a2 === null) return; }
 
         const pa = parseFloat(autoCashOut), auto = pa >= 1.01 ? pa : 0, sl = slotOf(player, slot);
         if (room.status === 'betting') {
@@ -440,9 +407,8 @@ io.on('connection', (socket) => {
         if (player.cr && player.cr.active) return socket.emit('error-message', 'Partie Chicken Road déjà en cours !');
         if (!CR_MODES[mode]) return;
 
-        amount = Math.floor(Number(amount));
-        if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
-        if (player.balance < amount) return socket.emit('error-message', 'Solde insuffisant !');
+        amount = Math.floor(Number(amount)); // entier > 0
+        { const a2 = stakeOf(socket, player, amount); if (a2 === null) return; }
 
         player.balance -= amount;
         const seed = crypto.randomBytes(16).toString('hex');
@@ -505,9 +471,8 @@ io.on('connection', (socket) => {
         if (!room || !player || !player.inGame || room.status === 'ended') return;
         if (player.jm && player.jm.active) return;
 
-        amount = Math.floor(Number(amount));
-        if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
-        if (player.balance < amount) return socket.emit('error-message', 'Solde insuffisant !');
+        amount = Math.floor(Number(amount)); // entier > 0
+        { const a2 = stakeOf(socket, player, amount); if (a2 === null) return; }
 
         player.balance -= amount;
         player.jm = { active: true, bet: amount };
@@ -549,9 +514,8 @@ io.on('connection', (socket) => {
         if (player.ar && player.ar.active) return socket.emit('error-message', 'Lancer Arrows X déjà en cours !');
         if (!AR_MODES[mode]) return;
 
-        amount = Math.floor(Number(amount));
-        if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
-        if (player.balance < amount) return socket.emit('error-message', 'Solde insuffisant !');
+        amount = Math.floor(Number(amount)); // entier > 0
+        { const a2 = stakeOf(socket, player, amount); if (a2 === null) return; }
 
         player.balance -= amount;
         const seed = crypto.randomBytes(16).toString('hex');
@@ -614,9 +578,8 @@ io.on('connection', (socket) => {
         if (kind === 'column' && !(sel >= 1 && sel <= 3)) return;
         if (!['straight', 'dozen', 'column'].includes(kind)) sel = 0;
 
-        amount = Math.floor(Number(amount));
-        if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
-        if (player.balance < amount) return socket.emit('error-message', 'Solde insuffisant !');
+        amount = Math.floor(Number(amount)); // entier > 0
+        { const a2 = stakeOf(socket, player, amount); if (a2 === null) return; }
 
         if (!player.rl) player.rl = { active: false, bets: [], total: 0 };
         player.balance -= amount;
@@ -670,9 +633,8 @@ io.on('connection', (socket) => {
         if (player.bj && (player.bj.phase === 'dealing' || player.bj.phase === 'player')) return socket.emit('error-message', 'Main déjà en cours !');
         if (player.bj && player.bj.deck && player.bj.deck.length < 12) player.bj = null; // pioche épuisée : on repart sur une main neuve
 
-        amount = Math.floor(Number(amount));
-        if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
-        if (player.balance < amount) return socket.emit('error-message', 'Solde insuffisant !');
+        amount = Math.floor(Number(amount)); // entier > 0
+        { const a2 = stakeOf(socket, player, amount); if (a2 === null) return; }
 
         player.balance -= amount;
         // mélange provably fair : Fisher-Yates piloté par HMAC(seed, "shuffle:i") — la graine est révélée à la fin de la main
@@ -778,10 +740,9 @@ io.on('connection', (socket) => {
         if (!room || !player || !player.inGame || room.status === 'ended') return;
         if (player.iceState && player.iceState.active) return socket.emit('error-message', 'Partie Icefield déjà en cours !');
 
-        amount = Math.floor(Number(amount));
+        amount = Math.floor(Number(amount)); // entier > 0
         cols = Math.min(10, Math.max(2, parseInt(cols) || 3));
-        if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
-        if (player.balance < amount) return socket.emit('error-message', 'Solde insuffisant !');
+        { const a2 = stakeOf(socket, player, amount); if (a2 === null) return; }
 
         player.balance -= amount;
         const traps = [], multipliers = [];
