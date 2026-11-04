@@ -75,6 +75,9 @@ ul{padding-left:20px;text-align:left}
 .ice-tile.used{opacity:.35}
 .ice-tile.hole{background:radial-gradient(circle,#031325 30%,#0a3b66);border-color:#12476f;box-shadow:inset 0 0 14px #000;opacity:.9}
 .ice-tile.hole::before{display:none}
+.ice-tile.hole.missed{opacity:.8;border-color:#e0556b;box-shadow:inset 0 0 14px #000,0 0 10px rgba(255,90,120,.55);animation:iceReveal .45s cubic-bezier(.2,1.5,.4,1) both}
+.ice-tile.hole.missed::after{content:"☠️";opacity:.9}
+@keyframes iceReveal{0%{transform:scale(.4) rotate(-12deg);opacity:0}100%{transform:none;opacity:.8}}
 .ice-tile.hole::after{content:"💥";position:absolute;inset:0;display:grid;place-items:center;font-size:16px;opacity:.8}
 .crack{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .crack path{fill:none;stroke:#1d4f7a;stroke-width:1.6;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1}
@@ -738,6 +741,10 @@ const Snd = (() => {
     cancel:    t => tone(520, t, .2, { type: 'triangle', to: 330, v: .14 }),
     tick:      t => tone(1250, t, .07, { v: .1 }),
     start:     t => { tone(784, t, .5, { v: .14 }); tone(1175, t + .09, .6, { v: .1 }); },
+    // l'avion s'envole à la fin du multiplicateur : gros souffle de réacteur + moteur qui monte en régime, FORT
+    flyoff:    t => { noise(t, 1.6, { type: 'bandpass', f: 300, to: 3400, v: .55, a: .12 }); noise(t + .04, 1.5, { f: 1000, to: 180, v: .4, a: .08 });
+                      tone(105, t, 1.6, { type: 'sawtooth', to: 560, v: .24, a: .1 }); tone(108, t, 1.6, { type: 'sawtooth', to: 590, v: .18, a: .1, det: 18 });
+                      tone(70, t, 1.1, { to: 38, v: .34, a: .02 }); },
     takeoff:   t => { noise(t, 1.2, { f: 200, to: 1800, v: .08, a: .25 }); tone(150, t, 1.1, { to: 340, v: .06, a: .4 }); },
     milestone: t => { tone(1047, t, .35, { type: 'triangle', v: .12 }); tone(1568, t + .07, .45, { v: .1 }); },
     win:       t => [523, 659, 784, 1047, 1319].forEach((f, i) => { tone(f, t + i * .075, .9, { type: 'triangle', v: .15 }); tone(f * 2, t + i * .075, .6, { v: .05 }); }),
@@ -756,12 +763,15 @@ const Snd = (() => {
     slide: t => noise(t, .16, { type: 'bandpass', f: 500 + Math.random() * 500, to: 900, v: .05 }),
     tap:   t => { tone(170, t, .12, { to: 90, v: .22 }); noise(t, .05, { f: 1800, v: .1 }); },
     pop:   t => tone(700, t, .14, { to: 350, v: .13 }),
-    tick:  t => tone(2400, t, .035, { type: 'square', v: .03 }),
+    rltick: t => tone(2400, t, .035, { type: 'square', v: .03 }),
     twang: t => { tone(300, t, .22, { to: 170, type: 'triangle', v: .13 }); noise(t, .05, { f: 2600, v: .07 }); },
     lift:  t => noise(t, .25, { f: 400, to: 1800, v: .06 }),
     miss:  t => [330, 262].forEach((f, i) => tone(f, t + i * .18, .6, { type: 'triangle', v: .12 })),
     cluck: t => { tone(560, t, .07, { type: 'triangle', to: 820, v: .1 }); tone(380, t + .06, .06, { type: 'triangle', to: 300, v: .07 }); },
     // Voiture : souffle qui approche, klaxon, choc sourd, plumes, puis petit accord triste
+    zoom:  t => { noise(t, .9, { type: 'bandpass', f: 250, to: 2600, v: .5, a: .25 }); noise(t + .35, .7, { f: 2200, to: 150, v: .4, a: .02 });
+                  tone(90, t, .55, { type: 'sawtooth', to: 340, v: .22, a: .2 }); tone(340, t + .5, .5, { type: 'sawtooth', to: 85, v: .22, a: .02 });
+                  tone(440, t + .1, .35, { type: 'square', v: .06 }); tone(554, t + .1, .35, { type: 'square', v: .06 }); },
     hit:   t => {
       noise(t, .3, { type: 'bandpass', f: 300, to: 1400, v: .08 });
       tone(330, t + .18, .22, { type: 'square', v: .04 }); tone(262, t + .18, .22, { type: 'square', v: .04 });
@@ -1049,7 +1059,17 @@ function frame(now) {
     flame.setAttribute('rx', playing ? 9 + Math.random() * 7 : 3 + Math.random() * 2);
     if (playing && fno % 2 === 0) { const s = S.sm[S.si = (S.si + 1) % SMOKE]; s.l = 1; s.x = p.x - 32; s.y = p.y + 2; }
   }
-  const sp = playing ? 14 + S.shown * 14 : 14;
+  if (S.phase === 'crashed' && S.fly) { // envol : accélération, cabrage, léger rétrécissement (profondeur), fondu final
+    const F = S.fly, k = Math.min(1, (now - F.t0) / 1500), step = Math.max(0, Math.min(.05, (now - F.last) / 1000)); F.last = now;
+    const ang = F.a - 38 * k * k, speed = 90 + 1250 * k * k;
+    F.x += Math.cos(ang * Math.PI / 180) * speed * step; F.y += Math.sin(ang * Math.PI / 180) * speed * step;
+    plane.setAttribute('transform', `translate(${F.x.toFixed(1)} ${F.y.toFixed(1)}) rotate(${ang.toFixed(1)}) scale(${(1 - .35 * k).toFixed(3)})`);
+    plane.style.opacity = k > .8 ? ((1 - k) / .2).toFixed(2) : 1;
+    flame.setAttribute('rx', 16 + Math.random() * 12);
+    const sm = S.sm[S.si = (S.si + 1) % SMOKE]; sm.l = 1; sm.x = F.x - 30; sm.y = F.y + 2; // traînée de fumée
+    if (k >= 1) { plane.style.opacity = 0; S.fly = null; }
+  }
+  const sp = playing ? 14 + S.shown * 14 : (S.phase === 'crashed' && S.fly ? 120 : 14);
   S.cl.forEach(c => { c.x -= dt * sp * c.k; if (c.x < -60) c.x += 620; c.el.setAttribute('transform', `translate(${c.x.toFixed(1)} ${c.y})`); });
   S.sm.forEach(s => { if (s.l > 0) { s.l -= dt * 2; s.x -= dt * sp; const l = Math.max(s.l, 0);
     s.el.setAttribute('cx', s.x.toFixed(1)); s.el.setAttribute('cy', s.y.toFixed(1)); s.el.setAttribute('r', (2 + (1 - l) * 8).toFixed(1)); s.el.setAttribute('opacity', (l * .4).toFixed(2)); } });
@@ -1093,7 +1113,7 @@ socket.on('betting-phase', d => {
   S.phase = 'betting'; S.smoke = [];
   sound('start');
   mBox.classList.remove('crashed-text'); mBox.textContent = '1.00x';
-  stage.classList.remove('shake'); plane.style.opacity = 1; trail.innerHTML = '';
+  stage.classList.remove('shake'); plane.style.opacity = 1; S.fly = null; flame.setAttribute('rx', 3); trail.innerHTML = '';
   $('currentHashDisplay').textContent = d.hash;
   $('gameStatusText').textContent = `Prochaine manche dans ${d.countdown}s... Placez vos mises !`;
   live.textContent = '';
@@ -1121,14 +1141,14 @@ socket.on('multiplier-update', d => {
 socket.on('game-crashed', d => {
   if (S.phase === 'ended') return;
   S.phase = 'crashed'; S.shown = d.multiplier;
-  sound('crash');
+  sound('flyoff');
   mBox.innerHTML = `<small style="display:block;font-size:.3em;letter-spacing:1px;color:#ff9aa5">L'avion s'est envolé !</small>${d.multiplier.toFixed(2)}x`; mBox.classList.add('crashed-text');
-  $('gameStatusText').textContent = 'Crash ! La manche est terminée.';
+  $('gameStatusText').textContent = "L'avion s'est envolé ! Les mises non encaissées sont perdues.";
   live.textContent = '';
   const p = draw(S.shown, performance.now());
-  plane.style.opacity = 0; trail.innerHTML = ''; stage.classList.add('shake');
-  boom.setAttribute('cx', p.x); boom.setAttribute('cy', p.y);
-  boom.classList.remove('go'); void boom.getBoundingClientRect(); boom.classList.add('go');
+  trail.innerHTML = '';
+  // l'avion ne s'écrase plus : il met les gaz, se cabre et file hors de l'écran (animé dans frame())
+  S.fly = { x: p.x, y: p.y, a: S.ang, t0: performance.now(), last: performance.now() };
   sync(d.room);
 });
 
@@ -1223,11 +1243,12 @@ function updateIce() {
   const lanes = st ? st.cols : inp;
   if (S.iceLanes !== lanes) buildIce(lanes);
   const step = st ? st.currentStep : 0, active = !!(st && st.active), path = st ? st.path : [], traps = st ? st.revealedTraps : [];
-  const lost = !!st && !active && step < ICE_STEPS && traps[step] !== undefined;
+  const lost = !!(st && st.lost), over = !!st && !active; // over = traversée terminée (perdue, encaissée ou finie)
   S.iceTiles.forEach((col, c) => col.forEach((t, r) => {
     let k = 'dim';
     if (c < step || (lost && c === step)) k = path[c] === r ? 'stepped' : traps[c] === r ? 'hole' : 'used';
     else if (c === step && active) k = 'live';
+    else if (over && traps[c] !== undefined && traps[c] === r) { k = 'hole missed'; t.style.animationDelay = ((c - step) * 70) + 'ms'; } // piège non rencontré, dévoilé de gauche à droite
     t.className = 'ice-tile ' + k;
   }));
   S.iceMults.forEach((m, c) => m.classList.toggle('reached', c < step));
@@ -1498,6 +1519,17 @@ function crBurst(x, y, n = 12) {
               { duration: 700 + Math.random() * 500, easing: 'cubic-bezier(.2,.7,.4,1)' }).onfinish = () => f.remove();
   }
 }
+async function crZoom(g, nextDeadly) { // à l'encaissement : une voiture passe à toute vitesse sur la voie suivante
+  const k = S.crStep + 1, lane = S.crLanes[k - 1];
+  if (!lane) return;
+  const car = document.createElement('div');
+  car.className = 'cr-car'; car.style.left = (LANE_W / 2 - 22) + 'px'; car.innerHTML = carSvg(CAR_COLORS[k % CAR_COLORS.length]); lane.appendChild(car);
+  sound('zoom');
+  const a = car.animate([{ transform: 'translateY(-200px)' }, { transform: 'translateY(' + (CR_H + 200) + 'px)' }], { duration: 650, easing: 'cubic-bezier(.6,0,.9,.6)', fill: 'forwards' });
+  await a.finished; car.remove();
+  if (g === S.crGen && nextDeadly) lane.classList.add('dead');
+  if (g === S.crGen && nextDeadly !== null && nextDeadly !== undefined) crToast(nextDeadly ? '🚗 Bien joué ! La voie suivante était mortelle.' : '🚗 La voie suivante était libre... dommage !');
+}
 async function crHit(k, g) { // une voiture fonce sur la voie où le poulet vient d'atterrir
   const lane = S.crLanes[k - 1], ch = $('crChick'), p = crPt(k), car = document.createElement('div'), hitY = p.y - 80;
   car.className = 'cr-car'; car.style.left = (LANE_W / 2 - 22) + 'px'; car.innerHTML = carSvg(CAR_COLORS[k % CAR_COLORS.length]); lane.appendChild(car);
@@ -1570,7 +1602,7 @@ socket.on('cr-result', d => {
   if (d.seed) $('crProof').textContent = `Graine révélée : ${d.seed} — SHA-256(graine) = hash ci-dessus ; la voie k est mortelle si HMAC-SHA256(graine, "step:k") < ${CR_MODES[mode].p}`;
   if (d.cashout) {
     end(); crHistPush(true, 'x' + d.multiplier.toFixed(2));
-    return crChain(async () => { sound('win'); crBurst(S.crPos.x, S.crPos.y - 20, 10); crToast(d.message); });
+    return crChain(async g => { sound('win'); crBurst(S.crPos.x, S.crPos.y - 20, 10); crToast(d.message); await wait(500); if (g === S.crGen) await crZoom(g, d.nextDeadly); });
   }
   if (d.success) {
     S.crStep = d.step; crMarks();
@@ -2066,7 +2098,7 @@ function rlAnimate(num, D, done) {
       const r = 33 + 10.6 * Math.pow(1 - e, 1.4) + 4.2 * hop;
       rlSetBall(w + phiDrop + delta * e + Math.sin(y * 40) * 2.2 * (1 - y) * (y > .45 ? 1 : 0), r);
     }
-    const tk = Math.floor(t / 230); if (t < dropAt && tk > ticked) { ticked = tk; if (tk % 2 === 0) sound('tick'); } // cliquetis de la bille
+    const tk = Math.floor(t / 230); if (t < dropAt && tk > ticked) { ticked = tk; if (tk % 2 === 0) sound('rltick'); } // cliquetis de la bille
     if (t < D) return requestAnimationFrame(frame);
     S.rlWheelAngle = w % 360; rlSetWheel(S.rlWheelAngle);
     rlSetBall(S.rlWheelAngle + pocket, 33); // posée dans sa case, tourne avec la roue
