@@ -252,6 +252,13 @@ ul{padding-left:20px;text-align:left}
             <div id="roomCards" class="hidden">
             <p style="font-size:14px;color:#94a3b8;margin:0 0 8px">Connecté en tant que <b id="whoami" style="color:#f6dc9a"></b> · <a href="#" onclick="logout();return false" style="color:#38bdf8">Se déconnecter</a></p>
             <div class="card">
+                <h3>💶 Ta mise d'entrée</h3>
+                <p style="font-size:13px;color:#94a3b8;margin:0 0 8px">Tu entres dans la room avec cette somme, que les autres joueurs voient. Elle est convertie en jetons, et à la fin le pot est redistribué selon la performance de chacun.</p>
+                <div class="quick-bet-row"><button class="quick-btn" onclick="setStake(5)">5 €</button><button class="quick-btn" onclick="setStake(10)">10 €</button><button class="quick-btn" onclick="setStake(20)">20 €</button><button class="quick-btn" onclick="setStake(50)">50 €</button></div>
+                <input type="number" id="stakeInput" value="10" min="1" max="100" step="0.5" inputmode="decimal" oninput="onStakeInput()" placeholder="Autre montant en €">
+                <p id="stakeInfo" style="font-size:13px;color:#22c55e;margin:4px 0 0"></p>
+            </div>
+            <div class="card">
                 <h3>Créer une Room</h3>
                 <label style="font-size: 14px; color: #94a3b8; display: block; margin-top: 8px;">Durée de la session :</label>
                 <select id="duration">
@@ -275,6 +282,7 @@ ul{padding-left:20px;text-align:left}
         <div id="lobby" class="hidden card">
             <h2>Salon d'attente</h2>
             <p>Code de la room : <b id="displayCode" style="color: #38bdf8;"></b></p>
+            <p>Pot total : <b id="potTotal" style="color: #22c55e;">0 €</b></p>
             <h4>Joueurs connectés :</h4>
             <ul id="playersList"></ul>
 
@@ -288,6 +296,7 @@ ul{padding-left:20px;text-align:left}
             <div id="playerWaitingGame" class="hidden" style="margin-top: 20px; text-align: center; color: #94a3b8;">
                 <p>L'administrateur va bientôt lancer un jeu...</p>
             </div>
+            <button onclick="leaveRoom()" style="margin-top:16px;background:#2b2036;box-shadow:none;border:1px solid rgba(212,162,76,.35)">Quitter la room</button>
         </div>
 
         <!-- 3. HUB CENTRAL DE SÉLECTION DES JEUX -->
@@ -606,9 +615,11 @@ ul{padding-left:20px;text-align:left}
     <div id="gameOverModal" class="modal-overlay hidden">
         <div class="modal-content" style="border: 2px solid #eab308;">
             <h2 style="margin-top:0; color: #eab308;">🏁 Fin de la Session !</h2>
-            <p style="color: #94a3b8; font-size: 14px;">Le temps imparti est écoulé. Voici le classement final des joueurs :</p>
+            <p style="color: #94a3b8; font-size: 14px;">Le temps est écoulé. Pot total à redistribuer : <b id="finalPot" style="color:#22c55e"></b></p>
             <div id="finalLeaderboardList" style="text-align: left; margin: 15px 0; max-height: 250px; overflow-y: auto;"></div>
-            <button onclick="location.reload()" style="background: #22c55e; margin-top: 20px;">Recommencer une partie</button>
+            <h4 style="margin:10px 0 6px;text-align:left">💸 Qui paie qui</h4>
+            <div id="finalTransfers" style="text-align:left;font-size:14px;color:#cbd5e1"></div>
+            <button onclick="leaveRoom()" style="background: #22c55e; margin-top: 20px;">Retour à l'accueil</button>
         </div>
     </div>
 
@@ -763,15 +774,31 @@ const toggleMusic = () => { const i = Snd.toggle() ? '🎵' : '🔇'; document.q
 let lastShown = 1;
 
 /* ---------- Actions (appelées par les onclick du HTML) ---------- */
+const TOKENS_PER_EUR = 100, STAKE_MIN = 1, STAKE_MAX = 100; // mêmes valeurs que le serveur (c'est lui qui a le dernier mot)
+const eur = n => (Math.round(n * 100) / 100).toFixed(2).replace('.', ',') + ' €';
+function stakeValue() {
+  const n = Math.round(parseFloat(String($('stakeInput').value).replace(',', '.')) * 100) / 100;
+  return Number.isFinite(n) && n >= STAKE_MIN && n <= STAKE_MAX ? n : null;
+}
+function onStakeInput() {
+  const v = stakeValue();
+  $('stakeInfo').textContent = v === null ? `Entre ${STAKE_MIN} € et ${STAKE_MAX} €` : `= ${Math.round(v * TOKENS_PER_EUR).toLocaleString('fr-FR')} jetons (1 € = ${TOKENS_PER_EUR} 🪙)`;
+}
+function setStake(v) { $('stakeInput').value = v; onStakeInput(); }
+function leaveRoom() { socket.emit('leave-room'); }
+socket.on('left-room', () => location.reload());
 function createRoom() {
   if (!S.myName) return alert('Connecte-toi d\'abord !');
-  Snd.unlock(); socket.emit('create-room', { duration: $('duration').value });
+  const stake = stakeValue(); if (stake === null) return alert(`Mise invalide : entre ${STAKE_MIN} € et ${STAKE_MAX} €.`);
+  Snd.unlock(); socket.emit('create-room', { duration: $('duration').value, stake });
 }
 function joinRoom() {
   const roomCode = $('roomCodeInput').value.trim().toUpperCase();
   if (!roomCode) return alert('Entre le code de la room !');
-  Snd.unlock(); socket.emit('join-room', { roomCode });
+  const stake = stakeValue(); if (stake === null) return alert(`Mise invalide : entre ${STAKE_MIN} € et ${STAKE_MAX} €.`);
+  Snd.unlock(); socket.emit('join-room', { roomCode, stake });
 }
+onStakeInput();
 const launchGame = () => socket.emit('launch-game-lobby', { roomCode: S.code, gameName: 'Hub' });
 function switchGame(name) {
   startAudio(); // dans un clic : le navigateur autorise le son
@@ -858,7 +885,8 @@ function renderPlayers(room) {
     document.querySelectorAll('.playerBalance').forEach(e => { if (e.textContent != me.balance) e.textContent = me.balance; });
   }
   if (!$('lobby').classList.contains('hidden')) {
-    setH($('playersList'), room.players.map(p => `<li>${esc(p.name)} (${p.balance} 🪙) ${p.isAdmin ? '👑 Hôte' : ''}${p.connected === false ? ' 💤 déconnecté' : ''}</li>`).join(''));
+    setH($('playersList'), room.players.map(p => `<li>${esc(p.name)} · mise ${eur(p.stake || 0)} (${p.balance} 🪙) ${p.isAdmin ? '👑 Hôte' : ''}${p.connected === false ? ' 💤 déconnecté' : ''}</li>`).join(''));
+    $('potTotal').textContent = eur(room.players.reduce((a, p) => a + (p.stake || 0), 0));
   }
   if (S.view === 'crash') { // la liste des mises et les stats ne servent que sur l'écran Crash
     const avg = room.players.reduce((a, p) => a + p.stats.totalProfit, 0) / (room.players.length || 1);
@@ -916,7 +944,7 @@ function renderRank(room) {
   const rows = [...room.players].sort((a, b) => eq(b) - eq(a));
   const mine = rows.findIndex(p => p.id === socket.id);
   const html = rows.map((p, i) => {
-    const pr = eq(p) - 1000;
+    const pr = eq(p) - (p.initialBalance || 1000);
     return `<div class="rank-row${p.id === socket.id ? ' me' : ''}"><b>${i < 3 ? ['🥇', '🥈', '🥉'][i] : '#' + (i + 1)}</b><span>${esc(p.name)}${p.connected === false ? ' 💤' : ''}</span><b>${eq(p)} 🪙</b><span class="${pr >= 0 ? 'text-green' : 'text-red'}">${pr >= 0 ? '+' : ''}${pr}</span></div>`;
   }).join('');
   document.querySelectorAll('.rankList').forEach(e => setH(e, html));
@@ -1071,14 +1099,19 @@ socket.on('player-cashed-out', d => {
 
 socket.on('game-session-ended', d => {
   S.phase = 'ended'; Snd.stopMusic(); sound('win');
+  $('finalPot').textContent = eur(d.pot);
   const box = $('finalLeaderboardList'); box.innerHTML = '';
   d.leaderboard.forEach((p, i) => {
     const row = document.createElement('div');
     row.style.cssText = 'background:#0d0814;padding:10px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px';
-    row.innerHTML = `<span><b>#${i + 1} ${esc(p.name)}</b></span>
-      <span>Solde : <b>${p.finalBalance} 🪙</b> (<span class="${p.profit >= 0 ? 'text-green' : 'text-red'}">${p.profit >= 0 ? '+' : ''}${p.profit}</span>)</span>`;
+    const perf = (p.performance >= 0 ? '+' : '') + Math.round(p.performance * 100) + ' %';
+    row.innerHTML = `<span><b>#${i + 1} ${esc(p.name)}</b><br><small style="color:#94a3b8">mise ${eur(p.stake)} · ${p.finalBalance} 🪙 (${perf})</small></span>
+      <span style="text-align:right">reçoit <b>${eur(p.payout)}</b><br><b class="${p.net >= 0 ? 'text-green' : 'text-red'}">${p.net >= 0 ? '+' : ''}${eur(p.net)}</b></span>`;
     box.appendChild(row);
   });
+  $('finalTransfers').innerHTML = d.transfers.length
+    ? d.transfers.map(t => `<div><b>${esc(t.from)}</b> → <b>${esc(t.to)}</b> : ${eur(t.amount)}</div>`).join('')
+    : 'Personne ne doit rien à personne.';
   show('gameOverModal');
 });
 
@@ -1975,7 +2008,7 @@ socket.on('bj-result', d => {
   sound(d.outcome === 'win' || d.outcome === 'blackjack' ? 'win' : d.outcome === 'push' ? 'pop' : 'miss');
 });
 
-Object.assign(window, { authSubmit, logout, createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash, arStart, arThrow, rlSpin, rlClear, rlRepeat, bjDeal, bjHit, bjStand, bjDouble, toggleFeed });
+Object.assign(window, { setStake, onStakeInput, leaveRoom, authSubmit, logout, createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash, arStart, arThrow, rlSpin, rlClear, rlRepeat, bjDeal, bjHit, bjStand, bjDouble, toggleFeed });
 
 /* ============================================================
    PANNEAU LATÉRAL « 📡 PARIS EN DIRECT » (feed) — flux temps réel
