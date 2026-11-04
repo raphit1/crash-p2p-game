@@ -241,9 +241,18 @@ ul{padding-left:20px;text-align:left}
 
         <!-- 1. AUTH SCREEN -->
         <div id="auth-screen">
+            <div class="card" id="loginCard">
+                <h3>Connexion</h3>
+                <p style="font-size:13px;color:#94a3b8;margin:0 0 6px">Ton compte garde ta partie : tu peux rafraîchir la page sans rien perdre.</p>
+                <input type="text" id="authUser" placeholder="Pseudo" maxlength="20" autocomplete="username">
+                <input type="password" id="authPass" placeholder="Mot de passe (6 caractères min.)" maxlength="100" autocomplete="current-password" onkeydown="if(event.key==='Enter')authSubmit('login')">
+                <button onclick="authSubmit('login')">Se connecter</button>
+                <button onclick="authSubmit('register')" style="background:#2b2036;box-shadow:none;border:1px solid rgba(212,162,76,.35)">Créer un compte</button>
+            </div>
+            <div id="roomCards" class="hidden">
+            <p style="font-size:14px;color:#94a3b8;margin:0 0 8px">Connecté en tant que <b id="whoami" style="color:#f6dc9a"></b> · <a href="#" onclick="logout();return false" style="color:#38bdf8">Se déconnecter</a></p>
             <div class="card">
                 <h3>Créer une Room</h3>
-                <input type="text" id="createName" placeholder="Ton pseudo" maxlength="20">
                 <label style="font-size: 14px; color: #94a3b8; display: block; margin-top: 8px;">Durée de la session :</label>
                 <select id="duration">
                     <option value="1">1 minute (Test rapide)</option>
@@ -256,9 +265,9 @@ ul{padding-left:20px;text-align:left}
             </div>
             <div class="card">
                 <h3>Rejoindre une Room</h3>
-                <input type="text" id="joinName" placeholder="Ton pseudo" maxlength="20">
                 <input type="text" id="roomCodeInput" placeholder="Code de la room (ex: CRASH-XXXX)">
                 <button onclick="joinRoom()">Rejoindre</button>
+            </div>
             </div>
         </div>
 
@@ -755,16 +764,13 @@ let lastShown = 1;
 
 /* ---------- Actions (appelées par les onclick du HTML) ---------- */
 function createRoom() {
-  const playerName = $('createName').value.trim();
-  if (!playerName) return alert('Entre un pseudo !');
-  S.myName = playerName;
-  Snd.unlock(); socket.emit('create-room', { playerName, duration: $('duration').value });
+  if (!S.myName) return alert('Connecte-toi d\'abord !');
+  Snd.unlock(); socket.emit('create-room', { duration: $('duration').value });
 }
 function joinRoom() {
-  const playerName = $('joinName').value.trim(), roomCode = $('roomCodeInput').value.trim().toUpperCase();
-  if (!playerName || !roomCode) return alert('Remplis ton pseudo et le code !');
-  S.myName = playerName;
-  Snd.unlock(); socket.emit('join-room', { roomCode, playerName });
+  const roomCode = $('roomCodeInput').value.trim().toUpperCase();
+  if (!roomCode) return alert('Entre le code de la room !');
+  Snd.unlock(); socket.emit('join-room', { roomCode });
 }
 const launchGame = () => socket.emit('launch-game-lobby', { roomCode: S.code, gameName: 'Hub' });
 function switchGame(name) {
@@ -1076,12 +1082,31 @@ socket.on('game-session-ended', d => {
   show('gameOverModal');
 });
 
-// Si la connexion saute (veille du téléphone, redémarrage Render), l'ancien id joueur n'existe plus
-socket.on('disconnect', () => { $('gameStatusText').textContent = '⚠️ Connexion perdue...'; });
-socket.on('connect', () => {
-  if (S.wasConnected && S.code && S.phase !== 'ended') { alert('Connexion perdue : retour à l\'accueil.'); location.reload(); }
-  S.wasConnected = true;
+// Connexion / reprise : le jeton de session est gardé dans le navigateur. À chaque (re)connexion on le renvoie au serveur,
+// qui nous remet dans notre room (même après un rafraîchissement ou une coupure réseau).
+const TOKEN_KEY = 'authToken';
+const getTok = () => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } };
+const setTok = t => { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch (e) {} };
+function authSubmit(mode) {
+  const username = $('authUser').value.trim(), password = $('authPass').value;
+  if (!username || !password) return alert('Entre ton pseudo et ton mot de passe !');
+  socket.emit(mode === 'register' ? 'auth-register' : 'auth-login', { username, password });
+}
+function logout() { socket.emit('auth-logout'); setTok(null); location.reload(); }
+socket.on('auth-ok', d => {
+  S.myName = d.name; setTok(d.token);
+  $('whoami').textContent = d.name; $('authPass').value = '';
+  if (!S.code) { show('loginCard', false); show('roomCards'); }
 });
+socket.on('auth-error', m => alert(m));
+socket.on('auth-invalid', () => { setTok(null); if (S.code) { alert('Session expirée : reconnecte-toi.'); location.reload(); } });
+socket.on('resumed', d => {
+  enterLobby(d.room);
+  if (d.started) { show('lobby', false); if (S.view !== 'hub') returnToHub(); else show('game-hub'); }
+});
+socket.on('no-room', () => { if (S.code && S.phase !== 'ended') { alert('Cette room n\'existe plus (le serveur a redémarré ou la session est terminée).'); location.reload(); } });
+socket.on('disconnect', () => { $('gameStatusText').textContent = '⚠️ Connexion perdue... reconnexion automatique'; });
+socket.on('connect', () => { const t = getTok(); if (t) socket.emit('auth-token', { token: t }); S.wasConnected = true; });
 
 /* ---------- Icefield : le Yéti traverse de gauche à droite ---------- */
 const ICE_STEPS = 8;
@@ -1950,7 +1975,7 @@ socket.on('bj-result', d => {
   sound(d.outcome === 'win' || d.outcome === 'blackjack' ? 'win' : d.outcome === 'push' ? 'pop' : 'miss');
 });
 
-Object.assign(window, { createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash, arStart, arThrow, rlSpin, rlClear, rlRepeat, bjDeal, bjHit, bjStand, bjDouble, toggleFeed });
+Object.assign(window, { authSubmit, logout, createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash, arStart, arThrow, rlSpin, rlClear, rlRepeat, bjDeal, bjHit, bjStand, bjDouble, toggleFeed });
 
 /* ============================================================
    PANNEAU LATÉRAL « 📡 PARIS EN DIRECT » (feed) — flux temps réel
