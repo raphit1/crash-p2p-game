@@ -32,10 +32,10 @@ const GAME_ICONS = G.GAME_ICONS;
 /* ------------------------------------------------------------------ */
 
 function generateRoomCode() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sans O/0/I/1 pour éviter les confusions
     let code;
     do {
-        code = 'CRASH-';
+        code = '';
         for (let i = 0; i < 4; i++) code += chars[crypto.randomInt(chars.length)];
     } while (rooms[code]);
     return code;
@@ -224,7 +224,7 @@ function destroyRoom(code) {
 }
 
 function findPlayer(socket, roomCode) {
-    const room = rooms[String(roomCode || '').toUpperCase()];
+    const room = rooms[String(roomCode || '').toUpperCase().replace(/^CRASH-/, '')];
     if (!room) return {};
     const player = room.players.find(p => p.id === socket.id);
     return { room, player };
@@ -408,7 +408,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('join-room', ({ roomCode, stake } = {}) => {
-        const code = String(roomCode || '').trim().toUpperCase();
+        const code = String(roomCode || '').trim().toUpperCase().replace(/^CRASH-/, '');
         const room = rooms[code];
         const name = socket.data.user;
 
