@@ -1095,7 +1095,7 @@ function toast(msg) { const t = $('iceToast'); t.textContent = msg; t.classList.
 
 function buildIce(lanes) {
   const b = $('iceBoard'); S.iceLanes = lanes;
-  b.querySelectorAll('.ice-cell').forEach(e => e.remove());
+  b.querySelectorAll('.ice-cell, .ice-tile, .ice-mult, .ice-bank').forEach(e => e.remove()); // updateIce réécrit className des tuiles (perd 'ice-cell') : on cible aussi .ice-tile, sinon les anciennes rangées restent en fantômes
   b.style.gridTemplateColumns = `56px repeat(${ICE_STEPS},minmax(0,1fr)) 56px`;
   // ⚠️ Le plateau est une grille CSS dont les LIGNES sont auto-calibrées par le navigateur :
   // quand on diminue le nombre de rangées, d'anciennes lignes invisibles persistent et les nouvelles
