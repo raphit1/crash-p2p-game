@@ -132,6 +132,47 @@ ul{padding-left:20px;text-align:left}
 .cr-car svg{width:100%;height:100%}
 .cr-fth{position:absolute;z-index:6;width:9px;height:5px;border-radius:50%;background:#fff;box-shadow:0 0 0 1px #e5e7eb;pointer-events:none}
 .cr-win{background:#0f2a1a;color:#4ade80;border:1px solid #166534}.cr-lose{background:#2a0f14;color:#ff6b7a;border:1px solid #7f1d1d}
+
+/* ---- Arrows X ---- */
+.ar-stage{position:relative;height:250px;border-radius:16px;overflow:hidden;border:1px solid rgba(212,162,76,.45);margin-bottom:10px;box-shadow:0 14px 36px rgba(0,0,0,.55);
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='120'%3E%3Cpath fill='%23141024' d='M0 120V70h30V40h28v30h20V55h34v65zM110 120V60h26V30h34v30h18v60zM214 120V75h24V45h30v30h32v45z'/%3E%3C/svg%3E") repeat-x 0 70%/300px 120px,linear-gradient(180deg,#241a3a,#120c22 60%,#0a0716)}
+.ar-stage svg{display:block;width:100%;height:100%}
+.ar-hud{display:flex;justify-content:space-around;gap:6px;background:#0d0814;border:1px solid rgba(212,162,76,.2);border-radius:10px;padding:8px;margin:10px 0;font-size:12px;color:#9a90ad}
+.ar-hud b{display:block;font-size:18px;color:#ffd45c;font-variant-numeric:tabular-nums}
+.ring{transition:opacity .2s}
+.ring.hot{filter:brightness(1.5) saturate(1.4)}
+.ar-mult{font-weight:900;font-size:11px;fill:#fff;paint-order:stroke;stroke:rgba(0,0,0,.55);stroke-width:2.5px;pointer-events:none;text-anchor:middle}
+.ar-fth{position:absolute;z-index:6;width:8px;height:8px;border-radius:50%;background:#e5f2ff;box-shadow:0 0 8px #9adcff;pointer-events:none}
+
+/* ---- Roulette ---- */
+.rl-table{display:grid;grid-template-columns:46px repeat(12,1fr) 58px;gap:3px;margin-bottom:8px}
+.rl-cell{appearance:none;border:1px solid rgba(255,255,255,.14);border-radius:6px;color:#fff;font-weight:800;font-size:13px;padding:9px 0;cursor:pointer;transition:transform .1s,box-shadow .15s}
+.rl-cell:hover{transform:translateY(-1px);box-shadow:0 0 0 2px #ffd45c}
+.rl-cell.red{background:#b32633}.rl-cell.black{background:#1c2230}.rl-cell.green{background:#0f7a44}
+.rl-chip{position:absolute;top:-7px;right:-6px;min-width:19px;height:19px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe9a8,#d4a24c);color:#241202;font-size:10px;font-weight:900;display:grid;place-items:center;box-shadow:0 2px 5px rgba(0,0,0,.6);padding:0 3px}
+.rl-out{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin-bottom:6px}
+.rl-out .rl-cell{text-align:center;padding:8px 0;font-size:12px}
+.rl-dozen{grid-column:span 4}.rl-col{grid-column:span 4}
+.rl-wheel-wrap{position:relative;display:flex;align-items:center;justify-content:center;gap:14px;background:#0d0814;border:1px solid rgba(212,162,76,.25);border-radius:14px;padding:10px;margin-bottom:10px}
+.rl-res{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-size:26px;font-weight:900;color:#fff;border:3px solid #ffd45c;box-shadow:0 0 18px rgba(255,212,92,.35);flex:none}
+.rl-wheelfx{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+.rl-betrow{display:flex;gap:8px;align-items:center;margin:8px 0}
+.rl-betrow input{margin:0;flex:1}
+.rl-total{display:flex;justify-content:space-between;font-size:13px;color:#cdbf9f;background:#0d0814;border-radius:8px;padding:7px 10px;margin-bottom:8px}
+
+/* ---- Blackjack ---- */
+.bj-felt{position:relative;border-radius:16px;border:1px solid rgba(212,162,76,.45);padding:14px 10px 20px;margin-bottom:10px;box-shadow:0 14px 36px rgba(0,0,0,.55);
+  background:radial-gradient(120% 90% at 50% 0%,#14603b,#0b3a24 60%,#072a1a)}
+.bj-label{font-size:11px;letter-spacing:2px;color:#bfe9cd;text-transform:uppercase;text-align:center;margin:2px 0 6px}
+.bj-cards{display:flex;justify-content:center;gap:6px;min-height:86px;align-items:flex-start}
+.bj-card{width:58px;height:82px;border-radius:8px;background:#fdfdf8;box-shadow:0 3px 8px rgba(0,0,0,.45);position:relative;font-weight:900;font-size:16px;display:flex;flex-direction:column;justify-content:space-between;padding:5px 6px;animation:bjIn .3s ease both}
+@keyframes bjIn{from{transform:translateY(-26px) scale(.85);opacity:0}}
+.bj-card.red{color:#c2253a}.bj-card.blk{color:#14213d}
+.bj-card i{align-self:flex-end;font-style:normal;transform:rotate(180deg)}
+.bj-back{background:repeating-linear-gradient(45deg,#1d4ed8 0 7px,#1e3a8a 7px 14px);border:3px solid #dbeafe}
+.bj-score{position:absolute;right:-9px;top:-9px;background:#ffd45c;color:#241202;border-radius:999px;font-size:11px;padding:2px 7px;box-shadow:0 2px 5px rgba(0,0,0,.5)}
+.bj-actions{display:flex;gap:8px}
+.bj-actions button{margin:0}
 </style>
 </head>
 <body>
@@ -191,8 +232,11 @@ ul{padding-left:20px;text-align:left}
             <p style="color: #94a3b8;">Choisis ton jeu pour participer à la compétition commune !</p>
             <div class="game-thumbnail" onclick="switchGame('Crash Out')">✈️ Crash Out (Style Aviator)</div>
             <div class="game-thumbnail" style="background: linear-gradient(135deg, #1e3a8a, #0284c7 60%, #38bdf8);" onclick="switchGame('Icefield')">🧊 Icefield (Traversée du Yéti)</div>
-            <div class="game-thumbnail" style="background: linear-gradient(135deg, #065f46, #16a34a 60%, #fbbf24);" onclick="switchGame('Just mixed')">🥤 Just mixed (3 gobelets · RTP 99,2 %)</div>
-            <div class="game-thumbnail" style="background: linear-gradient(135deg, #7c2d12, #ea580c 60%, #fde047);" onclick="switchGame('Chicken Road')">🐔 Chicken Road (3 modes · RTP 89 %)</div>
+            <div class="game-thumbnail" style="background: linear-gradient(135deg, #065f46, #16a34a 60%, #fbbf24);" onclick="switchGame('Just mixed')">🥤 Just mixed (3 gobelets · RTP 98,5 %)</div>
+            <div class="game-thumbnail" style="background: linear-gradient(135deg, #7c2d12, #ea580c 60%, #fde047);" onclick="switchGame('Chicken Road')">🐔 Chicken Road (3 modes · RTP 98,5 %)</div>
+            <div class="game-thumbnail" style="background: linear-gradient(135deg, #3b0764, #a21caf 60%, #f0abfc);" onclick="switchGame('Arrows X')">🎯 Arrows X (3 modes · RTP 98,5 %)</div>
+            <div class="game-thumbnail" style="background: linear-gradient(135deg, #450a0a, #b91c1c 60%, #d4a24c);" onclick="switchGame('Roulette')">🎡 Roulette européenne (x36 plein · classique)</div>
+            <div class="game-thumbnail" style="background: linear-gradient(135deg, #052e16, #14532d 60%, #ffd45c);" onclick="switchGame('Blackjack')">🃏 Blackjack (règles classiques · BJ payé 3:2)</div>
             <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
         </div>
 
@@ -311,7 +355,7 @@ ul{padding-left:20px;text-align:left}
                 <div style="display: flex; gap: 12px; align-items: center;">
                     <div style="flex: 1.5;"><label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
                         <input type="number" id="jmBetAmount" value="50" min="1" style="margin: 4px 0;"></div>
-                    <div style="flex: 1; text-align: center; font-size: 12px; color: #cdbf9f; line-height: 1.5;">Gain <b style="color:#ffc24d;font-size:16px">x1.488</b><br>2 chances sur 3<br>RTP 99,2 %</div>
+                    <div style="flex: 1; text-align: center; font-size: 12px; color: #cdbf9f; line-height: 1.5;">Gain <b style="color:#ffc24d;font-size:16px">x1.478</b><br>2 chances sur 3<br>RTP 98,5 %</div>
                 </div>
             </div>
             <div class="jm-stage"><svg id="jmSvg" viewBox="0 0 600 300"><defs>
@@ -359,6 +403,108 @@ ul{padding-left:20px;text-align:left}
             <div class="history-bar" id="crHist" style="margin-top: 10px;"></div>
             <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
         </div>
+
+        <!-- 8. ÉCRAN ARROWS X -->
+        <div id="ar-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h3 style="margin: 5px 0; color: #ffd45c;">🎯 Arrows X</h3>
+            <p id="arStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Choisis un mode, mise, puis lance ta fléchette. Plus le mode est difficile, plus les anneaux rapportent… et plus la cible est petite !</p>
+            <div class="bet-control-box" style="margin: 0 0 10px;">
+                <div class="cr-modes" id="arModes"></div>
+                <div class="cr-info" id="arInfo"></div>
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
+                <input type="number" id="arBetAmount" value="50" min="1" style="margin: 4px 0 8px;">
+                <div class="quick-bet-row" id="arQuick" style="margin-bottom:0">
+                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
+                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+                </div>
+            </div>
+            <div class="provably-fair-box">🔒 <b>Hash SHA-256 de la partie :</b> <span id="arHash" style="color: #38bdf8;">—</span><br><span id="arProof"></span></div>
+            <div class="ar-hud"><div>Mode<b id="arModeName">Facile</b></div><div>Chance de toucher<b id="arHitPct">61,9 %</b></div><div>Gain max<b id="arMax">x20</b></div></div>
+            <div class="ar-stage" id="arStage"><svg id="arSvg" viewBox="0 0 600 250" preserveAspectRatio="xMidYMid meet"></svg><div id="arToast" class="ice-toast"></div></div>
+            <div style="display: flex; gap: 10px;">
+                <button id="arStartBtn" onclick="arStart()">Armer la fléchette 🏹</button>
+                <button id="arThrowBtn" class="hidden" onclick="arThrow()" style="background: linear-gradient(180deg,#a21caf,#701a85);">LANCER 🎯</button>
+            </div>
+            <div class="history-bar" id="arHist" style="margin-top: 10px;"></div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+
+        <!-- 9. ÉCRAN ROULETTE -->
+        <div id="rl-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h3 style="margin: 5px 0; color: #ffd45c;">🎡 Roulette européenne</h3>
+            <p id="rlStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Roue classique 0-36, un seul zéro. Clique une case du tapis pour miser (le montant du jeton est pris dans la boîte). Simple chance x2, douzaine/colonne x3, plein x36.</p>
+            <div class="rl-wheel-wrap">
+                <div id="rlWheel" style="position:relative;flex:none"></div>
+                <div style="flex:1">
+                    <div class="rl-res" id="rlRes" style="background:#0f7a44;display:inline-block">?</div>
+                    <div style="font-size:12px;color:#9a90ad;margin:6px 0;">Derniers numéros</div>
+                    <div class="history-bar" id="rlHist" style="margin:0;"></div>
+                    <div class="provably-fair-box" style="margin-top:8px;">🔒 <b>Hash :</b> <span id="rlHash" style="color: #38bdf8;">—</span><br><span id="rlProof"></span></div>
+                </div>
+            </div>
+            <div class="rl-betrow">
+                <label style="font-size:12px;color:#94a3b8;white-space:nowrap;">Jeton</label>
+                <input type="number" id="rlBetAmount" value="25" min="1">
+                <div class="quick-bet-row" id="rlQuick" style="margin:0;">
+                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="25">25</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button>
+                </div>
+            </div>
+            <div class="rl-total"><span>Mise sur la table : <b id="rlTotalVal">0</b> 🪙</span><span id="rlBetsCount">0 pari</span></div>
+            <div id="rlTable"></div>
+            <div id="rlOut"></div>
+            <div style="display: flex; gap: 10px;">
+                <button id="rlSpinBtn" onclick="rlSpin()" style="background: linear-gradient(180deg,#b91c1c,#7f1d1d);">TOURNER 🎡</button>
+                <button onclick="rlClear()" style="background:#475569;">Effacer</button>
+                <button onclick="rlRepeat()" style="background:#475569;">Rejouer</button>
+            </div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+
+        <!-- 10. ÉCRAN BLACKJACK -->
+        <div id="bj-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h3 style="margin: 5px 0; color: #ffd45c;">🃏 Blackjack</h3>
+            <p id="bjStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Règles classiques : un jeu de 52 cartes, mélangé à chaque main. Le croupier tire jusqu'à 17. Blackjack payé 3:2, égalité = mise rendue.</p>
+            <div class="bet-control-box" id="bjBetBox" style="margin: 0 0 10px;">
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
+                <input type="number" id="bjBetAmount" value="50" min="1" style="margin: 4px 0 8px;">
+                <div class="quick-bet-row" id="bjQuick" style="margin-bottom:0">
+                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
+                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+                </div>
+            </div>
+            <div class="provably-fair-box">🔒 <b>Graine de mélange (révélée en fin de main) :</b> <span id="bjSeed" style="color: #38bdf8;">—</span></div>
+            <div class="bj-felt">
+                <div class="bj-label">Croupier</div>
+                <div class="bj-cards" id="bjDealer"></div>
+                <div style="text-align:center;font-size:11px;color:#7ddba6;letter-spacing:3px;margin:8px 0;">BLACKJACK PAYE 3:2 · LE CROUPIER TIRE JUSQU'À 17</div>
+                <div class="bj-cards" id="bjPlayer"></div>
+                <div class="bj-label">Toi</div>
+                <div id="bjMsg" style="text-align:center;font-size:15px;font-weight:800;color:#ffe9a8;min-height:22px;"></div>
+            </div>
+            <div class="bj-actions">
+                <button id="bjDealBtn" onclick="bjDeal()">Distribuer 🂠</button>
+                <button id="bjHitBtn" class="hidden" onclick="bjHit()" style="background: linear-gradient(180deg,#3b82f6,#1d4ed8);">Tirer ➕</button>
+                <button id="bjStandBtn" class="hidden" onclick="bjStand()" style="background: linear-gradient(180deg,#eab308,#a16207);color:#241202;">Rester ✋</button>
+                <button id="bjDoubleBtn" class="hidden" onclick="bjDouble()" style="background: linear-gradient(180deg,#22c55e,#15803d);">Doubler 💰</button>
+            </div>
+            <div class="history-bar" id="bjHist" style="margin-top: 10px;"></div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
     </div>
 
     <!-- MODALE HISTORIQUE COMPLET -->
@@ -392,6 +538,7 @@ const show = (id, on = true) => $(id).classList.toggle('hidden', !on);
 
 /* ---------- État ---------- */
 const S = { code:null, phase:'waiting', balance:1000, slots:[{},{}], iceState:null, iceBusy:false, iceAnimating:false, iceLanes:0, yetiPos:null, icePick:null, view:'hub', crashRun:false, raf:0, ang:-3, si:0, lastTxt:'', iceCol:0, iceGen:0, icePending:0, iceWait:false, yetiP:Promise.resolve(), crState:null, crGen:0, crPending:0, crWait:false, crP:Promise.resolve(), crStep:0, crMode:'easy', crBuilt:'', crLanes:[], crPos:{x:0,y:0}, crDead:false, crCars:0, crTimer:0, crPick:0, crBet:0, crHist:[], jmPhase:'idle', jmCups:null, jmAt:[0,1,2], jmPick:0,
+            arState:null, arMode:'easy', arBusy:false, arThrowing:false, arHist:[], rlBets:[], rlBusy:false, rlHist:[], rlLast:null, bjBusy:false, bjHist:[],
             history:[], target:1, shown:1, t0:0, smoke:[], wasConnected:false };
 
 /* ---------- Audio : effets doux + musique chill générative (aucun fichier à charger) ---------- */
@@ -536,16 +683,22 @@ function switchGame(name) {
   startAudio(); // dans un clic : le navigateur autorise le son
   show('game-hub', false);
   socket.emit('join-game-table', { roomCode: S.code });
-  S.view = name === 'Icefield' ? 'ice' : name === 'Just mixed' ? 'jm' : name === 'Chicken Road' ? 'cr' : 'crash';
+  S.view = name === 'Icefield' ? 'ice' : name === 'Just mixed' ? 'jm' : name === 'Chicken Road' ? 'cr'
+         : name === 'Arrows X' ? 'ar' : name === 'Roulette' ? 'rl' : name === 'Blackjack' ? 'bj' : 'crash';
   if (S.view === 'ice') { show('icefield-screen'); updateIce(); }
   else if (S.view === 'jm') { show('jm-screen'); if (!S.jmCups) buildJm(); }
   else if (S.view === 'cr') { show('cr-screen'); crInit(); }
+  else if (S.view === 'ar') { show('ar-screen'); arInit(); }
+  else if (S.view === 'rl') { show('rl-screen'); rlInit(); }
+  else if (S.view === 'bj') { show('bj-screen'); bjInit(); }
   else { show('game-screen'); socket.emit('crash-join', { roomCode: S.code }); startCrashUI(); }
 }
 function returnToHub() {
   if (S.view === 'crash') { socket.emit('crash-leave', { roomCode: S.code }); stopCrashUI(); } // le jeu Crash s'arrête chez toi ET sur le serveur si tu es seul
   S.view = 'hub';
-  show('game-screen', false); show('icefield-screen', false); show('jm-screen', false); show('cr-screen', false); crStop(); show('game-hub');
+  show('game-screen', false); show('icefield-screen', false); show('jm-screen', false); show('cr-screen', false); crStop();
+  show('ar-screen', false); show('rl-screen', false); show('bj-screen', false); // Arrows/Roulette/Blackjack : aucun timer client, rien à arrêter
+  show('game-hub');
 }
 function buildPanels() {
   $('betPanels').innerHTML = [0, 1].map(i => `<div class="bet-control-box">
@@ -602,6 +755,8 @@ function renderButtons() {
 }
 
 const setH = (el, html) => { if (el && el._h !== html) { el._h = html; el.innerHTML = html; } }; // n'écrit dans le DOM que si ça a changé
+// Somme des mises en cours côté client (mises à jour par sync() depuis le serveur) : sert au classement "fortune totale"
+const extraEq = p => (p.rl ? p.rl.total : 0) + (p.bj && p.bj.phase && p.bj.phase !== 'idle' ? p.bj.bet : 0);
 function renderPlayers(room) {
   const me = room.players.find(p => p.id === socket.id), sg = n => n >= 0 ? '+' : '';
   if (me) {
@@ -653,11 +808,16 @@ function sync(room) {
   updateIce();
   S.crState = me ? me.cr : null;
   crSync();
+  S.arState = me ? me.ar : null;
+  arSync();
+  S.rlBets = me && me.rl ? me.rl.bets : [];
+  rlRenderChips();
+  bjSync(me ? me.bj : null);
 }
 
 // Classement commun : trié sur la fortune totale (solde + mises en jeu) pour qu'il ne saute pas à chaque mise
 function renderRank(room) {
-  const eq = p => p.balance + p.slots.reduce((a, x) => a + x.bet + x.next, 0) + (p.iceState && p.iceState.active ? p.iceState.bet : 0) + (p.jm && p.jm.active ? p.jm.bet : 0) + (p.cr && p.cr.active ? p.cr.bet : 0);
+  const eq = p => p.balance + p.slots.reduce((a, x) => a + x.bet + x.next, 0) + (p.iceState && p.iceState.active ? p.iceState.bet : 0) + (p.jm && p.jm.active ? p.jm.bet : 0) + (p.cr && p.cr.active ? p.cr.bet : 0) + (p.ar && p.ar.active ? p.ar.bet : 0) + extraEq(p); // mises en cours sur tous les jeux : le classement ne saute pas à chaque pari
   const rows = [...room.players].sort((a, b) => eq(b) - eq(a));
   const mine = rows.findIndex(p => p.id === socket.id);
   const html = rows.map((p, i) => {
@@ -827,7 +987,7 @@ socket.on('connect', () => {
 
 /* ---------- Icefield : le Yéti traverse de gauche à droite ---------- */
 const ICE_STEPS = 8;
-const calcMult = (cols, step) => parseFloat((0.98 / Math.pow((cols - 1) / cols, step)).toFixed(2));
+const calcMult = (cols, step) => parseFloat((0.985 / Math.pow((cols - 1) / cols, step)).toFixed(2)); // mêmes formules que le serveur (RTP 98,5 %)
 const CRACK = '<svg class="crack" viewBox="0 0 60 44" preserveAspectRatio="none"><path pathLength="1" d="M30 22L18 8M30 22L44 5M30 22L9 31M30 22L51 37M18 8L8 11M44 5L53 14M9 31L5 41M51 37L56 42"/></svg>';
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const ctr = el => { const b = $('iceBoard').getBoundingClientRect(), r = el.getBoundingClientRect(); return { x: r.left - b.left + r.width / 2, y: r.top - b.top + r.height / 2 }; };
@@ -1049,7 +1209,7 @@ function startJm() {
 }
 
 /* ---------- Chicken Road : le poulet traverse la route voie par voie ---------- */
-const CR_RTP = 0.89;
+const CR_RTP = 0.985; // mêmes formules que le serveur (RTP 98,5 %)
 const CR_MODES = { easy: { name: 'Facile', steps: 24, p: .12 }, medium: { name: 'Moyen', steps: 22, p: .20 }, hard: { name: 'Difficile', steps: 20, p: .33 } };
 const crMult = (mode, k) => Math.floor(CR_RTP / Math.pow(1 - CR_MODES[mode].p, k) * 100) / 100; // mêmes formules que le serveur
 const LANE_W = 92, CURB_W = 120, GOAL_W = 150, CR_H = 230, CR_Y = .62;
@@ -1082,7 +1242,7 @@ function crMarks() {
 }
 function crInfo() {
   const m = CR_MODES[S.crMode];
-  $('crInfo').textContent = `Risque : ${Math.round(m.p * 100)} % par voie · ${m.steps} voies · max x${crMult(S.crMode, m.steps).toFixed(2)} · RTP 89 %`;
+  $('crInfo').textContent = `Risque : ${Math.round(m.p * 100)} % par voie · ${m.steps} voies · max x${crMult(S.crMode, m.steps).toFixed(2)} · RTP 98,5 %`;
   document.querySelectorAll('#crModes .cr-mode').forEach(b => b.classList.toggle('on', b.dataset.m === S.crMode));
 }
 function crControls() {
@@ -1221,7 +1381,365 @@ socket.on('cr-result', d => {
 });
 window.addEventListener('resize', () => { if (S.view === 'cr') crCam(); });
 
-Object.assign(window, { createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash });
+/* ============================================================
+   ARROWS X 🎯 — fléchettes sur cible annulaire, RTP exact 98,5 %
+   Mêmes tables de multiplicateurs que le serveur (AR_MODES dans server.js).
+   Le serveur résout "hit = 0,985 × Σpoids / Σ(m×poids)" pour garantir l'espérance ;
+   ici on ne fait que recalculer hit pour l'affichage et dessiner les anneaux.
+   ============================================================ */
+const AR_RTP = 0.985;
+const AR_MODES = {
+    easy:   { name: 'Facile',    max: 20,  rows: [[0.5,2],[0.6,5],[0.7,7],[0.8,7],[0.9,7],[1,11],[1.25,6],[1.5,5],[2,4],[3,3],[4,2],[5,1.5],[8,1],[10,0.6],[20,0.3]] },
+    medium: { name: 'Moyen',     max: 100, rows: [[0.5,5],[0.6,7],[0.7,8],[0.8,12],[0.9,10],[1,10],[1.5,10],[2,8],[3,6],[4,4],[5,3],[8,2.5],[10,1.7],[25,1],[50,0.5],[100,0.3]] },
+    hard:   { name: 'Difficile', max: 500, rows: [[0.5,10],[0.6,10],[0.7,10],[0.8,12],[0.9,10],[1,8],[1.5,7],[2,6],[3,5],[4,4],[5,3],[8,2.5],[10,2],[25,1.5],[100,1],[500,0.5]] }
+};
+const arHit = mode => { const c = AR_MODES[mode], tot = c.rows.reduce((a, r) => a + r[1], 0), wsum = c.rows.reduce((a, [m, w]) => a + m * w, 0); return AR_RTP * tot / wsum; }; // proba de toucher la cible (le reste = x0)
+// Preuve du RTP : Σ(poids × multiplicateur) / Σpoids × hit = AR_RTP exactement (par construction de "hit").
+// Valeurs numériques : Facile hit≈60,8 % · Moyen hit≈27,4 % · Difficile hit≈9,4 % — espérance = 98,5 % dans les 3 modes.
+const AR_COLS = ['#e11d48','#f59e0b','#22c55e','#38bdf8','#a855f7','#f43f5e','#eab308','#14b8a6']; // couleurs des anneaux (du centre vers l'extérieur)
+const ARROW = '<g class="ar-arrow"><path d="M-2 -3L-26 -3L-26 3L-2 3Z" fill="#cbd5e1"/><path d="M-26 -3L-38 -8L-32 0L-38 8L-26 3Z" fill="#f43f5e"/><path d="M-20 -3L-24 -9M-14 -3L-18 -9" stroke="#94a3b8" stroke-width="1.6"/><polygon points="0,0 -7,-4.5 -7,4.5" fill="#fde68a"/></g>';
+function arBuild(mode) {
+  const svg = $('arSvg'), cx = 300, cy = 128, R = 100, rows = AR_MODES[mode].rows;
+  let s = `<defs><radialGradient id="arGlow" cx="50%" cy="45%" r="60%"><stop offset="0" stop-color="#ffe6aa" stop-opacity=".25"/><stop offset="1" stop-color="#ffe6aa" stop-opacity="0"/></radialGradient></defs>`;
+  s += `<rect width="600" height="250" fill="url(#arGlow)"/>`;
+  s += `<ellipse cx="${cx}" cy="${cy + R + 8}" rx="${R + 26}" ry="10" fill="rgba(0,0,0,.4)"/>`; // ombre au sol
+  for (let i = rows.length - 1; i >= 0; i--) { // du plus grand anneau (extérieur) vers le centre
+    const rr = R * (i + 1) / rows.length;
+    s += `<circle class="ring" data-i="${i}" cx="${cx}" cy="${cy}" r="${rr.toFixed(1)}" fill="${AR_COLS[i % AR_COLS.length]}" stroke="rgba(0,0,0,.35)" stroke-width="1.5"/>`;
+  }
+  for (let i = rows.length - 1; i >= 0; i--) { // labels lisibles, décalés vers le bas de chaque couronne
+    const rr = R * (i + 1) / rows.length, labY = i === rows.length - 1 ? cy : cy - rr + 13;
+    s += `<text class="ar-mult" x="${cx}" y="${labY}">x${rows[i][0]}</text>`;
+  }
+  s += `<circle cx="${cx}" cy="${cy}" r="4" fill="#fff" opacity=".85"/>`;
+  s += `<g id="arArrowWrap" transform="translate(90,215) rotate(-38)" opacity="0">${ARROW}</g>`; // fléchette au repos, prête à être armée
+  svg.innerHTML = s;
+  S.arBuilt = mode;
+}
+function arInfo() {
+  const c = AR_MODES[S.arMode];
+  $('arInfo').textContent = `Chance de toucher : ${(arHit(S.arMode) * 100).toFixed(1)} % · ${c.rows.length} anneaux · max x${c.max} · RTP 98,5 %`;
+  document.querySelectorAll('#arModes .cr-mode').forEach(b => b.classList.toggle('on', b.dataset.m === S.arMode));
+  $('arModeName').textContent = c.name;
+  $('arHitPct').textContent = (arHit(S.arMode) * 100).toFixed(1) + ' %';
+  $('arMax').textContent = 'x' + c.max;
+}
+function arControls() {
+  const active = !!(S.arState && S.arState.active);
+  show('arStartBtn', !active); show('arThrowBtn', active);
+  $('arBetAmount').disabled = active;
+  document.querySelectorAll('#arModes .cr-mode').forEach(b => { b.disabled = active; });
+  $('arStatus').textContent = active ? 'La fléchette est armée… clique LANCER !' : 'Choisis un mode, mise, puis arme ta fléchette.';
+}
+function arSync() { // appelé par sync() à chaque update-room : recolle le client au serveur sans jamais rien bloquer
+  if (S.view !== 'ar' || S.arThrowing) return;
+  const st = S.arState, active = !!(st && st.active);
+  if (active && st.mode !== S.arBuilt) arBuild(st.mode);
+  arControls();
+}
+function arToast(msg) { const t = $('arToast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2400); }
+function arHistPush(win, text) {
+  S.arHist.unshift({ win, text }); S.arHist.length = Math.min(S.arHist.length, 12);
+  setH($('arHist'), S.arHist.map(h => `<div class="history-pill ${h.win ? 'cr-win' : 'cr-lose'}">${h.text}</div>`).join(''));
+}
+function arRingFlash(i) { const r = $('arSvg').querySelector(`.ring[data-i="${i}"]`); if (!r) return; r.classList.add('hot'); setTimeout(() => r.classList.remove('hot'), 1200); }
+function arFeathers(x, y, n = 10) { // petites plumes qui volent quand la flèche touche (repère viewBox → pixels du conteneur)
+  const st = $('arStage'), rect = st.getBoundingClientRect(), kx = rect.width / 600, ky = rect.height / 250;
+  for (let i = 0; i < n; i++) {
+    const f = document.createElement('i'); f.className = 'ar-fth'; f.style.left = (x * kx) + 'px'; f.style.top = (y * ky) + 'px'; st.appendChild(f);
+    f.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${(Math.random() - .5) * 130}px,${-25 - Math.random() * 80}px) rotate(${Math.random() * 500}deg)`, opacity: 0 }],
+              { duration: 650 + Math.random() * 450, easing: 'cubic-bezier(.2,.7,.4,1)' }).onfinish = () => f.remove();
+  }
+}
+async function arAnimateThrow(d) { // trajectoire en clocher + rotation ; si x0, la flèche dépasse la cible et plante le sol à côté
+  S.arThrowing = true;
+  const svg = $('arSvg'), wrap = $('arArrowWrap');
+  const cx = 300, cy = 128, R = 100, rows = AR_MODES[d.mode || S.arBuilt || 'easy'].rows;
+  let end, rot, feathers = 0;
+  if (d.success) {
+    const i = rows.findIndex(r => r[0] === d.multiplier);
+    const rr = i >= 0 ? R * (i + 1) / rows.length : 0;
+    const ang = Math.random() * Math.PI * 2; // point d'impact aléatoire sur le rayon médian de l'anneau gagné
+    end = { x: cx + Math.cos(ang) * Math.min(rr, R - 4), y: cy + Math.sin(ang) * Math.min(rr, R - 4) };
+    rot = -38; feathers = Math.max(6, Math.round(rows.length - i));
+  } else { // raté : elle survole la cible et se plante au sol, loin derrière
+    const side = Math.random() < .5 ? -1 : 1;
+    end = { x: cx + side * (R + 90 + Math.random() * 60), y: 210 + Math.random() * 14 };
+    rot = 55;
+  }
+  const start = { x: 90, y: 215 }, peak = Math.min(start.y, end.y) - 120 - Math.random() * 30;
+  wrap.setAttribute('opacity', 1);
+  sound('lift');
+  await tween(760, k => {
+    const e = k, x = start.x + (end.x - start.x) * e, y = (1 - e) * (1 - e) * start.y + 2 * (1 - e) * e * peak + e * e * end.y; // courbe de Bézier quadratique
+    const nx = 1 - e, dx = nx * (end.x - start.x), dy = nx * (end.y - start.y) + e * 0; // tangente ≈ direction finale simplifiée
+    const a = Math.atan2(dy === 0 ? (end.y - peak) : dy, dx === 0 ? 1 : dx) * 57.3;
+    wrap.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${(k < 1 ? a : rot).toFixed(1)})`);
+  });
+  if (d.success) {
+    sound('tap'); arFeathers(end.x, end.y, feathers); arRingFlash(rows.findIndex(r => r[0] === d.multiplier));
+    if (d.multiplier >= 8) sound('win');
+  } else {
+    sound('miss'); arFeathers(end.x, end.y - 4, 4); // petit nuage de poussière
+    $('arStage').classList.add('shake'); setTimeout(() => $('arStage').classList.remove('shake'), 400);
+  }
+  await wait(500);
+  wrap.setAttribute('opacity', 0); wrap.setAttribute('transform', 'translate(90,215) rotate(-38)');
+  S.arThrowing = false;
+}
+function arInit() {
+  if (!$('arModes').children.length) {
+    $('arModes').innerHTML = Object.entries(AR_MODES).map(([id, m]) => `<button class="cr-mode" data-m="${id}">${m.name}<small>max x${m.max}</small></button>`).join('');
+    $('arModes').addEventListener('click', e => {
+      const b = e.target.closest('.cr-mode'); if (!b || (S.arState && S.arState.active)) return;
+      S.arMode = b.dataset.m; arBuild(S.arMode); arInfo(); arControls();
+    });
+    $('arQuick').addEventListener('click', e => {
+      const b = e.target.closest('button'), amt = $('arBetAmount'); if (!b || amt.disabled) return;
+      if (b.dataset.a) amt.value = b.dataset.a;
+      else if (b.dataset.f === 'max') amt.value = S.balance;
+      else amt.value = Math.max(1, Math.floor((parseFloat(amt.value) || 0) * b.dataset.f));
+    });
+  }
+  if (S.arBuilt !== S.arMode || !$('arSvg').children.length) arBuild(S.arMode);
+  arInfo(); arSync();
+}
+function arStart() {
+  const amount = parseInt($('arBetAmount').value);
+  if (!amount || amount <= 0) return alert('Entre une mise valide !');
+  if (S.arState && S.arState.active) return;
+  sound('bet'); S.arBusy = true;
+  socket.emit('ar-start', { roomCode: S.code, amount, mode: S.arMode });
+}
+function arThrow() {
+  if (!(S.arState && S.arState.active) || S.arThrowing || S.arBusy) return;
+  S.arThrowing = true; S.arBusy = true;
+  socket.emit('ar-throw', { roomCode: S.code });
+}
+socket.on('ar-started', d => {
+  S.arBusy = false;
+  $('arHash').textContent = d.hash;
+  socket.emit('ar-throw', { roomCode: S.code }); // l'animation suit immédiatement le lancement serveur
+});
+socket.on('ar-result', d => {
+  S.arBusy = false; S.arThrowing = false;
+  if (S.arState) S.arState.active = false;
+  $('arProof').textContent = `Graine révélée : ${d.seed} — SHA-256(graine) = hash ci-dessus ; u = HMAC-SHA256(graine,"arrow") = ${d.u} → ${d.success ? 'dans la cible' : 'à côté'} (mode ${S.arBuilt})`;
+  arHistPush(d.success, d.success ? 'x' + d.multiplier : '💨 x0');
+  arAnimateThrow(Object.assign({}, d, { mode: S.arBuilt }));
+  arToast(d.message);
+  arControls();
+});
+
+/* ============================================================
+   ROULETTE EUROPÉENNE 🎡 — tapis classique 0-36, un seul zéro.
+   Payouts classiques (plein x36, simple chance x2, douzaine/colonne x3) :
+   avantage maison naturel de 2,70 % dû au zéro, aucun facteur artificiel.
+   ============================================================ */
+// attache un écouteur une seule fois à un conteneur persistant (les clics sont délégués,
+// donc ça continue de marcher quand on régénère le HTML interne)
+const bindOnce = (el, ev, fn) => { if (el && !el._b) { el._b = 1; el.addEventListener(ev, fn); } };
+const RL_RED = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+const RL_ORDER = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26]; // ordre réel de la roue
+const rlColor = n => n === 0 ? 'green' : RL_RED.has(n) ? 'red' : 'black';
+const rlLabel = b => b.kind === 'straight' ? 'Plein ' + b.sel : b.kind === 'dozen' ? `Douzaine ${b.sel}` : b.kind === 'column' ? `Colonne ${b.sel}`
+  : ({ red: 'Rouge', black: 'Noir', odd: 'Impair', even: 'Pair', low: '1-18', high: '19-36' })[b.kind];
+function rlBuildTable() {
+  let html = '<div class="rl-table"><button class="rl-cell green" data-k="straight" data-s="0" style="grid-row:span 3">0</button>';
+  for (let row = 0; row < 3; row++) for (let col = 0; col < 12; col++) {
+    const n = col * 3 + (3 - row);
+    html += `<button class="rl-cell ${rlColor(n)}" data-k="straight" data-s="${n}" style="grid-row:${row + 1};grid-column:${col + 2}">${n}</button>`;
+  }
+  html += '</div><div class="rl-out">';
+  html += `<button class="rl-cell rl-dozen" data-k="dozen" data-s="1">1ère 12 (x3)</button><button class="rl-cell rl-dozen" data-k="dozen" data-s="2">2e 12 (x3)</button><button class="rl-cell rl-dozen" data-k="dozen" data-s="3">3e 12 (x3)</button>`;
+  html += `<button class="rl-cell" data-k="low" data-s="0">1-18 (x2)</button><button class="rl-cell" data-k="even" data-s="0">Pair (x2)</button><button class="rl-cell red" data-k="red" data-s="0">Rouge (x2)</button>`;
+  html += `<button class="rl-cell black" data-k="black" data-s="0">Noir (x2)</button><button class="rl-cell" data-k="odd" data-s="0">Impair (x2)</button><button class="rl-cell" data-k="high" data-s="0">19-36 (x2)</button>`;
+  html += `<button class="rl-cell rl-col" data-k="column" data-s="1">Colonne 1 (x3)</button><button class="rl-cell rl-col" data-k="column" data-s="2">Colonne 2 (x3)</button><button class="rl-cell rl-col" data-k="column" data-s="3">Colonne 3 (x3)</button>`;
+  html += '</div>';
+  $('rlTable').innerHTML = html; // tapis numéroté + paris extérieurs (dans #rlOut, créé par ce même HTML)
+  bindOnce($('rlTable'), 'click', e => {
+    const c = e.target.closest('.rl-cell'); if (!c || S.rlBusy) return;
+    const amount = parseInt($('rlBetAmount').value);
+    if (!amount || amount <= 0) return alert('Choisis un montant de jeton valide !');
+    S.rlBusy = true;
+    socket.emit('rl-bet', { roomCode: S.code, kind: c.dataset.k, sel: c.dataset.s, amount });
+  });
+  bindOnce($('rlQuick'), 'click', e => {
+    const b = e.target.closest('button'), amt = $('rlBetAmount'); if (!b) return;
+    if (b.dataset.a) amt.value = b.dataset.a;
+  });
+}
+function rlRenderChips() { // jetons dorés sur chaque case jouée + total de la table
+  document.querySelectorAll('.rl-chip').forEach(c => c.remove());
+  const agg = {};
+  S.rlBets.forEach(b => { const key = b.kind + ':' + b.sel; agg[key] = (agg[key] || 0) + b.amount; });
+  Object.entries(agg).forEach(([key, tot]) => {
+    const [k, s] = key.split(':');
+    const cell = document.querySelector(`.rl-cell[data-k="${k}"][data-s="${s}"]`);
+    if (!cell) return;
+    cell.style.position = 'relative';
+    const chip = document.createElement('span'); chip.className = 'rl-chip'; chip.textContent = tot; cell.appendChild(chip);
+  });
+  const total = S.rlBets.reduce((a, b) => a + b.amount, 0);
+  $('rlTotalVal').textContent = total;
+  $('rlBetsCount').textContent = S.rlBets.length + (S.rlBets.length > 1 ? ' paris' : ' pari');
+  $('rlSpinBtn').disabled = !total;
+}
+function rlHistPush(num, color, win) {
+  S.rlHist.unshift({ num, color, win }); S.rlHist.length = Math.min(S.rlHist.length, 14);
+  setH($('rlHist'), S.rlHist.map(h => `<div class="history-pill rl-${h.color}${h.win ? ' cr-win' : ''}" style="background:${h.color === 'red' ? '#b32633' : h.color === 'green' ? '#0f7a44' : '#1c2230'}">${h.num}</div>`).join(''));
+}
+function rlWheelSpin(num, cb) { // animation : la roue tourne puis tombe pile sur le numéro sorti (ordre réel de la roue)
+  const fx = $('rlWheelFx'); if (!fx) return cb();
+  const idx = RL_ORDER.indexOf(num), seg = 360 / 37, target = -(idx * seg + seg / 2);
+  const turns = 4 + Math.floor(Math.random() * 2);
+  fx.animate([{ transform: 'rotate(0deg)' }, { transform: `rotate(${target - turns * 360}deg)` }], { duration: 3400, easing: 'cubic-bezier(.15,.75,.2,1)', fill: 'forwards' })
+    .finished.then(() => { setTimeout(() => { fx.style.transform = `rotate(${target}deg)`; cb(); }, 350); }).catch(() => cb());
+}
+function rlInit() {
+  if (!$('rlTable').children.length) {
+    rlBuildTable();
+    // roue SVG (secteurs aux couleurs réelles, ordre européen) dessinée une fois
+    let sectors = '';
+    RL_ORDER.forEach((n, i) => {
+      const a0 = (i * 360 / 37 - 90) * Math.PI / 180, a1 = ((i + 1) * 360 / 37 - 90) * Math.PI / 180, r = 46;
+      const x0 = 50 + r * Math.cos(a0), y0 = 50 + r * Math.sin(a0), x1 = 50 + r * Math.cos(a1), y1 = 50 + r * Math.sin(a1);
+      const fill = n === 0 ? '#0f7a44' : RL_RED.has(n) ? '#b32633' : '#1c2230';
+      sectors += `<path d="M50 50L${x0.toFixed(2)} ${y0.toFixed(2)}A46 46 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)}Z" fill="${fill}" stroke="rgba(212,162,76,.5)" stroke-width=".4"/>`;
+    });
+    $('rlWheel').innerHTML = `<svg viewBox="0 0 100 100" style="width:110px;height:110px;border-radius:50%;box-shadow:0 0 0 5px #8a5a1c,0 0 0 9px #2b2036,0 8px 22px rgba(0,0,0,.6)">
+      <g id="rlWheelRot" style="transform-origin:50% 50%">${sectors}</g><circle cx="50" cy="50" r="14" fill="#d4a24c"/><circle cx="50" cy="50" r="9" fill="#2b2036"/>
+      <circle cx="50" cy="7" r="2.6" fill="#fff"/></svg>`;
+    S.rlWheelG = $('rlWheelRot');
+    $('rlWheel').appendChild(Object.assign(document.createElement('div'), { className: 'rl-wheelfx', id: 'rlWheelFx' }));
+  }
+  rlRenderChips();
+  $('rlSpinBtn').disabled = !S.rlBets.length;
+}
+function rlSpin() {
+  if (S.rlBusy || !S.rlBets.length) return;
+  S.rlBusy = true; sound('bet');
+  $('rlStatus').textContent = 'Les jeux sont faits… la roue tourne !';
+  socket.emit('rl-spin', { roomCode: S.code });
+}
+const rlClear = () => { if (!S.rlBusy && S.rlBets.length) socket.emit('rl-clear', { roomCode: S.code }); };
+function rlRepeat() { // rejoue la même combinaison de paris (nouvelle mise débitée par le serveur)
+  if (S.rlBusy || !S.rlLast) return;
+  S.rlBusy = true;
+  S.rlLast.forEach(b => socket.emit('rl-bet', { roomCode: S.code, kind: b.kind, sel: b.sel, amount: b.amount }));
+}
+socket.on('rl-result', d => {
+  S.rlBusy = false; S.rlLast = d.betsSnapshot || null;
+  const res = $('rlRes');
+  res.textContent = d.number;
+  res.style.background = d.color === 'red' ? '#b32633' : d.color === 'green' ? '#0f7a44' : '#1c2230';
+  $('rlHash').textContent = d.publicHash;
+  $('rlProof').textContent = `Numéro ${d.number} tiré depuis HMAC-SHA256(graine,"roulette") — graine révélée : ${d.seed} (SHA-256(graine) = hash ci-dessus)`;
+  rlHistPush(d.number, d.color, d.winnings > 0);
+  $('rlStatus').textContent = d.message;
+  sound(d.winnings > 0 ? 'win' : 'miss');
+});
+
+/* ============================================================
+   BLACKJACK 🃏 — règles classiques : 52 cartes, mélange provably fair,
+   croupier stand 17, blackjack payé 3:2, égalité = mise rendue.
+   Probabilités naturelles du jeu, aucun facteur maison artificiel.
+   ============================================================ */
+const BJ_NAMES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+const BJ_SUITS = ['♠', '♥', '♦', '♣']; // 0=pique, 1=cœur, 2=carreau, 3=trèfle (mêmes indices côté serveur)
+const bjCardHtml = (c, hidden) => hidden ? '<div class="bj-card bj-back"></div>'
+  : `<div class="bj-card ${c.s === 1 || c.s === 2 ? 'red' : 'blk'}">${BJ_NAMES[c.r]}${BJ_SUITS[c.s]}<i>${BJ_NAMES[c.r]}${BJ_SUITS[c.s]}</i></div>`;
+// Valeur "soft" d'une carte : as = 11 sinon la valeur faciale (10 pour les figures) — comme le serveur.
+// Le client n'a que les cartes visibles : on affiche donc une fourchette de total quand la cachée est un as.
+const bjSoftVal = c => c.r === 12 ? 11 : Math.min(c.r + 1, 10);
+const bjSum = cards => cards.reduce((a, c) => a + bjSoftVal(c), 0);
+const bjTotalText = (cards, extraMax) => {
+  if (!cards || !cards.length) return '';
+  const sMin = bjSum(cards) - 10 * cards.filter(c => c.r === 12).length; // as revalués à 1
+  const sMax = bjSum(cards) + (extraMax || 0);
+  if (extraMax != null && sMin !== sMax) return `${sMin}-${sMax}`;
+  return String(sMax > 21 && sMin <= 21 ? sMin : sMax); // on privilégie le total qui ne fait pas sauter
+};
+function bjSync(state) { // piloté par sync() : le client suit l'état serveur (main en cours, phase, cartes)
+  if (S.view !== 'bj' || S.bjBusy) return;
+  bjPaint(state);
+}
+function bjPaint(st) {
+  const playing = !!(st && (st.phase === 'player' || st.phase === 'dealer'));
+  const dealerHidden = !!(st && st.phase === 'player');
+  bjRender($('bjPlayer'), st ? st.player : null, st && st.player && st.player.length ? bjTotalText(st.player) : null);
+  bjRender($('bjDealer'), st ? st.dealer : null, st && st.dealer && st.dealer.length ? bjTotalText(st.dealer, dealerHidden ? 11 : 0) : null, dealerHidden);
+  show('bjDealBtn', !playing);
+  show('bjHitBtn', !!(st && st.phase === 'player'));
+  show('bjStandBtn', !!(st && st.phase === 'player'));
+  show('bjDoubleBtn', !!(st && st.phase === 'player' && st.player && st.player.length === 2 && !st.doubled));
+  $('bjBetAmount').disabled = playing;
+  $('bjStatus').textContent = playing ? (st.phase === 'player' ? 'À toi : tirer, rester ou doubler.' : 'Le croupier joue…') : 'Mise, puis distribue !';
+}
+function bjRender(el, cards, score, hideSecond) {
+  if (!el) return;
+  if (!cards || !cards.length) { el.innerHTML = ''; return; }
+  const shown = hideSecond ? [cards[0], null] : cards;
+  el.innerHTML = shown.map(c => bjCardHtml(c, c === null)).join('') +
+    (score ? `<span class="bj-score">${score}</span>` : '');
+}
+function bjHistPush(outcome) {
+  const cls = outcome === 'win' || outcome === 'blackjack' ? 'cr-win' : outcome === 'push' ? '' : 'cr-lose';
+  const txt = { win: 'Gagné', lose: 'Perdu', push: 'Nul', bust: 'Sauté', blackjack: 'BJ!' }[outcome] || outcome;
+  S.bjHist.unshift({ cls, txt }); S.bjHist.length = Math.min(S.bjHist.length, 12);
+  setH($('bjHist'), S.bjHist.map(h => `<div class="history-pill ${h.cls}">${h.txt}</div>`).join(''));
+}
+function bjInit() {
+  if (!S.bjInited) {
+    S.bjInited = true;
+    $('bjQuick').addEventListener('click', e => {
+      const b = e.target.closest('button'), amt = $('bjBetAmount'); if (!b || amt.disabled) return;
+      if (b.dataset.a) amt.value = b.dataset.a;
+      else if (b.dataset.f === 'max') amt.value = S.balance;
+      else amt.value = Math.max(1, Math.floor((parseFloat(amt.value) || 0) * b.dataset.f));
+    });
+  }
+  bjPaint(S.meBj || null);
+}
+function bjDeal() {
+  const amount = parseInt($('bjBetAmount').value);
+  if (!amount || amount <= 0) return alert('Entre une mise valide !');
+  S.bjBusy = true; S.bjWaitDeal = true; sound('bet');
+  $('bjMsg').textContent = ''; $('bjSeed').textContent = '—';
+  socket.emit('bj-deal', { roomCode: S.code, amount });
+}
+const bjHit = () => { if (!S.bjBusy) { S.bjBusy = true; socket.emit('bj-hit', { roomCode: S.code }); } };
+const bjStand = () => { if (!S.bjBusy) { S.bjBusy = true; socket.emit('bj-stand', { roomCode: S.code }); } };
+const bjDouble = () => { if (!S.bjBusy) { S.bjBusy = true; socket.emit('bj-double', { roomCode: S.code }); } };
+socket.on('bj-state', d => {
+  S.bjBusy = false; S.bjWaitDeal = false;
+  if (d.seed) $('bjSeed').textContent = d.seed;
+  // le serveur envoie l'état public + le total exact du joueur ; la carte cachée du croupier n'est pas dans state.dealer
+  const st = d.state;
+  bjRender($('bjPlayer'), st ? st.player : null, d.pScore != null ? String(d.pScore) : '');
+  bjRender($('bjDealer'), st ? st.dealer : null, st && st.phase === 'player' && st.dealer && st.dealer.length ? '?' : '');
+  const playing = !!(st && (st.phase === 'player' || st.phase === 'dealer'));
+  show('bjDealBtn', !playing);
+  show('bjHitBtn', !!(st && st.phase === 'player'));
+  show('bjStandBtn', !!(st && st.phase === 'player'));
+  show('bjDoubleBtn', !!(st && st.phase === 'player' && st.player && st.player.length === 2 && !st.doubled));
+  $('bjBetAmount').disabled = playing;
+  $('bjStatus').textContent = playing ? (st.phase === 'player' ? 'À toi : tirer, rester ou doubler.' : 'Le croupier joue…') : 'Mise, puis distribue !';
+  if (d.message) $('bjMsg').textContent = d.message;
+});
+socket.on('bj-result', d => {
+  S.bjBusy = false; S.bjWaitDeal = false;
+  $('bjSeed').textContent = d.seed;
+  bjRender($('bjPlayer'), d.player, d.pScore);
+  bjRender($('bjDealer'), d.dealer, d.dScore);
+  show('bjHitBtn', false); show('bjStandBtn', false); show('bjDoubleBtn', false); show('bjDealBtn');
+  $('bjBetAmount').disabled = false;
+  $('bjMsg').textContent = d.message;
+  bjHistPush(d.outcome);
+  sound(d.outcome === 'win' || d.outcome === 'blackjack' ? 'win' : d.outcome === 'push' ? 'pop' : 'miss');
+});
+
+Object.assign(window, { createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash, arStart, arThrow, rlSpin, rlClear, rlRepeat, bjDeal, bjHit, bjStand, bjDouble });
 })();
 </script>
 </body>
