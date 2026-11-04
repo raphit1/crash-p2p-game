@@ -15,6 +15,8 @@ const io = new Server(server, { perMessageDeflate: false });
 // index.html doit être dans le dossier "public/"
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+// Petite page ultra légère pour qu'un service de surveillance (UptimeRobot…) "réveille" le serveur toutes les 5 min et l'empêche de s'endormir sur Render gratuit
+app.get('/health', (req, res) => res.type('text/plain').send('ok'));
 // Le client charge les mêmes constantes que le serveur (window.GAMES) : zéro duplication.
 app.get('/shared-constants.js', (req, res) => res.type('application/javascript').sendFile(path.join(__dirname, 'shared-constants.js')));
 
