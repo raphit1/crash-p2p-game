@@ -154,7 +154,7 @@ function publicRoom(room, full = false) {
             slots: p.slots,
             iceState: p.iceState ? {
                 cols: p.iceState.cols, bet: p.iceState.bet, active: p.iceState.active,
-                currentStep: p.iceState.currentStep, path: p.iceState.path,
+                currentStep: p.iceState.currentStep, path: p.iceState.path, lost: !!p.iceState.lost,
                 revealedTraps: p.iceState.revealedTraps, multipliers: p.iceState.multipliers
             } : null,
             jm: p.jm ? { active: p.jm.active, bet: p.jm.bet } : null,
@@ -600,7 +600,9 @@ io.on('connection', (socket) => {
         cr.active = false;
         player.stats.gamesPlayed++; player.stats.wins++; player.stats.totalProfit += winnings - cr.bet;
         if (cr.feedId) feedUpdate(room, cr.feedId, { status: 'won', mult, win: winnings, net: winnings - cr.bet });
-        socket.emit('cr-result', { success: true, cashout: true, step: cr.step, multiplier: mult, winnings, seed: cr.seed, message: `💰 Encaissé : +${winnings} 🪙 (x${mult})` });
+        const cfgN = CR_MODES[cr.mode]; let nextDeadly = null;
+        if (cr.step < cfgN.steps) { const u = parseInt(crypto.createHmac('sha256', cr.seed).update('step:' + (cr.step + 1)).digest('hex').slice(0, 13), 16) / 4503599627370496; nextDeadly = u < cfgN.p; }
+        socket.emit('cr-result', { success: true, cashout: true, step: cr.step, multiplier: mult, winnings, seed: cr.seed, nextDeadly, message: `💰 Encaissé : +${winnings} 🪙 (x${mult})` });
         broadcast(room);
     });
 
@@ -954,7 +956,7 @@ io.on('connection', (socket) => {
         st.revealedTraps[st.currentStep] = trap;
 
         if (trap === tileIndex) {
-            st.active = false;
+            st.active = false; st.lost = true; st.revealedTraps = st.traps.slice(); // fin de traversée : on montre TOUS les pièges, même ceux qu'on n'a pas atteints
             player.stats.gamesPlayed++;
             player.stats.totalProfit -= st.bet;
             if (st.feedId) feedUpdate(room, st.feedId, { status: 'lost', mult: null, win: 0, net: -st.bet }); st.feedId = null;
@@ -965,7 +967,7 @@ io.on('connection', (socket) => {
             if (st.currentStep >= ICE_STEPS) {
                 const mult = st.multipliers[ICE_STEPS - 1], winnings = Math.floor(st.bet * mult);
                 player.balance += winnings;
-                st.active = false;
+                st.active = false; st.revealedTraps = st.traps.slice();
                 player.stats.gamesPlayed++; player.stats.wins++; player.stats.totalProfit += winnings - st.bet;
                 if (st.feedId) feedUpdate(room, st.feedId, { status: 'won', mult, win: winnings, net: winnings - st.bet }); st.feedId = null;
                 socket.emit('icefield-result', { success: true, completed: true, multiplier: mult, winnings, message: `🎉 Traversée réussie ! +${winnings} 🪙` });
@@ -984,7 +986,7 @@ io.on('connection', (socket) => {
 
         const mult = st.multipliers[st.currentStep - 1], winnings = Math.floor(st.bet * mult);
         player.balance += winnings;
-        st.active = false;
+        st.active = false; st.revealedTraps = st.traps.slice(); // encaissé : on dévoile tous les pièges, y compris ceux des colonnes non franchies
         player.stats.gamesPlayed++; player.stats.wins++; player.stats.totalProfit += winnings - st.bet;
         if (st.feedId) feedUpdate(room, st.feedId, { status: 'won', mult, win: winnings, net: winnings - st.bet }); st.feedId = null;
         socket.emit('icefield-result', { success: true, cashout: true, multiplier: mult, winnings, message: `💰 Encaissé : +${winnings} 🪙 (x${mult})` });
