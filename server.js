@@ -43,6 +43,13 @@ function cleanName(name) {
     return String(name || '').trim().slice(0, 20);
 }
 
+// Mise d'entrée en euros (centimes autorisés) ; renvoie null si invalide.
+function parseStake(v) {
+    const n = Math.round(Number(v) * 100) / 100;
+    return Number.isFinite(n) && n >= G.STAKE_MIN_EUR && n <= G.STAKE_MAX_EUR ? n : null;
+}
+const STAKE_ERR = `Mise invalide : entre ${G.STAKE_MIN_EUR} € et ${G.STAKE_MAX_EUR} €.`;
+
 /*
  * Provably fair :
  *  - on publie AVANT la manche : publicHash = SHA256(secretSeed)  (l'engagement)
@@ -106,13 +113,15 @@ function bjScore(cards) { // renvoie [score, main souple] — souple = un as enc
 
 const newSlot = () => ({ bet: 0, next: 0, auto: 0, nextAuto: 0, cashed: false, win: 0 });
 
-function newPlayer(socket, name, isAdmin) {
+function newPlayer(socket, name, isAdmin, stake) {
+    const tokens = Math.round(stake * G.TOKENS_PER_EUR); // 5 € = 500 jetons
     return {
         id: socket.id,
         account: A.key(name), // le compte survit à un rafraîchissement : on retrouve le joueur par ce champ, plus par l'id de socket
         name: cleanName(name),
-        balance: G.START_BALANCE,
-        initialBalance: G.START_BALANCE,
+        stake, // mise d'entrée en € : visible par les autres joueurs, sert au calcul de la redistribution
+        balance: tokens,
+        initialBalance: tokens,
         isAdmin,
         inGame: false,
         connected: true,
@@ -138,6 +147,8 @@ function publicRoom(room, full = false) {
         players: room.players.map(p => ({
             id: p.id,
             name: p.name,
+            stake: p.stake,
+            initialBalance: p.initialBalance,
             balance: p.balance,
             isAdmin: p.isAdmin,
             inGame: p.inGame,
@@ -291,17 +302,36 @@ function finalizeLeave(code, player) {
     broadcast(room);
 }
 
+function removePlayer(room, player) {
+    clearTimeout(player._leave);
+    const idx = room.players.indexOf(player);
+    if (idx === -1) return;
+    room.players.splice(idx, 1);
+    if (!room.players.length || (room.status !== 'ended' && !room.players.some(p => p.connected))) return destroyRoom(room.code);
+    if (player.isAdmin) {
+        player.isAdmin = false;
+        const next = room.players.find(p => p.connected);
+        if (next) next.isAdmin = true;
+    }
+    broadcast(room);
+}
+const dismissEnded = account => accountRooms(account).filter(r => r.status === 'ended').forEach(r => removePlayer(r, r.players.find(p => p.account === account)));
+
 const accountRooms = account => Object.values(rooms).filter(r => r.players.some(p => p.account === account));
 
 // Rattache le compte à sa room (non terminée de préférence) avec la nouvelle socket.
 function resumeRoom(socket, name) {
     const k = A.key(name), list = accountRooms(k);
-    const room = list.find(r => r.status !== 'ended') || list[0];
+    const room = list.find(r => r.status !== 'ended') || list.filter(r => r.result).sort((a, b) => b.endedAt - a.endedAt)[0];
     if (!room) { socket.emit('no-room'); return false; }
     const player = room.players.find(p => p.account === k);
     clearTimeout(player._leave); player._leave = null;
     player.id = socket.id; player.connected = true; player.inCrash = false;
     socket.join(room.code);
+    if (room.status === 'ended') { // session terminée : on réaffiche juste les résultats (pas le jeu)
+        socket.emit('game-session-ended', room.result);
+        return true;
+    }
     socket.emit('resumed', { room: publicRoom(room), started: room.status !== 'waiting' });
     socket.emit('bet-feed', (room.feed || []).slice(0, 30));
     broadcast(room);
@@ -333,12 +363,29 @@ io.on('connection', (socket) => {
             authOk(r.name, token);
         } catch (e) { console.error(e); }
     });
+    // Quitter la room : possible au salon d'attente, ou une fois la session terminée (résultats vus)
+    socket.on('leave-room', () => {
+        const name = socket.data.user;
+        if (!name) return;
+        const k = A.key(name);
+        for (const room of accountRooms(k)) {
+            const player = room.players.find(p => p.account === k);
+            // on peut quitter avant le départ du chrono ou après la fin ; jamais en pleine session (sinon on récupérerait sa mise)
+            const sessionRunning = room.status !== 'waiting' && room.status !== 'ended' && !!room.timers.session;
+            if (!sessionRunning) { socket.leave(room.code); removePlayer(room, player); }
+            else return socket.emit('error-message', 'La session est en cours : tu ne peux pas quitter, ton solde reste en jeu jusqu\'à la fin.');
+        }
+        socket.emit('left-room');
+    });
     socket.on('auth-logout', () => { A.logout(socket.data.token); socket.data.user = null; socket.data.token = null; });
 
-    socket.on('create-room', ({ duration } = {}) => {
+    socket.on('create-room', ({ duration, stake } = {}) => {
         const name = socket.data.user;
         if (!name) return socket.emit('error-message', 'Connecte-toi d\'abord !');
         if (accountRooms(A.key(name)).some(r => r.status !== 'ended')) return resumeRoom(socket, name); // une seule room active par compte
+        const myStake = parseStake(stake);
+        if (myStake === null) return socket.emit('error-message', STAKE_ERR);
+        dismissEnded(A.key(name)); // on quitte les anciennes rooms terminées
 
         const minutes = ALLOWED_DURATIONS.includes(parseInt(duration)) ? parseInt(duration) : 5;
         const durationInSeconds = minutes * 60;
@@ -350,7 +397,7 @@ io.on('connection', (socket) => {
             timeRemaining: durationInSeconds,
             status: 'waiting',
             selectedGame: null,
-            players: [newPlayer(socket, name, true)],
+            players: [newPlayer(socket, name, true, myStake)],
             multiplier: 1.00,
             crashPoint: 0,
             currentHash: '',
@@ -365,7 +412,7 @@ io.on('connection', (socket) => {
         socket.emit('room-created', { roomCode, room: publicRoom(rooms[roomCode]) });
     });
 
-    socket.on('join-room', ({ roomCode } = {}) => {
+    socket.on('join-room', ({ roomCode, stake } = {}) => {
         const code = String(roomCode || '').trim().toUpperCase();
         const room = rooms[code];
         const name = socket.data.user;
@@ -374,10 +421,13 @@ io.on('connection', (socket) => {
         if (!room) return socket.emit('error-message', "Cette room n'existe pas !");
         if (room.players.some(p => p.account === A.key(name))) return resumeRoom(socket, name); // déjà dans cette room : on reprend
         if (accountRooms(A.key(name)).some(r => r.status !== 'ended')) return socket.emit('error-message', 'Tu es déjà dans une autre room en cours.');
+        const myStake = parseStake(stake);
+        if (myStake === null) return socket.emit('error-message', STAKE_ERR);
         if (room.status === 'ended') return socket.emit('error-message', 'La session est terminée !');
         if (room.players.some(p => p.id === socket.id)) return;
 
-        room.players.push(newPlayer(socket, name, false));
+        dismissEnded(A.key(name));
+        room.players.push(newPlayer(socket, name, false, myStake));
         socket.join(code);
 
         socket.emit('joined-success', publicRoom(room));
@@ -979,16 +1029,28 @@ function endSession(room) {
         if (p.bj && (p.bj.phase === 'player' || p.bj.phase === 'dealing')) { p.balance += p.bj.bet; p.bj.phase = 'idle'; }
     });
 
-    const leaderboard = room.players
-        .map(p => ({
-            name: p.name,
-            finalBalance: p.balance,
-            profit: p.balance - p.initialBalance,
-            stats: p.stats
-        }))
-        .sort((a, b) => b.finalBalance - a.finalBalance);
+    // Redistribution du pot : performance de chacun (solde final vs mise de départ), voir G.settlePot
+    const settled = G.settlePot(room.players.map(p => ({ stake: p.stake, initial: p.initialBalance, final: p.balance })));
+    const leaderboard = room.players.map((p, i) => ({
+        name: p.name,
+        stake: p.stake,
+        initialBalance: p.initialBalance,
+        finalBalance: p.balance,
+        profit: p.balance - p.initialBalance,
+        performance: settled.rows[i].perf,
+        payout: settled.rows[i].payoutCents / 100,
+        net: settled.rows[i].netCents / 100,
+        netCents: settled.rows[i].netCents,
+        stats: p.stats
+    })).sort((a, b) => b.netCents - a.netCents || b.finalBalance - a.finalBalance);
+    room.endedAt = Date.now();
+    room.result = {
+        leaderboard,
+        pot: settled.potCents / 100,
+        transfers: G.settleTransfers(leaderboard).map(t => ({ from: t.from, to: t.to, amount: t.cents / 100 }))
+    };
 
-    io.to(room.code).emit('game-session-ended', { leaderboard });
+    io.to(room.code).emit('game-session-ended', room.result);
 
     setTimeout(() => destroyRoom(room.code), ROOM_TTL_AFTER_END);
 }
