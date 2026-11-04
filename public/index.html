@@ -906,7 +906,16 @@ socket.on('crash-state', d => {
 socket.on('room-created', d => enterLobby(d.room));
 socket.on('joined-success', enterLobby);
 socket.on('update-room', sync);
-socket.on('error-message', m => { alert(m); if (S.jmPhase === 'starting') S.jmPhase = 'idle'; });
+socket.on('error-message', m => {
+  alert(m);
+  if (S.jmPhase === 'starting') S.jmPhase = 'idle';
+  // Aucun jeu ne doit rester bloqué si le serveur refuse une action : on libère les verrous et on resynchronise.
+  S.arBusy = false; S.rlBusy = false; S.bjBusy = false;
+  if (S.crWait) { S.crWait = false; crSync(); }
+  if (S.view === 'ar') arControls();
+  if (S.view === 'rl') rlRenderChips();
+  if (S.view === 'bj') bjPaint(S.meBj || null);
+});
 
 socket.on('navigate-to-game', () => { show('lobby', false); show('game-hub'); });
 
@@ -1538,7 +1547,10 @@ socket.on('ar-result', d => {
    ============================================================ */
 // attache un écouteur une seule fois à un conteneur persistant (les clics sont délégués,
 // donc ça continue de marcher quand on régénère le HTML interne)
-const bindOnce = (el, ev, fn) => { if (el && !el._b) { el._b = 1; el.addEventListener(ev, fn); } };
+// ⚠️ bindOnce est volontairement supprimé : c'était LA cause du « gel » de la Roulette et du Blackjack.
+// rlBuildTable() régénère #rlTable en innerHTML à chaque retour sur l'écran ; l'écouteur « une seule fois »
+// restait accroché aux anciens boutons détruits → plus aucun clic ne passait (et S.rlBusy bloquait le reste).
+// Les écouteurs sont désormais attachés directement après chaque création du HTML : toujours vivants, jamais dupliqués.
 const RL_RED = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
 const RL_ORDER = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26]; // ordre réel de la roue
 const rlColor = n => n === 0 ? 'green' : RL_RED.has(n) ? 'red' : 'black';
@@ -1556,15 +1568,17 @@ function rlBuildTable() {
   html += `<button class="rl-cell black" data-k="black" data-s="0">Noir (x2)</button><button class="rl-cell" data-k="odd" data-s="0">Impair (x2)</button><button class="rl-cell" data-k="high" data-s="0">19-36 (x2)</button>`;
   html += `<button class="rl-cell rl-col" data-k="column" data-s="1">Colonne 1 (x3)</button><button class="rl-cell rl-col" data-k="column" data-s="2">Colonne 2 (x3)</button><button class="rl-cell rl-col" data-k="column" data-s="3">Colonne 3 (x3)</button>`;
   html += '</div>';
-  $('rlTable').innerHTML = html; // tapis numéroté + paris extérieurs (dans #rlOut, créé par ce même HTML)
-  bindOnce($('rlTable'), 'click', e => {
+  $('rlTable').innerHTML = html; // tapis numéroté + paris extérieurs, régénéré à chaque retour sur l'écran
+  // Écouteurs attachés APRÈS création du HTML (et donc ré-attachés si on quitte puis revient sur la Roulette) :
+  // c'est ce qui remplace bindOnce, dont l'écouteur « une seule fois » mourait avec l'ancien innerHTML → jeu gelé.
+  $('rlTable').addEventListener('click', e => {
     const c = e.target.closest('.rl-cell'); if (!c || S.rlBusy) return;
     const amount = parseInt($('rlBetAmount').value);
     if (!amount || amount <= 0) return alert('Choisis un montant de jeton valide !');
-    S.rlBusy = true;
+    S.rlBusy = true; // verrou temporaire : libéré dès que le serveur renvoie la table synchronisée (sync → rlRenderChips)
     socket.emit('rl-bet', { roomCode: S.code, kind: c.dataset.k, sel: c.dataset.s, amount });
   });
-  bindOnce($('rlQuick'), 'click', e => {
+  $('rlQuick').addEventListener('click', e => {
     const b = e.target.closest('button'), amt = $('rlBetAmount'); if (!b) return;
     if (b.dataset.a) amt.value = b.dataset.a;
   });
@@ -1584,6 +1598,7 @@ function rlRenderChips() { // jetons dorés sur chaque case jouée + total de la
   $('rlTotalVal').textContent = total;
   $('rlBetsCount').textContent = S.rlBets.length + (S.rlBets.length > 1 ? ' paris' : ' pari');
   $('rlSpinBtn').disabled = !total;
+  S.rlBusy = false; // la table reçue du serveur est la preuve que le dernier jeton est passé → on déverrouille les clics
 }
 function rlHistPush(num, color, win) {
   S.rlHist.unshift({ num, color, win }); S.rlHist.length = Math.min(S.rlHist.length, 14);
