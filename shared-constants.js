@@ -13,12 +13,12 @@
 
     const RTP = 0.985; // espérance de gain cible : 98,5 % sur Crash, Icefield, Just mixed, Chicken Road, Arrows X
     const START_BALANCE = 1000; // solde initial d'un joueur dans une room
-    const MAX_BET = 100000;     // plafond de mise par tour (anti-abus / anti-overflow)
+    const MAX_BET = 1000000;     // plafond de mise par tour (anti-abus / anti-overflow)
 
     /* --------- Mise d'entrée en euros, jetons et redistribution du pot --------- */
     const TOKENS_PER_EUR = 100; // 5 € = 500 jetons
-    const STAKE_MIN_EUR = 1;    // mise d'entrée minimale dans une room
-    const STAKE_MAX_EUR = 100;  // plafond de sécurité par joueur (modifiable ici)
+    const STAKE_MIN_EUR = 0.1;  // mise d'entrée minimale dans une room
+    const STAKE_MAX_EUR = 1500;  // plafond de sécurité par joueur (modifiable ici)
     const PERF_FLOOR = 0.10;    // plancher du facteur de performance
 
     // Redistribution du pot (tout est calculé en centimes entiers pour ne perdre aucun centime).
