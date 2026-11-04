@@ -294,7 +294,7 @@ ul{padding-left:20px;text-align:left}
             </div>
             <div class="card">
                 <h3>Rejoindre une Room</h3>
-                <input type="text" id="roomCodeInput" placeholder="Code de la room (ex: CRASH-XXXX)">
+                <input type="text" id="roomCodeInput" placeholder="Code à 4 caractères (ex: K7M2)" maxlength="10" autocapitalize="characters" onkeydown="if(event.key==='Enter')joinRoom()">
                 <button onclick="joinRoom()">Rejoindre</button>
             </div>
             </div>
