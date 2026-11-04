@@ -63,19 +63,80 @@ function generateProvablyFairRound() {
 }
 
 const ICE_STEPS = 8;
-// Just mixed : 2 chances sur 3 de gagner, gain = RTP / probabilité = 0.992 / (2/3) = x1.488
-const JM_RTP = 0.992, JM_MULT = Math.round(JM_RTP / (2 / 3) * 1000) / 1000;
+// Just mixed : 2 chances sur 3 de gagner, gain = RTP / probabilité = 0.985 / (2/3) = x1.478
+const JM_RTP = 0.985, JM_MULT = Math.round(JM_RTP / (2 / 3) * 1000) / 1000;
 function calculateIcefieldMultiplier(cols, step) {
-    return parseFloat((0.98 / Math.pow((cols - 1) / cols, step)).toFixed(2));
+    return parseFloat((0.985 / Math.pow((cols - 1) / cols, step)).toFixed(2));
 }
 
 // Chicken Road : p = probabilité de mourir à chaque pas ; multiplicateur du pas k = RTP / (1 - p)^k
-// => l'espérance de gain est de 89 % quel que soit le pas où le joueur encaisse (multiplicateurs "équivalents" au risque)
-// Avec 89 % de RTP, le risque par voie doit rester >= 11 % pour que le multiplicateur de la 1re voie soit au moins x1.00
-const CR_RTP = 0.89;
+// => l'espérance de gain est de 98,5 % quel que soit le pas où le joueur encaisse (multiplicateurs "équivalents" au risque)
+// Avec 98,5 % de RTP, le risque par voie doit rester >= 1,5 % pour que le multiplicateur de la 1re voie soit au moins x1.00
+const CR_RTP = 0.985;
 const CR_MODES = { easy: { steps: 24, p: 0.12 }, medium: { steps: 22, p: 0.20 }, hard: { steps: 20, p: 0.33 } };
 const crMultiplier = (mode, k) => Math.floor(CR_RTP / Math.pow(1 - CR_MODES[mode].p, k) * 100) / 100;
 const weightedRound = raw => { const fl = Math.floor(raw); return fl + (crypto.randomInt(1000000) / 1000000 < raw - fl ? 1 : 0); };
+
+/*
+ * Arrows X : fléchettes sur cible annulaire, RTP exact 98,5 %.
+ * Chaque table = [multiplicateur, poids]. "hit" est résolu algébriquement pour que l'espérance
+ * soit exactement 0,985 : hit = AR_RTP × Σpoids / Σ(multiplicateur × poids)  (aucun arrondi).
+ * Probabilité d'un anneau = poids/Σpoids × hit ; le reste (1 - hit) = la flèche tombe à côté -> x0.
+ * Les mêmes constantes sont codées en dur côté client (comme CR_MODES) pour les animations et l'affichage.
+ */
+const AR_RTP = 0.985;
+const AR_MODES = {
+    easy:   { name: 'Facile',    max: 20,  rows: [[0.5,2],[0.6,5],[0.7,7],[0.8,7],[0.9,7],[1,11],[1.25,6],[1.5,5],[2,4],[3,3],[4,2],[5,1.5],[8,1],[10,0.6],[20,0.3]] },
+    medium: { name: 'Moyen',     max: 100, rows: [[0.5,5],[0.6,7],[0.7,8],[0.8,12],[0.9,10],[1,10],[1.5,10],[2,8],[3,6],[4,4],[5,3],[8,2.5],[10,1.7],[25,1],[50,0.5],[100,0.3]] },
+    hard:   { name: 'Difficile', max: 500, rows: [[0.5,10],[0.6,10],[0.7,10],[0.8,12],[0.9,10],[1,8],[1.5,7],[2,6],[3,5],[4,4],[5,3],[8,2.5],[10,2],[25,1.5],[100,1],[500,0.5]] }
+};
+// Table normalisée [{ m, p, from, to }] — calculée une seule fois puis mise en cache ("_t").
+// Le raté (flèche à côté, x0) vaut (1 - hit) et est testé avant le tirage de l'anneau.
+function arrowTable(mode) {
+    const cfg = AR_MODES[mode];
+    if (!cfg) return null;
+    if (!cfg._t) {
+        const tot = cfg.rows.reduce((a, r) => a + r[1], 0);
+        const wsum = cfg.rows.reduce((a, [m, w]) => a + m * w, 0);
+        const hit = AR_RTP * tot / wsum; // espérance garantie = AR_RTP
+        let acc = 0;
+        cfg._t = cfg.rows.map(([m, w]) => { const p = w / tot * hit; const from = acc; acc += p; return { m, p, from, to: acc }; });
+        cfg.hit = hit;
+    }
+    return cfg._t;
+}
+
+// Roulette européenne : tapis classique 0-36 (roue et probabilités réelles), payout plein x36 (avantage du 0 = house edge 2,70 %)
+const RL_RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
+const RL_ORDER = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
+const rlColor = n => n === 0 ? 'green' : RL_RED.has(n) ? 'red' : 'black';
+const RL_BETS = { red: 2, black: 2, odd: 2, even: 2, low: 2, high: 2, dozen: 3, column: 3, straight: 36 };
+function rlWin(kind, num, sel) { // sel = numéro visé (ou groupe : 1-12/1-3/0-35 selon le type)
+    switch (kind) {
+        case 'straight': return num === sel;
+        case 'red':   return rlColor(num) === 'red';
+        case 'black': return rlColor(num) === 'black';
+        case 'odd':   return num !== 0 && num % 2 === 1;
+        case 'even':  return num !== 0 && num % 2 === 0;
+        case 'low':   return num >= 1 && num <= 18;
+        case 'high':  return num >= 19 && num <= 36;
+        case 'dozen': return Math.floor((num - 1) / 12) + 1 === sel && num !== 0;
+        case 'column': return num !== 0 && ((num - 1) % 3) + 1 === sel;
+        default: return false;
+    }
+}
+
+// Blackjack classique : règles standard, probabilités naturelles du jeu (pas de facteur maison artificiel).
+// Croupier tire jusqu'à 17 (stand 17), blackjack naturel payé 3:2, assurance et split non proposés.
+const BJ_DECK = (() => { const suits = ['♠', '♥', '♦', '♣'], d = []; for (let s = 0; s < 4; s++) for (let r = 0; r < 13; r++) d.push({ r, s }); return d; })();
+const bjVal = r => (r === 0 ? 10 : r === 12 ? 11 : Math.min(r + 1, 10)); // r: 0=As, 1..10 = 2..10 (J/Q/K valent 10)
+const bjName = r => ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'][r];
+function bjScore(cards) { // renvoie [score, main souple] — souple = un as encore compté 11
+    let total = 0, soft = 0;
+    for (const c of cards) { total += bjVal(c.r); if (c.r === 12) soft++; }
+    while (total > 21 && soft > 0) { total -= 10; soft--; }
+    return [total, soft > 0];
+}
 
 const newSlot = () => ({ bet: 0, next: 0, auto: 0, nextAuto: 0, cashed: false, win: 0 });
 
@@ -122,6 +183,9 @@ function publicRoom(room, full = false) {
             } : null,
             jm: p.jm ? { active: p.jm.active, bet: p.jm.bet } : null,
             cr: p.cr ? { active: p.cr.active, bet: p.cr.bet, mode: p.cr.mode, step: p.cr.step } : null,
+            ar: p.ar ? { active: p.ar.active, bet: p.ar.bet, mode: p.ar.mode } : null,
+            rl: p.rl ? { active: p.rl.active, total: p.rl.total, bets: p.rl.bets.map(b => ({ kind: b.kind, sel: b.sel, amount: b.amount })) } : null,
+            bj: p.bj ? bjPublic(p.bj) : null,
             stats: p.stats
         })),
         history: full ? room.history : undefined // l'historique n'est envoyé qu'aux joueurs de la table Crash
@@ -400,6 +464,220 @@ io.on('connection', (socket) => {
         broadcast(room);
     });
 
+    /* ---------------- Arrows X (fléchettes sur cible, 3 modes, RTP exact 98,5 %) ---------------- */
+    socket.on('ar-start', ({ roomCode, amount, mode } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        if (!room || !player || !player.inGame || room.status === 'ended') return;
+        if (player.ar && player.ar.active) return socket.emit('error-message', 'Lancer Arrows X déjà en cours !');
+        if (!AR_MODES[mode]) return;
+
+        amount = Math.floor(Number(amount));
+        if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
+        if (player.balance < amount) return socket.emit('error-message', 'Solde insuffisant !');
+
+        player.balance -= amount;
+        const seed = crypto.randomBytes(16).toString('hex');
+        player.ar = { active: true, bet: amount, mode, seed };
+        socket.emit('ar-started', { hash: crypto.createHash('sha256').update(seed).digest('hex') });
+        broadcast(room);
+    });
+
+    socket.on('ar-throw', ({ roomCode } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        const ar = player && player.ar;
+        if (!room || !ar || !ar.active || room.status === 'ended') return;
+
+        arrowTable(ar.mode); // construit/cache la table normalisée
+        const cfg = AR_MODES[ar.mode];
+        // u = HMAC(secretSeed,"arrow") -> [0,1) : provably fair, vérifiable à la révélation de la graine
+        const u = parseInt(crypto.createHmac('sha256', ar.seed).update('arrow').digest('hex').slice(0, 13), 16) / 4503599627370496;
+        let mult = 0;
+        if (u >= 1 - cfg.hit) { // la flèche touche la cible : on cherche l'anneau (recherche par bornes from/to)
+            const v = (u - (1 - cfg.hit)) / cfg.hit;
+            const t = cfg._t;
+            let i = 0, hi = t.length - 1;
+            while (i < hi) { const mid = (i + hi) >> 1; if (v < t[mid].to) hi = mid; else i = mid + 1; }
+            mult = t[i].m;
+        }
+        const hit = mult > 0, winnings = hit ? weightedRound(ar.bet * mult) : 0;
+        if (hit) player.balance += winnings;
+        ar.active = false;
+        player.stats.gamesPlayed++;
+        if (hit) player.stats.wins++;
+        player.stats.totalProfit += winnings - ar.bet;
+
+        socket.emit('ar-result', {
+            success: hit, multiplier: hit ? mult : 0, winnings, seed: ar.seed, u: u.toFixed(10), mode: ar.mode, bet: ar.bet,
+            message: hit ? `🎯 Dans le mille ! x${mult} → +${winnings} 🪙` : '💨 Raté ! La fléchette tombe à côté de la cible…'
+        });
+        broadcast(room);
+    });
+
+    /* ---------------- Roulette européenne (probabilités classiques, plein x36, edge naturel du 0) ---------------- */
+    // player.rl = { active, bets:[{kind,sel,amount}], total } ; les mises sont débitées jeton par jeton puis remboursées au tour
+    socket.on('rl-clear', ({ roomCode } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        if (!room || !player || !player.rl || player.rl.active) return;
+        player.balance += player.rl.total;
+        player.rl = { active: false, bets: [], total: 0 };
+        broadcast(room);
+    });
+
+    socket.on('rl-bet', ({ roomCode, kind, sel, amount } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        if (!room || !player || !player.inGame || room.status === 'ended') return;
+        if (player.rl && player.rl.active) return socket.emit('error-message', 'Tirage en cours, attends la fin du tour !');
+        if (!RL_BETS[kind]) return;
+        sel = parseInt(sel);
+        if (kind === 'straight' && !(sel >= 0 && sel <= 36)) return;
+        if (kind === 'dozen' && !(sel >= 1 && sel <= 3)) return;
+        if (kind === 'column' && !(sel >= 1 && sel <= 3)) return;
+        if (!['straight', 'dozen', 'column'].includes(kind)) sel = 0;
+
+        amount = Math.floor(Number(amount));
+        if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
+        if (player.balance < amount) return socket.emit('error-message', 'Solde insuffisant !');
+
+        if (!player.rl) player.rl = { active: false, bets: [], total: 0 };
+        player.balance -= amount;
+        player.rl.total += amount;
+        player.rl.bets.push({ kind, sel, amount });
+        broadcast(room);
+    });
+
+    socket.on('rl-spin', ({ roomCode } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        const rl = player && player.rl;
+        if (!room || !rl || rl.active || !rl.bets.length || room.status === 'ended') return;
+
+        rl.active = true;
+        const stake = rl.total;
+        const seed = crypto.randomBytes(16).toString('hex');
+        const publicHash = crypto.createHash('sha256').update(seed).digest('hex');
+        const u = parseInt(crypto.createHmac('sha256', seed).update('roulette').digest('hex').slice(0, 13), 16) / 4503599627370496;
+        const num = Math.floor(u * 37); // 0..36 équiprobables : roue européenne réelle (un seul zéro)
+
+        let rawReturn = 0;
+        for (const b of rl.bets) if (rlWin(b.kind, num, b.sel)) rawReturn += b.amount * RL_BETS[b.kind];
+        const winnings = weightedRound(rawReturn);
+        player.balance += winnings;
+
+        const betsSnapshot = rl.bets.slice(); // copié avant reset : le client s'en sert pour le bouton "Rejouer"
+        rl.active = false; rl.bets = []; rl.total = 0;
+        player.stats.gamesPlayed++;
+        if (winnings > 0) player.stats.wins++;
+        player.stats.totalProfit += winnings - stake;
+
+        const cname = rlColor(num) === 'green' ? 'vert' : rlColor(num) === 'red' ? 'rouge' : 'noir';
+        socket.emit('rl-result', { number: num, color: rlColor(num), stake, winnings, seed, publicHash, betsSnapshot,
+            message: winnings > 0 ? `🎉 Le ${num} ${cname} ! +${winnings} 🪙` : `😬 Le ${num} ${cname}… perdu !` });
+        broadcast(room);
+    });
+
+    /* ---------------- Blackjack classique (règles et probabilités naturelles du jeu) ---------------- */
+    // player.bj = { phase:'idle'|'dealing'|'player'|'dealer', bet, doubled, seed, deck, player[], dealer[], holeRevealed }
+    function bjPublic(bj) { // état public d'une main : la pile reste secrète, la carte cachée n'est révélée qu'au bon moment
+        if (!bj) return null;
+        return { phase: bj.phase === 'dealing' ? 'player' : bj.phase, bet: bj.bet, doubled: !!bj.doubled,
+            player: bj.player, dealer: bj.dealer.slice(0, bj.holeRevealed ? 99 : 1) };
+    }
+
+    socket.on('bj-deal', ({ roomCode, amount } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        if (!room || !player || !player.inGame || room.status === 'ended') return;
+        if (player.bj && (player.bj.phase === 'dealing' || player.bj.phase === 'player')) return socket.emit('error-message', 'Main déjà en cours !');
+
+        amount = Math.floor(Number(amount));
+        if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
+        if (player.balance < amount) return socket.emit('error-message', 'Solde insuffisant !');
+
+        player.balance -= amount;
+        // mélange provably fair : Fisher-Yates piloté par HMAC(seed, "shuffle:i") — la graine est révélée à la fin de la main
+        const seed = crypto.randomBytes(16).toString('hex');
+        const deck = BJ_DECK.slice();
+        for (let i = deck.length - 1; i > 0; i--) {
+            const j = parseInt(crypto.createHmac('sha256', seed).update('shuffle:' + i).digest('hex').slice(0, 8), 16) % (i + 1);
+            [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+        const draw = () => deck.pop();
+        player.bj = { phase: 'dealing', bet: amount, doubled: false, seed, deck, player: [draw(), draw()], dealer: [draw(), draw()], holeRevealed: false };
+        broadcast(room);
+        bjFinishDeal(room, player);
+    });
+
+    function bjFinishDeal(room, player) {
+        const bj = player.bj, ps = bjScore(bj.player), ds = bjScore(bj.dealer);
+        const pBJ = ps[0] === 21 && bj.player.length === 2, dBJ = ds[0] === 21 && bj.dealer.length === 2;
+        bj.holeRevealed = true;
+        if (pBJ || dBJ) { bjSettle(room, player, pBJ && !dBJ ? 'blackjack' : pBJ && dBJ ? 'push' : 'lose'); return; }
+        bj.phase = 'player';
+        bjSend(room, player, { message: 'À toi de jouer : tirer ou rester ?' });
+    }
+
+    function bjSend(room, player, extra = {}) { // la graine est envoyée avec chaque état : le client l'affiche dès la donne
+        socket.emit('bj-state', Object.assign({ state: bjPublic(player.bj), seed: player.bj ? player.bj.seed : null,
+            pScore: player.bj && player.bj.phase !== 'idle' ? bjScore(player.bj.player)[0] : null }, extra));
+    }
+
+    socket.on('bj-hit', ({ roomCode } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        const bj = player && player.bj;
+        if (!room || !bj || bj.phase !== 'player' || room.status === 'ended') return;
+        bj.player.push(bj.deck.pop());
+        const [t] = bjScore(bj.player);
+        if (t > 21) bjSettle(room, player, 'bust');
+        else { broadcast(room); bjSend(room, player, { message: t === 21 ? '21 ! Tu peux rester.' : `Tu as ${t}. Tirer encore ?` }); }
+    });
+
+    socket.on('bj-stand', ({ roomCode } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        const bj = player && player.bj;
+        if (!room || !bj || bj.phase !== 'player' || room.status === 'ended') return;
+        bjPlayDealer(bj);
+        const [pt] = bjScore(bj.player), [dt] = bjScore(bj.dealer);
+        bjSettle(room, player, dt > 21 ? 'win' : pt > dt ? 'win' : pt === dt ? 'push' : 'lose');
+    });
+
+    socket.on('bj-double', ({ roomCode } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        const bj = player && player.bj;
+        if (!room || !bj || bj.phase !== 'player' || bj.doubled || bj.player.length !== 2 || room.status === 'ended') return;
+        if (player.balance < bj.bet) return socket.emit('error-message', 'Solde insuffisant pour doubler !');
+        player.balance -= bj.bet;
+        bj.bet *= 2; bj.doubled = true;
+        bj.player.push(bj.deck.pop());
+        if (bjScore(bj.player)[0] > 21) bjSettle(room, player, 'bust');
+        else { bjPlayDealer(bj);
+            const [pt] = bjScore(bj.player), [dt] = bjScore(bj.dealer);
+            bjSettle(room, player, dt > 21 ? 'win' : pt > dt ? 'win' : pt === dt ? 'push' : 'lose'); }
+    });
+
+    function bjPlayDealer(bj) { // règle classique : le croupier tire jusqu'à 17 (il s'arrête sur 17 souple aussi)
+        bj.phase = 'dealer'; bj.holeRevealed = true;
+        do { bj.dealer.push(bj.deck.pop()); } while (bjScore(bj.dealer)[0] < 17);
+    }
+
+    function bjSettle(room, player, outcome) {
+        const bj = player.bj;
+        if (!bj || bj.phase === 'idle') return;
+        let winnings = 0, msg = '';
+        if (outcome === 'blackjack') { winnings = Math.floor(bj.bet * 2.5); msg = `♠️ BLACKJACK ! +${winnings} 🪙 (payé 3:2)`; }
+        else if (outcome === 'win') { winnings = bj.bet * 2; msg = `🎉 Gagné ! +${winnings} 🪙`; }
+        else if (outcome === 'push') { winnings = bj.bet; msg = '🤝 Égalité : mise rendue.'; }
+        else if (outcome === 'bust') { msg = `💥 Tu as sauté (${bjScore(bj.player)[0]}) : perdu !`; }
+        else { msg = `😬 Le croupier gagne (${bjScore(bj.dealer)[0]}) : perdu !`; }
+
+        player.balance += winnings;
+        player.stats.gamesPlayed++;
+        if (outcome === 'win' || outcome === 'blackjack') player.stats.wins++;
+        player.stats.totalProfit += winnings - bj.bet;
+
+        socket.emit('bj-result', { outcome, winnings, message: msg, seed: bj.seed,
+            player: bj.player, dealer: bj.dealer, pScore: bjScore(bj.player)[0], dScore: bjScore(bj.dealer)[0] });
+        bj.phase = 'idle';
+        broadcast(room);
+    }
+
     /* ---------------- Icefield (le Yéti avance de gauche à droite) ---------------- */
     socket.on('icefield-start-game', ({ roomCode, amount, cols } = {}) => {
         const { room, player } = findPlayer(socket, roomCode);
@@ -537,6 +815,13 @@ function endSession(room) {
 
     // une traversée Icefield en cours à la fin de la session est remboursée
     room.players.forEach(p => { if (p.iceState && p.iceState.active) { p.balance += p.iceState.bet; p.iceState.active = false; } if (p.jm && p.jm.active) { p.balance += p.jm.bet; p.jm.active = false; } if (p.cr && p.cr.active) { p.balance += p.cr.bet; p.cr.active = false; } });
+
+    // les parties Arrows X, Roulette et Blackjack en cours à la fin de la session sont remboursées
+    room.players.forEach(p => {
+        if (p.ar && p.ar.active) { p.balance += p.ar.bet; p.ar.active = false; }
+        if (p.rl && p.rl.active) { p.balance += p.rl.total; p.rl.active = false; p.rl.bets = []; p.rl.total = 0; }
+        if (p.bj && (p.bj.phase === 'player' || p.bj.phase === 'dealing')) { p.balance += p.bj.bet; p.bj.phase = 'idle'; }
+    });
 
     const leaderboard = room.players
         .map(p => ({
