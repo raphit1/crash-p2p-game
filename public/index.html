@@ -274,7 +274,7 @@ ul{padding-left:20px;text-align:left}
                 <h3>💶 Ta mise d'entrée</h3>
                 <p style="font-size:13px;color:#94a3b8;margin:0 0 8px">Tu entres dans la room avec cette somme, que les autres joueurs voient. Elle est convertie en jetons, et à la fin le pot est redistribué selon la performance de chacun.</p>
                 <div class="quick-bet-row"><button class="quick-btn" onclick="setStake(5)">5 €</button><button class="quick-btn" onclick="setStake(10)">10 €</button><button class="quick-btn" onclick="setStake(20)">20 €</button><button class="quick-btn" onclick="setStake(50)">50 €</button></div>
-                <input type="number" id="stakeInput" value="10" min="1" max="100" step="0.5" inputmode="decimal" oninput="onStakeInput()" placeholder="Autre montant en €">
+                <input type="number" id="stakeInput" value="10" min="0.1" max="1500" step="0.1" inputmode="decimal" oninput="onStakeInput()" placeholder="Autre montant en €">
                 <p id="stakeInfo" style="font-size:13px;color:#22c55e;margin:4px 0 0"></p>
             </div>
             <div class="card">
@@ -814,7 +814,7 @@ const toggleMusic = () => { const i = Snd.toggle() ? '🎵' : '🔇'; document.q
 let lastShown = 1;
 
 /* ---------- Actions (appelées par les onclick du HTML) ---------- */
-const TOKENS_PER_EUR = 100, STAKE_MIN = 1, STAKE_MAX = 100; // mêmes valeurs que le serveur (c'est lui qui a le dernier mot)
+const TOKENS_PER_EUR = 100, STAKE_MIN = 0.1, STAKE_MAX = 1500, STAKE_RANGE = '0,10 € et 1500 €'; // mêmes valeurs que le serveur (c'est lui qui a le dernier mot)
 const eur = n => (Math.round(n * 100) / 100).toFixed(2).replace('.', ',') + ' €';
 function stakeValue() {
   const n = Math.round(parseFloat(String($('stakeInput').value).replace(',', '.')) * 100) / 100;
@@ -822,20 +822,20 @@ function stakeValue() {
 }
 function onStakeInput() {
   const v = stakeValue();
-  $('stakeInfo').textContent = v === null ? `Entre ${STAKE_MIN} € et ${STAKE_MAX} €` : `= ${Math.round(v * TOKENS_PER_EUR).toLocaleString('fr-FR')} jetons (1 € = ${TOKENS_PER_EUR} 🪙)`;
+  $('stakeInfo').textContent = v === null ? `Entre ${STAKE_RANGE}` : `= ${Math.round(v * TOKENS_PER_EUR).toLocaleString('fr-FR')} jetons (1 € = ${TOKENS_PER_EUR} 🪙)`;
 }
 function setStake(v) { $('stakeInput').value = v; onStakeInput(); }
 function leaveRoom() { socket.emit('leave-room'); }
 socket.on('left-room', () => location.reload());
 function createRoom() {
   if (!S.myName) return alert('Connecte-toi d\'abord !');
-  const stake = stakeValue(); if (stake === null) return alert(`Mise invalide : entre ${STAKE_MIN} € et ${STAKE_MAX} €.`);
+  const stake = stakeValue(); if (stake === null) return alert(`Mise invalide : entre ${STAKE_RANGE}.`);
   Snd.unlock(); socket.emit('create-room', { duration: $('duration').value, stake });
 }
 function joinRoom() {
   const roomCode = $('roomCodeInput').value.trim().toUpperCase();
   if (!roomCode) return alert('Entre le code de la room !');
-  const stake = stakeValue(); if (stake === null) return alert(`Mise invalide : entre ${STAKE_MIN} € et ${STAKE_MAX} €.`);
+  const stake = stakeValue(); if (stake === null) return alert(`Mise invalide : entre ${STAKE_RANGE}.`);
   Snd.unlock(); socket.emit('join-room', { roomCode, stake });
 }
 onStakeInput();
