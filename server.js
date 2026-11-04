@@ -3,6 +3,7 @@ const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
 const crypto = require('crypto');
+const A = require('./accounts');
 // Constantes et formules de probabilité PARTAGÉES avec le client (une seule source de vérité).
 // Servi au navigateur via GET /shared-constants.js (voir plus bas) : le client l'expose en window.GAMES.
 const G = require('./shared-constants');
@@ -108,6 +109,7 @@ const newSlot = () => ({ bet: 0, next: 0, auto: 0, nextAuto: 0, cashed: false, w
 function newPlayer(socket, name, isAdmin) {
     return {
         id: socket.id,
+        account: A.key(name), // le compte survit à un rafraîchissement : on retrouve le joueur par ce champ, plus par l'id de socket
         name: cleanName(name),
         balance: G.START_BALANCE,
         initialBalance: G.START_BALANCE,
@@ -237,15 +239,104 @@ function bjPublic(bj) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Comptes : reprise de room après rafraîchissement / coupure         */
+/* ------------------------------------------------------------------ */
+const LEAVE_GRACE = 90 * 1000; // délai avant qu'un joueur déconnecté soit réellement retiré
+
+function settlePending(room, player) { // règle les parties en cours d'un joueur qui part pour de bon
+            // les lignes "en cours" du panneau latéral se règlent proprement à la déconnexion (pas de ligne bloquée en pending)
+            if (player.cr && player.cr.active) {
+                if (player.cr.feedId) feedUpdate(room, player.cr.feedId, { status: 'lost', win: 0, net: -player.cr.bet });
+                player.cr.active = false;
+            }
+            if (player.ar && player.ar.active) {
+                if (player.ar.feedId) feedUpdate(room, player.ar.feedId, { status: 'lost', win: 0, net: -player.ar.bet });
+                player.ar.active = false;
+            }
+            if (player.jm && player.jm.active) {
+                if (player.jm.feedId) feedUpdate(room, player.jm.feedId, { status: 'lost', win: 0, net: -player.jm.bet });
+                player.jm.active = false;
+            }
+            if (player.iceState && player.iceState.active) {
+                if (player.iceState.feedId) feedUpdate(room, player.iceState.feedId, { status: 'lost', win: 0, net: -player.iceState.bet });
+                player.iceState.active = false;
+            }
+            if (player.rl && player.rl.active) {
+                if (player.rl.feedId) feedUpdate(room, player.rl.feedId, { status: 'lost', win: 0, net: -player.rl.total });
+                player.rl.active = false;
+            }
+            if (player.bj && (player.bj.phase === 'dealing' || player.bj.phase === 'player')) {
+                if (player.bj.feedId) feedUpdate(room, player.bj.feedId, { status: 'lost', win: 0, net: -player.bj.bet });
+                player.bj.phase = 'idle';
+            }
+            player.slots.forEach(sl => {
+                if (sl.bet > 0 && !sl.cashed && sl.feedId) feedUpdate(room, sl.feedId, { status: 'lost', win: 0, net: -sl.bet });
+                sl.feedId = null;
+            });
+}
+
+function finalizeLeave(code, player) {
+    const room = rooms[code];
+    if (!room || player.connected) return;
+    const idx = room.players.indexOf(player);
+    if (idx === -1) return;
+    settlePending(room, player);
+    if (room.status === 'waiting' || room.status === 'choosing_game') room.players.splice(idx, 1);
+    if (!room.players.some(p => p.connected)) return destroyRoom(code);
+    if (player.isAdmin) {
+        player.isAdmin = false;
+        const next = room.players.find(p => p.connected);
+        if (next) next.isAdmin = true;
+    }
+    broadcast(room);
+}
+
+const accountRooms = account => Object.values(rooms).filter(r => r.players.some(p => p.account === account));
+
+// Rattache le compte à sa room (non terminée de préférence) avec la nouvelle socket.
+function resumeRoom(socket, name) {
+    const k = A.key(name), list = accountRooms(k);
+    const room = list.find(r => r.status !== 'ended') || list[0];
+    if (!room) { socket.emit('no-room'); return false; }
+    const player = room.players.find(p => p.account === k);
+    clearTimeout(player._leave); player._leave = null;
+    player.id = socket.id; player.connected = true; player.inCrash = false;
+    socket.join(room.code);
+    socket.emit('resumed', { room: publicRoom(room), started: room.status !== 'waiting' });
+    socket.emit('bet-feed', (room.feed || []).slice(0, 30));
+    broadcast(room);
+    return true;
+}
+
+/* ------------------------------------------------------------------ */
 /*  Sockets                                                            */
 /* ------------------------------------------------------------------ */
 
 io.on('connection', (socket) => {
     console.log(`Connexion : ${socket.id}`);
+    const ip = socket.handshake.address || '';
 
-    socket.on('create-room', ({ playerName, duration } = {}) => {
-        const name = cleanName(playerName);
-        if (!name) return socket.emit('error-message', 'Pseudo invalide !');
+    // ---- Comptes ----
+    const authOk = (name, token) => { socket.data.user = name; socket.data.token = token; socket.emit('auth-ok', { name, token }); resumeRoom(socket, name); };
+    socket.on('auth-register', async ({ username, password } = {}) => {
+        try { const r = await A.register(username, password); r.error ? socket.emit('auth-error', r.error) : authOk(r.name, r.token); }
+        catch (e) { console.error(e); socket.emit('auth-error', 'Erreur serveur.'); }
+    });
+    socket.on('auth-login', async ({ username, password } = {}) => {
+        try { const r = await A.login(username, password, ip); r.error ? socket.emit('auth-error', r.error) : authOk(r.name, r.token); }
+        catch (e) { console.error(e); socket.emit('auth-error', 'Erreur serveur.'); }
+    });
+    socket.on('auth-token', ({ token } = {}) => {
+        const r = A.resume(token);
+        if (!r) return socket.emit('auth-invalid');
+        authOk(r.name, token);
+    });
+    socket.on('auth-logout', () => { A.logout(socket.data.token); socket.data.user = null; socket.data.token = null; });
+
+    socket.on('create-room', ({ duration } = {}) => {
+        const name = socket.data.user;
+        if (!name) return socket.emit('error-message', 'Connecte-toi d\'abord !');
+        if (accountRooms(A.key(name)).some(r => r.status !== 'ended')) return resumeRoom(socket, name); // une seule room active par compte
 
         const minutes = ALLOWED_DURATIONS.includes(parseInt(duration)) ? parseInt(duration) : 5;
         const durationInSeconds = minutes * 60;
@@ -272,13 +363,15 @@ io.on('connection', (socket) => {
         socket.emit('room-created', { roomCode, room: publicRoom(rooms[roomCode]) });
     });
 
-    socket.on('join-room', ({ roomCode, playerName } = {}) => {
+    socket.on('join-room', ({ roomCode } = {}) => {
         const code = String(roomCode || '').trim().toUpperCase();
         const room = rooms[code];
-        const name = cleanName(playerName);
+        const name = socket.data.user;
 
+        if (!name) return socket.emit('error-message', 'Connecte-toi d\'abord !');
         if (!room) return socket.emit('error-message', "Cette room n'existe pas !");
-        if (!name) return socket.emit('error-message', 'Pseudo invalide !');
+        if (room.players.some(p => p.account === A.key(name))) return resumeRoom(socket, name); // déjà dans cette room : on reprend
+        if (accountRooms(A.key(name)).some(r => r.status !== 'ended')) return socket.emit('error-message', 'Tu es déjà dans une autre room en cours.');
         if (room.status === 'ended') return socket.emit('error-message', 'La session est terminée !');
         if (room.players.some(p => p.id === socket.id)) return;
 
@@ -817,52 +910,12 @@ io.on('connection', (socket) => {
 
             const player = room.players[idx];
 
-            // les lignes "en cours" du panneau latéral se règlent proprement à la déconnexion (pas de ligne bloquée en pending)
-            if (player.cr && player.cr.active) {
-                if (player.cr.feedId) feedUpdate(room, player.cr.feedId, { status: 'lost', win: 0, net: -player.cr.bet });
-                player.cr.active = false;
-            }
-            if (player.ar && player.ar.active) {
-                if (player.ar.feedId) feedUpdate(room, player.ar.feedId, { status: 'lost', win: 0, net: -player.ar.bet });
-                player.ar.active = false;
-            }
-            if (player.jm && player.jm.active) {
-                if (player.jm.feedId) feedUpdate(room, player.jm.feedId, { status: 'lost', win: 0, net: -player.jm.bet });
-                player.jm.active = false;
-            }
-            if (player.iceState && player.iceState.active) {
-                if (player.iceState.feedId) feedUpdate(room, player.iceState.feedId, { status: 'lost', win: 0, net: -player.iceState.bet });
-                player.iceState.active = false;
-            }
-            if (player.rl && player.rl.active) {
-                if (player.rl.feedId) feedUpdate(room, player.rl.feedId, { status: 'lost', win: 0, net: -player.rl.total });
-                player.rl.active = false;
-            }
-            if (player.bj && (player.bj.phase === 'dealing' || player.bj.phase === 'player')) {
-                if (player.bj.feedId) feedUpdate(room, player.bj.feedId, { status: 'lost', win: 0, net: -player.bj.bet });
-                player.bj.phase = 'idle';
-            }
-            player.slots.forEach(sl => {
-                if (sl.bet > 0 && !sl.cashed && sl.feedId) feedUpdate(room, sl.feedId, { status: 'lost', win: 0, net: -sl.bet });
-                sl.feedId = null;
-            });
 
-            if (room.status === 'waiting' || room.status === 'choosing_game') {
-                room.players.splice(idx, 1);
-            } else {
-                player.connected = false; // on garde le joueur pour le classement final
-            }
-
-            if (!room.players.some(p => p.connected)) {
-                destroyRoom(code);
-                continue;
-            }
-
-            if (player.isAdmin) {
-                player.isAdmin = false;
-                const next = room.players.find(p => p.connected);
-                if (next) next.isAdmin = true;
-            }
+            // Pas de départ immédiat : un rafraîchissement ou une coupure réseau doit pouvoir reprendre la partie.
+            // Le joueur reste dans la room (💤) ; s'il ne revient pas dans LEAVE_GRACE, on le règle et on le retire.
+            player.connected = false;
+            clearTimeout(player._leave);
+            player._leave = setTimeout(() => finalizeLeave(code, player), LEAVE_GRACE);
             broadcast(room);
         }
     });
