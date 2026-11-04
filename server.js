@@ -400,7 +400,7 @@ io.on('connection', (socket) => {
         if (sl.bet > 0 && !sl.cashed) processCashOut(player, sl, room.multiplier, room, slot === 1 ? 1 : 0);
     });
 
-    /* ---------------- Chicken Road (3 modes, RTP 89 %, équitable prouvable) ---------------- */
+    /* ---------------- Chicken Road (3 modes, RTP 98,5 %, équitable prouvable) ---------------- */
     socket.on('cr-start', ({ roomCode, amount, mode } = {}) => {
         const { room, player } = findPlayer(socket, roomCode);
         if (!room || !player || !player.inGame || room.status === 'ended') return;
@@ -412,8 +412,7 @@ io.on('connection', (socket) => {
 
         player.balance -= amount;
         const seed = crypto.randomBytes(16).toString('hex');
-        player.cr = { active: true, bet: amount, mode, step: 0, seed };
-        cr.feedId = feedId(); // ligne "en cours" dans le panneau latéral (mise débitée, pas encore réglée)
+        const cr = player.cr = { active: true, bet: amount, mode, step: 0, seed, feedId: feedId() }; // ligne "en cours" dans le panneau latéral (mise débitée, pas encore réglée)
         feedAdd(room, stamp({ id: cr.feedId, game: 'cr', icon: GAME_ICONS.cr, name: player.name, bet: amount, mult: null, win: 0, net: -amount, status: 'pending' }));
         socket.emit('cr-started', { hash: crypto.createHash('sha256').update(seed).digest('hex') });
         broadcast(room);
@@ -1039,6 +1038,11 @@ function startCrashLoop(room) {
     room.runRound = runRound;
     runRound();
 }
+
+// Filet de sécurité : une erreur imprévue dans un handler est journalisée au lieu de tuer tout le serveur
+// (sinon toutes les rooms freezent et les chronos s'arrêtent pour tout le monde).
+process.on('uncaughtException', err => console.error('❌ uncaughtException :', err));
+process.on('unhandledRejection', err => console.error('❌ unhandledRejection :', err));
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
