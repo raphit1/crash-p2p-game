@@ -116,7 +116,7 @@ ul{padding-left:20px;text-align:left}
 .cr-hud{display:flex;justify-content:space-around;gap:6px;background:#0d0814;border:1px solid rgba(212,162,76,.2);border-radius:10px;padding:8px;margin:10px 0;font-size:12px;color:#9a90ad}
 .cr-hud b{display:block;font-size:18px;color:#ffd45c;font-variant-numeric:tabular-nums}
 .cr-stage{position:relative;height:230px;border-radius:16px;overflow:hidden;border:1px solid rgba(212,162,76,.45);margin-bottom:10px;box-shadow:0 14px 36px rgba(0,0,0,.55);
-  background:url("image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='120'%3E%3Cpath fill='%23182a4d' d='M0 120V70h30V40h28v30h20V55h34v65zM110 120V60h26V30h34v30h18v60zM214 120V75h24V45h30v30h32v45z'/%3E%3C/svg%3E") repeat-x 0 70%/300px 120px,linear-gradient(180deg,#1b2a4a,#0f1a30 60%,#0a1220);transition:background-position-x .45s cubic-bezier(.3,.1,.3,1)}
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='120'%3E%3Cpath fill='%23182a4d' d='M0 120V70h30V40h28v30h20V55h34v65zM110 120V60h26V30h34v30h18v60zM214 120V75h24V45h30v30h32v45z'/%3E%3C/svg%3E") repeat-x 0 70%/300px 120px,linear-gradient(180deg,#1b2a4a,#0f1a30 60%,#0a1220);transition:background-position-x .45s cubic-bezier(.3,.1,.3,1)}
 .cr-world{position:absolute;left:0;top:0;height:100%;display:flex;transition:transform .45s cubic-bezier(.3,.1,.3,1);will-change:transform}
 .cr-curb,.cr-goal{flex:none;height:100%;background:linear-gradient(180deg,#3f8f4a,#2d6a37);display:flex;align-items:flex-start;justify-content:space-around;padding-top:18px;font-size:34px}
 .cr-curb{width:120px;border-right:6px solid #cfd6df}
@@ -134,8 +134,8 @@ ul{padding-left:20px;text-align:left}
 .cr-win{background:#0f2a1a;color:#4ade80;border:1px solid #166534}.cr-lose{background:#2a0f14;color:#ff6b7a;border:1px solid #7f1d1d}
 
 /* ---- Arrows X ---- */
-.ar-stage{position:relative;height:250px;border-radius:16px;overflow:hidden;border:1px solid rgba(212,162,76,.45);margin-bottom:10px;box-shadow:0 14px 36px rgba(0,0,0,.55);
-  background:url("image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='120'%3E%3Cpath fill='%23141024' d='M0 120V70h30V40h28v30h20V55h34v65zM110 120V60h26V30h34v30h18v60zM214 120V75h24V45h30v30h32v45z'/%3E%3C/svg%3E") repeat-x 0 70%/300px 120px,linear-gradient(180deg,#241a3a,#120c22 60%,#0a0716)}
+.ar-stage{position:relative;height:300px;border-radius:16px;overflow:hidden;border:1px solid rgba(212,162,76,.45);margin-bottom:10px;box-shadow:0 14px 36px rgba(0,0,0,.55);
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='120'%3E%3Cpath fill='%23141024' d='M0 120V70h30V40h28v30h20V55h34v65zM110 120V60h26V30h34v30h18v60zM214 120V75h24V45h30v30h32v45z'/%3E%3C/svg%3E") repeat-x 0 84%/300px 120px,linear-gradient(180deg,#2b2145 0%,#1a1230 55%,#120c22 80%,#0a0716)}
 .ar-stage svg{display:block;width:100%;height:100%}
 .ar-hud{display:flex;justify-content:space-around;gap:6px;background:#0d0814;border:1px solid rgba(212,162,76,.2);border-radius:10px;padding:8px;margin:10px 0;font-size:12px;color:#9a90ad}
 .ar-hud b{display:block;font-size:18px;color:#ffd45c;font-variant-numeric:tabular-nums}
@@ -143,34 +143,66 @@ ul{padding-left:20px;text-align:left}
 .ring.hot{filter:brightness(1.5) saturate(1.4)}
 .ar-mult{font-weight:900;font-size:11px;fill:#fff;paint-order:stroke;stroke:rgba(0,0,0,.55);stroke-width:2.5px;pointer-events:none;text-anchor:middle}
 .ar-fth{position:absolute;z-index:6;width:8px;height:8px;border-radius:50%;background:#e5f2ff;box-shadow:0 0 8px #9adcff;pointer-events:none}
+/* gros multiplicateur "dans l'air" au moment du résultat (plus rien n'est écrit sur la cible) */
+.ar-pop{position:absolute;left:50%;top:30%;transform:translate(-50%,-50%) scale(.4);z-index:9;pointer-events:none;opacity:0;text-align:center;line-height:1.05;transition:none}
+.ar-pop.show{animation:arPopIn 1.9s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes arPopIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.3) rotate(-6deg)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.15) rotate(2deg)}30%{transform:translate(-50%,-50%) scale(1)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-64%) scale(.96)}}
+.ar-pop .big{display:block;font-size:46px;font-weight:900;color:#ffd45c;text-shadow:0 0 18px rgba(255,190,60,.75),0 3px 0 #7a4b00,0 6px 14px rgba(0,0,0,.7)}
+.ar-pop.miss .big{color:#ff7b8e;text-shadow:0 0 18px rgba(255,60,90,.6),0 3px 0 #5b0d1c,0 6px 14px rgba(0,0,0,.7)}
+.ar-pop .sub{display:block;font-size:14px;font-weight:800;color:#efe6ff;text-shadow:0 2px 6px #000;margin-top:2px}
+.ar-dust{position:absolute;z-index:6;width:10px;height:10px;border-radius:50%;background:#c9b89a;box-shadow:0 0 6px #a08a68;pointer-events:none}
+/* halo pulsé sous la fléchette plantée dans la cible */
+.ar-halo{animation:arHaloPulse .9s ease-in-out infinite alternate}
+@keyframes arHaloPulse{from{opacity:.28}to{opacity:.7}}
 
 /* ---- Roulette ---- */
-.rl-table{display:grid;grid-template-columns:46px repeat(12,1fr) 58px;gap:3px;margin-bottom:8px}
-.rl-cell{appearance:none;border:1px solid rgba(255,255,255,.14);border-radius:6px;color:#fff;font-weight:800;font-size:13px;padding:9px 0;cursor:pointer;transition:transform .1s,box-shadow .15s}
+.rl-felt{background:radial-gradient(120% 130% at 50% 0%,#157a4c,#0b4a2e 55%,#08361f);border:1px solid rgba(212,162,76,.5);border-radius:14px;padding:12px;margin-bottom:10px;box-shadow:inset 0 0 46px rgba(0,0,0,.45),0 14px 36px rgba(0,0,0,.5)}
+.rl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+.rl-table{display:grid;grid-template-columns:46px repeat(12,minmax(46px,1fr)) 64px;grid-template-rows:repeat(3,44px);gap:3px;margin-bottom:6px;min-width:660px}
+.rl-cell{appearance:none;border:1px solid rgba(255,255,255,.18);border-radius:6px;color:#fff;font-weight:800;font-size:13px;padding:9px 0;cursor:pointer;transition:transform .1s,box-shadow .15s;text-shadow:0 1px 2px rgba(0,0,0,.7)}
 .rl-cell:hover{transform:translateY(-1px);box-shadow:0 0 0 2px #ffd45c}
-.rl-cell.red{background:#b32633}.rl-cell.black{background:#1c2230}.rl-cell.green{background:#0f7a44}
+.rl-cell:active{transform:scale(.96)}
+.rl-cell.red{background:linear-gradient(180deg,#c22a38,#8f1d29)}.rl-cell.black{background:linear-gradient(180deg,#2a3140,#151a24)}.rl-cell.green{background:linear-gradient(180deg,#12915a,#0b5c3a)}
 .rl-chip{position:absolute;top:-7px;right:-6px;min-width:19px;height:19px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe9a8,#d4a24c);color:#241202;font-size:10px;font-weight:900;display:grid;place-items:center;box-shadow:0 2px 5px rgba(0,0,0,.6);padding:0 3px}
-.rl-out{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin-bottom:6px}
+.rl-out{position:relative;display:grid;grid-template-columns:repeat(12,minmax(46px,1fr));gap:3px;margin-bottom:4px;min-width:660px}
 .rl-out .rl-cell{text-align:center;padding:8px 0;font-size:12px}
 .rl-dozen{grid-column:span 4}.rl-col{grid-column:span 4}
-.rl-wheel-wrap{position:relative;display:flex;align-items:center;justify-content:center;gap:14px;background:#0d0814;border:1px solid rgba(212,162,76,.25);border-radius:14px;padding:10px;margin-bottom:10px}
-.rl-res{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-size:26px;font-weight:900;color:#fff;border:3px solid #ffd45c;box-shadow:0 0 18px rgba(255,212,92,.35);flex:none}
-.rl-wheelfx{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+.rl-c2to1{background:linear-gradient(180deg,#1f6f47,#123c28);font-size:11px;padding:0 4px}
+.rl-racetrack-wrap{margin-top:10px}
+.rl-rt-label{font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:#bfe9cd;opacity:.85;margin-bottom:4px;text-align:center}
+.rl-wheel-wrap{position:relative;display:flex;align-items:center;justify-content:center;gap:16px;background:#0d0814;border:1px solid rgba(212,162,76,.25);border-radius:14px;padding:14px;margin-bottom:10px}
+.rl-res{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-size:26px;font-weight:900;color:#fff;border:3px solid #ffd45c;box-shadow:0 0 18px rgba(255,212,92,.35);flex:none;transition:background .3s}
 .rl-betrow{display:flex;gap:8px;align-items:center;margin:8px 0}
 .rl-betrow input{margin:0;flex:1}
 .rl-total{display:flex;justify-content:space-between;font-size:13px;color:#cdbf9f;background:#0d0814;border-radius:8px;padding:7px 10px;margin-bottom:8px}
+/* roue réaliste : panier bois, secteurs, couronne de chiffres et bille qui décélère avant de tomber dans une case */
+#rlWheelSvg{display:block;border-radius:50%;filter:drop-shadow(0 10px 22px rgba(0,0,0,.65))}
+.rl-pointer{position:absolute;left:50%;top:-3px;transform:translateX(-50%);width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:13px solid #ffd45c;z-index:4;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6))}
+.rl-ball{position:absolute;left:50%;top:50%;width:11px;height:11px;margin:-5.5px;border-radius:50%;background:radial-gradient(circle at 32% 28%,#ffffff,#cfd6df 55%,#7c8794);box-shadow:0 0 6px rgba(255,255,255,.8),0 2px 4px rgba(0,0,0,.6)}
+.rl-spinning{pointer-events:none;opacity:.55;transition:opacity .25s}
 
 /* ---- Blackjack ---- */
-.bj-felt{position:relative;border-radius:16px;border:1px solid rgba(212,162,76,.45);padding:14px 10px 20px;margin-bottom:10px;box-shadow:0 14px 36px rgba(0,0,0,.55);
+.bj-felt{position:relative;border-radius:16px;border:1px solid rgba(212,162,76,.45);padding:16px 12px 18px;margin-bottom:10px;box-shadow:0 14px 36px rgba(0,0,0,.55);
   background:radial-gradient(120% 90% at 50% 0%,#14603b,#0b3a24 60%,#072a1a)}
-.bj-label{font-size:11px;letter-spacing:2px;color:#bfe9cd;text-transform:uppercase;text-align:center;margin:2px 0 6px}
-.bj-cards{display:flex;justify-content:center;gap:6px;min-height:86px;align-items:flex-start}
+.bj-zone{display:flex;align-items:center;gap:12px}
+.bj-zone .bj-label{flex:none;width:74px;text-align:right;margin:0}
+.bj-zone .bj-cards{justify-content:flex-start;min-height:88px;flex:1}
+.bj-banner{text-align:center;font-size:10.5px;color:#7ddba6;letter-spacing:3px;margin:12px 0;text-transform:uppercase}
+.bj-scorebox{flex:none;min-width:58px;padding:7px 10px;border-radius:10px;background:rgba(4,26,16,.75);border:1px solid rgba(212,162,76,.4);
+  font-size:19px;font-weight:900;color:#ffe9a8;text-align:center;font-variant-numeric:tabular-nums;box-shadow:inset 0 2px 8px rgba(0,0,0,.5)}
+.bj-scorebox small{display:block;font-size:9px;letter-spacing:1.5px;color:#9fd8b8;font-weight:700;margin-bottom:2px}
+.bj-scorebox.bust{color:#ff8b98;border-color:#7f1d1d}.bj-scorebox.bj{color:#ffd45c;border-color:#ffd45c;box-shadow:0 0 14px rgba(255,212,92,.5)}
+.bj-label{font-size:11px;letter-spacing:2px;color:#bfe9cd;text-transform:uppercase}
+.bj-cards{display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap}
 .bj-card{width:58px;height:82px;border-radius:8px;background:#fdfdf8;box-shadow:0 3px 8px rgba(0,0,0,.45);position:relative;font-weight:900;font-size:16px;display:flex;flex-direction:column;justify-content:space-between;padding:5px 6px;animation:bjIn .3s ease both}
 @keyframes bjIn{from{transform:translateY(-26px) scale(.85);opacity:0}}
 .bj-card.red{color:#c2253a}.bj-card.blk{color:#14213d}
 .bj-card i{align-self:flex-end;font-style:normal;transform:rotate(180deg)}
 .bj-back{background:repeating-linear-gradient(45deg,#1d4ed8 0 7px,#1e3a8a 7px 14px);border:3px solid #dbeafe}
-.bj-score{position:absolute;right:-9px;top:-9px;background:#ffd45c;color:#241202;border-radius:999px;font-size:11px;padding:2px 7px;box-shadow:0 2px 5px rgba(0,0,0,.5)}
+/* révélation de la hole card du croupier : effet « flip » 3D */
+.bj-flip{perspective:420px}
+.bj-flipface{animation:bjFlip .5s cubic-bezier(.4,.2,.3,1) both;transform-origin:50% 50%;backface-visibility:hidden}
+@keyframes bjFlip{0%{transform:rotateY(90deg);opacity:.2}55%{transform:rotateY(-14deg);opacity:1}100%{transform:rotateY(0)}}
 .bj-actions{display:flex;gap:8px}
 .bj-actions button{margin:0}
 
@@ -453,11 +485,12 @@ ul{padding-left:20px;text-align:left}
             </div>
             <div class="provably-fair-box">🔒 <b>Hash SHA-256 de la partie :</b> <span id="arHash" style="color: #38bdf8;">—</span><br><span id="arProof"></span></div>
             <div class="ar-hud"><div>Mode<b id="arModeName">Facile</b></div><div>Chance de toucher<b id="arHitPct">61,9 %</b></div><div>Gain max<b id="arMax">x20</b></div></div>
-            <div class="ar-stage" id="arStage"><svg id="arSvg" viewBox="0 0 600 250" preserveAspectRatio="xMidYMid meet"></svg><div id="arToast" class="ice-toast"></div></div>
+            <div class="ar-stage" id="arStage"><svg id="arSvg" viewBox="0 0 640 320" preserveAspectRatio="xMidYMid meet"></svg><div id="arToast" class="ice-toast"></div><div id="arPop" class="ar-pop"></div></div>
             <div style="display: flex; gap: 10px;">
                 <button id="arStartBtn" onclick="arStart()">Armer la fléchette 🏹</button>
                 <button id="arThrowBtn" class="hidden" onclick="arThrow()" style="background: linear-gradient(180deg,#a21caf,#701a85);">LANCER 🎯</button>
             </div>
+            <p style="font-size:11.5px;color:#7d7494;margin:8px 0 0;">💡 Mode « mitralette » : tant que la partie est armée, retape simplement sur LANCER — une nouvelle mise est débitée et la fléchette repart aussitôt, sans temps mort.</p>
             <div class="history-bar" id="arHist" style="margin-top: 10px;"></div>
             <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
         </div>
@@ -472,7 +505,11 @@ ul{padding-left:20px;text-align:left}
             <h3 style="margin: 5px 0; color: #ffd45c;">🎡 Roulette européenne</h3>
             <p id="rlStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Roue classique 0-36, un seul zéro. Clique une case du tapis pour miser (le montant du jeton est pris dans la boîte). Simple chance x2, douzaine/colonne x3, plein x36.</p>
             <div class="rl-wheel-wrap">
-                <div id="rlWheel" style="position:relative;flex:none"></div>
+                <div id="rlWheelBox" style="position:relative;flex:none;width:230px;height:230px">
+                    <svg id="rlWheelSvg" viewBox="0 0 100 100" width="230" height="230"></svg>
+                    <div id="rlBallFx" style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;transform-origin:50% 50%"><i class="rl-ball"></i></div>
+                    <div class="rl-pointer"></div>
+                </div>
                 <div style="flex:1">
                     <div class="rl-res" id="rlRes" style="background:#0f7a44;display:inline-block">?</div>
                     <div style="font-size:12px;color:#9a90ad;margin:6px 0;">Derniers numéros</div>
@@ -486,10 +523,15 @@ ul{padding-left:20px;text-align:left}
                 <div class="quick-bet-row" id="rlQuick" style="margin:0;">
                     <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="25">25</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button>
                 </div>
+                <button id="rlUndoBtn" onclick="rlUndo()" style="width:auto;margin:0;padding:8px 12px;background:#475569;" title="Annuler le dernier jeton posé">↩︎</button>
             </div>
             <div class="rl-total"><span>Mise sur la table : <b id="rlTotalVal">0</b> 🪙</span><span id="rlBetsCount">0 pari</span></div>
-            <div id="rlTable"></div>
-            <div id="rlOut"></div>
+            <div class="rl-felt">
+                <div class="rl-scroll" id="rlScroll">
+                    <div id="rlTable"></div>
+                    <div id="rlOut"></div>
+                </div>
+            </div>
             <div style="display: flex; gap: 10px;">
                 <button id="rlSpinBtn" onclick="rlSpin()" style="background: linear-gradient(180deg,#b91c1c,#7f1d1d);">TOURNER 🎡</button>
                 <button onclick="rlClear()" style="background:#475569;">Effacer</button>
@@ -517,11 +559,17 @@ ul{padding-left:20px;text-align:left}
             </div>
             <div class="provably-fair-box">🔒 <b>Graine de mélange (révélée en fin de main) :</b> <span id="bjSeed" style="color: #38bdf8;">—</span></div>
             <div class="bj-felt">
-                <div class="bj-label">Croupier</div>
-                <div class="bj-cards" id="bjDealer"></div>
-                <div style="text-align:center;font-size:11px;color:#7ddba6;letter-spacing:3px;margin:8px 0;">BLACKJACK PAYE 3:2 · LE CROUPIER TIRE JUSQU'À 17</div>
-                <div class="bj-cards" id="bjPlayer"></div>
-                <div class="bj-label">Toi</div>
+                <div class="bj-zone">
+                    <div class="bj-label">Croupier</div>
+                    <div class="bj-cards" id="bjDealer"></div>
+                    <div class="bj-scorebox" id="bjDealerScore"></div>
+                </div>
+                <div class="bj-banner">BLACKJACK PAYÉ 3:2 · LE CROUPIER TIRE JUSQU'À 17 · ÉGALITÉ = MISE RENDUE</div>
+                <div class="bj-zone">
+                    <div class="bj-label">Toi</div>
+                    <div class="bj-cards" id="bjPlayer"></div>
+                    <div class="bj-scorebox" id="bjPlayerScore"></div>
+                </div>
                 <div id="bjMsg" style="text-align:center;font-size:15px;font-weight:800;color:#ffe9a8;min-height:22px;"></div>
             </div>
             <div class="bj-actions">
@@ -1049,6 +1097,11 @@ function buildIce(lanes) {
   const b = $('iceBoard'); S.iceLanes = lanes;
   b.querySelectorAll('.ice-cell').forEach(e => e.remove());
   b.style.gridTemplateColumns = `56px repeat(${ICE_STEPS},minmax(0,1fr)) 56px`;
+  // ⚠️ Le plateau est une grille CSS dont les LIGNES sont auto-calibrées par le navigateur :
+  // quand on diminue le nombre de rangées, d'anciennes lignes invisibles persistent et les nouvelles
+  // tuiles se placent trop bas → "fantômes" sous le plateau. On épingle donc explicitement la hauteur
+  // des lignes (42px par rangée + l'en-tête des multiplicateurs) pour que le board soit toujours pile à jour.
+  b.style.gridTemplateRows = `auto repeat(${lanes},42px)`;
   const mk = (cls, html, col, row, span) => {
     const d = document.createElement('div'); d.className = 'ice-cell ' + cls; d.innerHTML = html;
     d.style.gridColumn = col; d.style.gridRow = span ? `${row} / span ${span}` : row; b.appendChild(d); return d;
@@ -1460,26 +1513,62 @@ function arRadii(mode) {
 }
 const AR_COLS = ['#f43f5e','#fb923c','#fbbf24','#4ade80','#38bdf8','#a78bfa','#e879f9','#2dd4bf']; // couleurs vibrantes, centre → extérieur
 const ARROW = '<g class="ar-arrow"><path d="M-2 -3L-26 -3L-26 3L-2 3Z" fill="#cbd5e1"/><path d="M-26 -3L-38 -8L-32 0L-38 8L-26 3Z" fill="#f43f5e"/><path d="M-20 -3L-24 -9M-14 -3L-18 -9" stroke="#94a3b8" stroke-width="1.6"/><polygon points="0,0 -7,-4.5 -7,4.5" fill="#fde68a"/></g>';
+// Le tireur à la corde : silhouette stylisée animée (bras + arc pivotent autour de l'épaule au moment du lancer).
+const ARCHER = `<g id="arArcher">
+  <ellipse cx="0" cy="4" rx="26" ry="5" fill="rgba(0,0,0,.4)"/>
+  <path d="M-13 -4 Q-17 -28 -9 -42 L-2 -42 L-4 -14 Q-4 -8 -6 -4 Z" fill="#2b2036" stroke="rgba(212,162,76,.45)" stroke-width="1.2"/>
+  <path d="M1 -42 Q10 -30 8 -6 L0 -6 L2 -28 Z" fill="#34284a"/>
+  <path d="M-9 -42 L7 -42 Q11 -34 8 -28 L-10 -28 Q-13 -35 -9 -42 Z" fill="#3d2f57" stroke="rgba(212,162,76,.5)" stroke-width="1.2"/>
+  <line x1="-6" y1="-2" x2="-9" y2="-12" stroke="#e8c39e" stroke-width="5.5" stroke-linecap="round"/>
+  <line x1="3" y1="-2" x2="5" y2="-12" stroke="#e8c39e" stroke-width="5.5" stroke-linecap="round"/>
+  <path d="M-11 -12 Q-3 -20 7 -12" stroke="#171028" stroke-width="2" fill="none"/>
+  <circle cx="-1" cy="-54" r="10" fill="#e8c39e"/>
+  <path d="M-11 -57 Q-1 -72 9 -57 L9 -53 Q-1 -61 -11 -53 Z" fill="#d4a24c"/>
+  <path d="M6 -46 Q18 -48 26 -42" stroke="#e8c39e" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+  <g id="arArmGrp" transform="rotate(0 8 -42)">
+    <path d="M8 -42 Q26 -44 33 -34" stroke="#e8c39e" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+    <path d="M34 -60 A34 34 0 0 1 34 -8" stroke="#8a5a1c" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M34 -60 Q26 -34 34 -8" stroke="rgba(255,255,255,.65)" stroke-width="1.2" fill="none"/>
+  </g>
+</g>`;
 function arBuild(mode) {
-  const svg = $('arSvg'), cx = 300, cy = 118, R = 104, rows = AR_MODES[mode].rows;
+  const svg = $('arSvg'), cx = 420, cy = 132, R = 104, rows = AR_MODES[mode].rows;
   const rad = arRadii(mode); // rad[i] = rayon extérieur normalisé de l'anneau i (l'anneau i va de rad[i+1]… à rad[i])
   let s = `<defs><radialGradient id="arGlow" cx="50%" cy="42%" r="62%"><stop offset="0" stop-color="#ffe6aa" stop-opacity=".28"/><stop offset="1" stop-color="#ffe6aa" stop-opacity="0"/></radialGradient>
+    <radialGradient id="arWood" cx="42%" cy="38%" r="70%"><stop offset="0" stop-color="#5d4326"/><stop offset="1" stop-color="#2a1c0d"/></radialGradient>
+    <radialGradient id="arBull" cx="42%" cy="38%" r="75%"><stop offset="0" stop-color="#fff3c4"/><stop offset=".55" stop-color="#ffd45c"/><stop offset="1" stop-color="#b07a17"/></radialGradient>
     <filter id="arShadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000" flood-opacity=".55"/></filter></defs>`;
-  s += `<rect width="600" height="250" fill="url(#arGlow)"/>`;
-  s += `<ellipse cx="${cx}" cy="${cy + R + 14}" rx="${R + 30}" ry="11" fill="rgba(0,0,0,.45)"/>`; // ombre portée au sol
-  s += `<circle cx="${cx}" cy="${cy}" r="${R + 7}" fill="#151022" stroke="rgba(212,162,76,.55)" stroke-width="3" filter="url(#arShadow)"/>`; // cadre de la cible
+  s += `<rect width="640" height="320" fill="url(#arGlow)"/>`;
+  s += `<ellipse cx="${cx}" cy="${cy + R + 16}" rx="${R + 34}" ry="12" fill="rgba(0,0,0,.45)"/>`; // ombre portée au sol
+  s += `<circle cx="${cx}" cy="${cy}" r="${R + 16}" fill="url(#arWood)" stroke="rgba(212,162,76,.6)" stroke-width="3.5" filter="url(#arShadow)"/>`; // couronne bois + cadre doré
+  for (let k = 0; k < 24; k++) { // clous décoratifs sur le cerclage bois
+    const a = k * Math.PI / 12;
+    s += `<circle cx="${(cx + Math.cos(a) * (R + 11)).toFixed(1)}" cy="${(cy + Math.sin(a) * (R + 11)).toFixed(1)}" r="1.6" fill="rgba(255,224,150,.55)"/>`;
+  }
+  // Cible « fléchettes » haut de gamme : fond liège, secteurs alternés rouge/noir comme une vraie cible,
+  // fil métallique fin entre chaque anneau, bullseye doré. AUCUNE étiquette multiplicateur : le gain
+  // n'apparaît qu'en l'air, après le lancer (demande utilisateur).
+  s += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="#caa06a"/>`; // lit de liège sous les secteurs
   for (let i = rows.length - 1; i >= 0; i--) { // du plus grand anneau (extérieur) vers le centre
     const rr = R * rad[i];
     s += `<circle class="ring" data-i="${i}" cx="${cx}" cy="${cy}" r="${rr.toFixed(1)}" fill="${AR_COLS[Math.floor(i * AR_COLS.length / rows.length)]}" stroke="rgba(0,0,0,.4)" stroke-width="1.2"/>`;
   }
-  // Étiquettes : gros caractères blancs lisibles, placés sur la couronne de chaque anneau (décalés vers le bas)
-  for (let i = rows.length - 1; i >= 0; i--) {
-    const rOut = R * rad[i], rIn = i + 1 < rows.length ? R * rad[i + 1] : 0;
-    const labY = i === 0 ? cy + 4 : cy - (rOut + rIn) / 2 + 5; // centre de la bande annulaire (en haut), ou milieu pour le disque central
-    s += `<text class="ar-mult" x="${cx}" y="${labY.toFixed(1)}">x${rows[i][0]}</text>`;
+  // secteurs alternés (rouge sombre / noir) par-dessus, en fondu : effet « vrai board de fléchettes »
+  for (let k = 0; k < 16; k++) {
+    const a0 = k * Math.PI / 8, a1 = a0 + Math.PI / 16;
+    if (k % 2) continue;
+    s += `<path d="M${cx} ${cy}L${(cx + Math.cos(a0) * R).toFixed(1)} ${(cy + Math.sin(a0) * R).toFixed(1)}A${R} ${R} 0 0 1 ${(cx + Math.cos(a1) * R).toFixed(1)} ${(cy + Math.sin(a1) * R).toFixed(1)}Z" fill="rgba(10,6,18,.32)"/>`;
   }
-  s += `<circle cx="${cx}" cy="${cy}" r="3.5" fill="#fff" opacity=".9"/>`;
-  s += `<g id="arArrowWrap" transform="translate(90,215) rotate(-38)" opacity="0">${ARROW}</g>`; // fléchette au repos, prête à être armée
+  for (let i = 0; i < rows.length; i++) { // fils métalliques entre anneaux (vraie cible)
+    const rr = R * rad[i];
+    s += `<circle cx="${cx}" cy="${cy}" r="${rr.toFixed(1)}" fill="none" stroke="rgba(230,235,245,.55)" stroke-width="1.1"/>`;
+  }
+  s += `<circle cx="${cx}" cy="${cy}" r="${(R * rad[rows.length - 1]).toFixed(1)}" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.6"/>`; // contour du bullseye
+  s += `<circle id="arBullEye" cx="${cx}" cy="${cy}" r="9" fill="url(#arBull)" stroke="rgba(120,70,10,.8)" stroke-width="1.4"/>`; // bullseye doré
+  s += `<circle cx="${cx}" cy="${cy}" r="2.4" fill="#fff" opacity=".95"/>`;
+  s += `<g id="arStuck"></g>`; // les fléchettes plantées s'accumulent ici (jusqu'à 8, puis on purge)
+  s += `<g transform="translate(84,262) scale(1.15)">` + ARCHER + `</g>`; // le tireur, à gauche, vise la cible
+  s += `<g id="arArrowWrap" transform="translate(126,224) rotate(-14)" opacity="0">${ARROW}</g>`; // fléchette au repos, près de la corde
   svg.innerHTML = s;
   S.arBuilt = mode;
 }
@@ -1496,7 +1585,7 @@ function arControls() {
   show('arStartBtn', !active); show('arThrowBtn', active);
   $('arBetAmount').disabled = active;
   document.querySelectorAll('#arModes .cr-mode').forEach(b => { b.disabled = active; });
-  $('arStatus').textContent = active ? 'La fléchette est armée… clique LANCER !' : 'Choisis un mode, mise, puis arme ta fléchette.';
+  $('arStatus').textContent = active ? 'Fléchette armée — relance autant de fois que tu veux (nouvelle mise à chaque lancer).' : 'Choisis un mode, mise, puis arme ta fléchette.';
 }
 function arSync() { // appelé par sync() à chaque update-room : recolle le client au serveur sans jamais rien bloquer
   if (S.view !== 'ar' || S.arThrowing) return;
@@ -1510,18 +1599,46 @@ function arHistPush(win, text) {
   setH($('arHist'), S.arHist.map(h => `<div class="history-pill ${h.win ? 'cr-win' : 'cr-lose'}">${h.text}</div>`).join(''));
 }
 function arRingFlash(i) { const r = $('arSvg').querySelector(`.ring[data-i="${i}"]`); if (!r) return; r.classList.add('hot'); setTimeout(() => r.classList.remove('hot'), 1200); }
+// Échelle viewBox → pixels du conteneur : le stage fait 640×320 en coordonnées SVG.
+const arScale = () => { const r = $('arStage').getBoundingClientRect(); return { kx: r.width / 640, ky: r.height / 320 }; };
 function arFeathers(x, y, n = 10) { // petites plumes qui volent quand la flèche touche (repère viewBox → pixels du conteneur)
-  const st = $('arStage'), rect = st.getBoundingClientRect(), kx = rect.width / 600, ky = rect.height / 250;
+  const st = $('arStage'), { kx, ky } = arScale();
   for (let i = 0; i < n; i++) {
     const f = document.createElement('i'); f.className = 'ar-fth'; f.style.left = (x * kx) + 'px'; f.style.top = (y * ky) + 'px'; st.appendChild(f);
     f.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${(Math.random() - .5) * 130}px,${-25 - Math.random() * 80}px) rotate(${Math.random() * 500}deg)`, opacity: 0 }],
               { duration: 650 + Math.random() * 450, easing: 'cubic-bezier(.2,.7,.4,1)' }).onfinish = () => f.remove();
   }
 }
-async function arAnimateThrow(d) { // trajectoire en clocher + rotation ; si x0, la flèche dépasse la cible et plante le sol à côté
+function arDust(x, y, n = 8) { // nuage de poussière quand la fléchette se plante à côté
+  const st = $('arStage'), { kx, ky } = arScale();
+  for (let i = 0; i < n; i++) {
+    const f = document.createElement('i'); f.className = 'ar-dust'; f.style.left = (x * kx) + 'px'; f.style.top = (y * ky) + 'px'; st.appendChild(f);
+    f.animate([{ transform: 'none', opacity: .9 }, { transform: `translate(${(Math.random() - .5) * 90}px,${-10 - Math.random() * 40}px) scale(${.4 + Math.random()})`, opacity: 0 }],
+              { duration: 550 + Math.random() * 400, easing: 'ease-out' }).onfinish = () => f.remove();
+  }
+}
+// Le multiplicateur apparaît "dans l'air" au-dessus de la cible, uniquement une fois le résultat connu.
+function arPop(mult, win, amount) {
+  const p = $('arPop');
+  p.className = 'ar-pop' + (win ? '' : ' miss'); p.innerHTML = ''; void p.offsetWidth; // reset propre de l'animation CSS
+  p.innerHTML = `<span class="big">${win ? 'x' + mult : 'x0'}</span><span class="sub">${win ? '+' + amount + ' 🪙' : '💨 Raté !'}</span>`;
+  p.classList.add('show');
+  clearTimeout(S.arPopT); S.arPopT = setTimeout(() => p.classList.remove('show'), 2000);
+}
+// petite fléchette « plantée » qui reste affichée dans la cible (accumulation visuelle, max 8)
+function arStuckArrow(x, y, rot) {
+  const g = $('arStuck'); if (!g) return;
+  while (g.children.length >= 8) g.removeChild(g.firstChild);
+  const el = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  el.setAttribute('transform', `translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${rot}) scale(.6)`);
+  el.setAttribute('opacity', '.5');
+  el.innerHTML = ARROW;
+  g.appendChild(el);
+}
+async function arAnimateThrow(d) { // tireur qui arme, trajectoire en clocher, impact ; si x0 la flèche dépasse la cible et plante le sol
   S.arThrowing = true;
-  const svg = $('arSvg'), wrap = $('arArrowWrap');
-  const cx = 300, cy = 118, R = 104, mode = d.mode || S.arBuilt || 'easy', rows = AR_MODES[mode].rows, rad = arRadii(mode);
+  const svg = $('arSvg'), wrap = $('arArrowWrap'), archer = $('arArcher'), armGrp = $('arArmGrp');
+  const cx = 420, cy = 132, R = 104, mode = d.mode || S.arBuilt || 'easy', rows = AR_MODES[mode].rows, rad = arRadii(mode);
   let end, rot, feathers = 0;
   if (d.success) {
     const i = rows.findIndex(r => r[0] === d.multiplier);
@@ -1530,15 +1647,22 @@ async function arAnimateThrow(d) { // trajectoire en clocher + rotation ; si x0,
     const rr = Math.sqrt(Math.random() * (rOut * rOut - rIn * rIn) + rIn * rIn);
     const ang = Math.random() * Math.PI * 2;
     end = { x: cx + Math.cos(ang) * rr, y: cy + Math.sin(ang) * rr };
-    rot = -38; feathers = Math.max(6, Math.round(rows.length - i));
+    rot = -14; feathers = Math.max(6, Math.round(rows.length - i));
   } else { // raté : elle survole la cible et se plante au sol, loin derrière
     const side = Math.random() < .5 ? -1 : 1;
-    end = { x: cx + side * (R + 90 + Math.random() * 60), y: 216 + Math.random() * 12 };
+    end = { x: cx + side * (R + 90 + Math.random() * 60), y: 286 + Math.random() * 10 };
     rot = 55;
   }
-  const start = { x: 90, y: 215 }, peak = Math.min(start.y, end.y) - 120 - Math.random() * 30;
+  const start = { x: 126, y: 224 }, peak = Math.min(start.y, end.y) - 90 - Math.random() * 30;
   wrap.setAttribute('opacity', 1);
   sound('lift');
+  // le tireur s'anime : bras + arc pivotent vers l'arrière (armement) puis suivent le geste (libération)
+  if (armGrp) {
+    armGrp.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(-16deg)', offset: .35 }, { transform: 'rotate(10deg)', offset: .7 }, { transform: 'rotate(0deg)' }],
+                   { duration: 700, easing: 'ease-out' });
+  }
+  if (archer) archer.animate([{ transform: 'translateX(0px)' }, { transform: 'translateX(-5px)', offset: .35 }, { transform: 'translateX(2px)' }],
+                             { duration: 420, easing: 'ease-out' });
   await tween(760, k => {
     const e = k, x = start.x + (end.x - start.x) * e, y = (1 - e) * (1 - e) * start.y + 2 * (1 - e) * e * peak + e * e * end.y; // courbe de Bézier quadratique
     const nx = 1 - e, dx = nx * (end.x - start.x), dy = nx * (end.y - start.y) + e * 0; // tangente ≈ direction finale simplifiée
@@ -1547,14 +1671,17 @@ async function arAnimateThrow(d) { // trajectoire en clocher + rotation ; si x0,
   });
   if (d.success) {
     sound('tap'); arFeathers(end.x, end.y, feathers); arRingFlash(rows.findIndex(r => r[0] === d.multiplier));
+    arStuckArrow(end.x, end.y, rot); // la fléchette reste plantée dans la cible
     if (d.multiplier >= 8) sound('win');
   } else {
-    sound('miss'); arFeathers(end.x, end.y - 4, 4); // petit nuage de poussière
+    sound('miss'); arDust(end.x, end.y - 4, 8); // petit nuage de poussière
     $('arStage').classList.add('shake'); setTimeout(() => $('arStage').classList.remove('shake'), 400);
   }
-  await wait(500);
-  wrap.setAttribute('opacity', 0); wrap.setAttribute('transform', 'translate(90,215) rotate(-38)');
+  arPop(d.multiplier, d.success, d.winnings); // ← le multiplicateur apparaît dans l'air, pas sur la cible
+  await wait(450);
+  wrap.setAttribute('opacity', 0); wrap.setAttribute('transform', 'translate(126,224) rotate(-14)');
   S.arThrowing = false;
+  if (S.arState && S.arState.active) arControls(); // partie relancée entre-temps : on réaffiche tout de suite le bouton LANCER
 }
 function arInit() {
   if (!$('arModes').children.length) {
@@ -1580,9 +1707,10 @@ function arStart() {
   sound('bet'); S.arBusy = true;
   socket.emit('ar-start', { roomCode: S.code, amount, mode: S.arMode });
 }
-function arThrow() {
-  if (!(S.arState && S.arState.active) || S.arThrowing || S.arBusy) return;
-  S.arThrowing = true; S.arBusy = true;
+function arThrow() { // aucune cooldown serveur : on peut spammer les lancers dès que la partie est armée.
+  if (!(S.arState && S.arState.active) || S.arBusy) return;
+  if (S.arThrowing) { S.arPendingThrow = true; return; } // animation en cours : on met la prochaine demande en file
+  S.arBusy = true;
   socket.emit('ar-throw', { roomCode: S.code });
 }
 socket.on('ar-started', d => {
@@ -1591,13 +1719,21 @@ socket.on('ar-started', d => {
   socket.emit('ar-throw', { roomCode: S.code }); // l'animation suit immédiatement le lancement serveur
 });
 socket.on('ar-result', d => {
-  S.arBusy = false; S.arThrowing = false;
+  S.arBusy = false;
   if (S.arState) S.arState.active = false;
   $('arProof').textContent = `Graine révélée : ${d.seed} — SHA-256(graine) = hash ci-dessus ; u = HMAC-SHA256(graine,"arrow") = ${d.u} → ${d.success ? 'dans la cible' : 'à côté'} (mode ${S.arBuilt})`;
   arHistPush(d.success, d.success ? 'x' + d.multiplier : '💨 x0');
   arAnimateThrow(Object.assign({}, d, { mode: S.arBuilt }));
   arToast(d.message);
   arControls();
+});
+// ressource "mise en attente" pour le spam de fléchettes : si l'utilisateur relance pendant une animation,
+// on mémorise sa demande et on repart dès que l'animation se termine (le serveur, lui, n'a aucun cooldown).
+socket.on('update-room', () => {
+  if (S.view === 'ar' && S.arPendingThrow && !S.arThrowing && !S.arBusy && S.arState && S.arState.active) {
+    S.arPendingThrow = false;
+    socket.emit('ar-throw', { roomCode: S.code });
+  }
 });
 
 /* ============================================================
