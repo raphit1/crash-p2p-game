@@ -15,6 +15,47 @@
     const START_BALANCE = 1000; // solde initial d'un joueur dans une room
     const MAX_BET = 100000;     // plafond de mise par tour (anti-abus / anti-overflow)
 
+    /* --------- Mise d'entrée en euros, jetons et redistribution du pot --------- */
+    const TOKENS_PER_EUR = 100; // 5 € = 500 jetons
+    const STAKE_MIN_EUR = 1;    // mise d'entrée minimale dans une room
+    const STAKE_MAX_EUR = 100;  // plafond de sécurité par joueur (modifiable ici)
+    const PERF_FLOOR = 0.10;    // plancher du facteur de performance
+
+    // Redistribution du pot (tout est calculé en centimes entiers pour ne perdre aucun centime).
+    //   P_i = (solde final - mise initiale) / mise initiale
+    //   C_i = mise initiale × max(0,10 ; 1 + P_i)
+    //   gain_i = pot × C_i / Σ C
+    // players : [{ stake (en €), initial (jetons de départ), final (jetons finaux) }]
+    const settlePot = players => {
+        const stakeC = players.map(p => Math.round(p.stake * 100));
+        const potCents = stakeC.reduce((a, b) => a + b, 0);
+        const rows = players.map(p => {
+            const perf = p.initial > 0 ? (p.final - p.initial) / p.initial : 0;
+            return { perf, weight: p.initial * Math.max(PERF_FLOOR, 1 + perf) };
+        });
+        const sumW = rows.reduce((a, r) => a + r.weight, 0) || 1;
+        const raw = rows.map(r => potCents * r.weight / sumW);
+        const pay = raw.map(Math.floor);
+        let rest = potCents - pay.reduce((a, b) => a + b, 0); // centimes restants : aux plus grosses parts décimales
+        raw.map((v, i) => [v - Math.floor(v), i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => { if (rest > 0) { pay[i]++; rest--; } });
+        return { potCents, rows: rows.map((r, i) => ({ perf: r.perf, weight: r.weight, payoutCents: pay[i], netCents: pay[i] - stakeC[i] })) };
+    };
+    // Qui paie qui (le moins de virements possible) à partir des gains/pertes nets : [{ name, netCents }]
+    const settleTransfers = list => {
+        const give = list.filter(x => x.netCents < 0).map(x => ({ name: x.name, c: -x.netCents })).sort((a, b) => b.c - a.c);
+        const take = list.filter(x => x.netCents > 0).map(x => ({ name: x.name, c: x.netCents })).sort((a, b) => b.c - a.c);
+        const out = [];
+        let i = 0, j = 0;
+        while (i < give.length && j < take.length) {
+            const c = Math.min(give[i].c, take[j].c);
+            if (c > 0) out.push({ from: give[i].name, to: take[j].name, cents: c });
+            give[i].c -= c; take[j].c -= c;
+            if (give[i].c === 0) i++;
+            if (take[j].c === 0) j++;
+        }
+        return out;
+    };
+
     /* --------- Crash (style Aviator) --------- */
     // 1,5 % de crash instantané (x1.00), sinon crash = floor(100 × RTP/(1-r))/100 avec r ∈ [0,1)
     const CRASH_INSTANT_CHANCE = 0.015;
@@ -94,7 +135,7 @@
     const GAME_ICONS = { crash: '✈️', ice: '🧊', jm: '🥤', cr: '🐔', ar: '🎯', rl: '🎡', bj: '🃏' };
 
     return {
-        RTP, START_BALANCE, MAX_BET, CRASH_INSTANT_CHANCE,
+        RTP, START_BALANCE, MAX_BET, TOKENS_PER_EUR, STAKE_MIN_EUR, STAKE_MAX_EUR, PERF_FLOOR, settlePot, settleTransfers, CRASH_INSTANT_CHANCE,
         ICE_STEPS, iceMultiplier,
         JM_MULT,
         CR_MODES, crMultiplier,
