@@ -101,17 +101,11 @@ const rlWin = G.rlWin;
 // Arrondi aléatoire pondéré : E[résultat] = valeur exacte -> n'importe quel arrondi préserve le RTP
 const weightedRound = raw => { const fl = Math.floor(raw); return fl + (crypto.randomInt(1000000) / 1000000 < raw - fl ? 1 : 0); };
 
-// Blackjack classique : règles standard, probabilités naturelles du jeu (pas de facteur maison artificiel).
-// Croupier tire jusqu'à 17 (stand 17), blackjack naturel payé 3:2, assurance et split non proposés.
-const BJ_DECK = (() => { const suits = ['♠', '♥', '♦', '♣'], d = []; for (let s = 0; s < 4; s++) for (let r = 0; r < 13; r++) d.push({ r, s }); return d; })();
-const bjVal = r => (r === 0 ? 10 : r === 12 ? 11 : Math.min(r + 1, 10)); // r: 0=As, 1..10 = 2..10 (J/Q/K valent 10)
-const bjName = r => ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'][r];
-function bjScore(cards) { // renvoie [score, main souple] — souple = un as encore compté 11
-    let total = 0, soft = 0;
-    for (const c of cards) { total += bjVal(c.r); if (c.r === 12) soft++; }
-    while (total > 21 && soft > 0) { total -= 10; soft--; }
-    return [total, soft > 0];
-}
+// Blackjack : règles dans blackjack.js (As = 1 ou 11, croupier reste sur tous les 17, BJ 3:2, assurance, split, double).
+const BJ = require('./blackjack');
+const BJ_DECK = (() => { const d = []; for (let s = 0; s < 4; s++) for (let r = 0; r < 13; r++) d.push({ r, s }); return d; })();
+// ce qu'il reste à rembourser si la main est interrompue (déconnexion, fin de session)
+const bjPending = bj => (bj && bj.round && bj.round.phase !== 'done' ? bj.round.bet : 0);
 
 const newSlot = () => ({ bet: 0, next: 0, auto: 0, nextAuto: 0, cashed: false, win: 0 });
 
@@ -165,7 +159,7 @@ function publicRoom(room, full = false) {
             cr: p.cr ? { active: p.cr.active, bet: p.cr.bet, mode: p.cr.mode, step: p.cr.step } : null,
             ar: p.ar ? { active: p.ar.active, bet: p.ar.bet, mode: p.ar.mode } : null,
             rl: p.rl ? { active: p.rl.active, total: p.rl.total, bets: p.rl.bets.map(b => ({ kind: b.kind, sel: b.sel, amount: b.amount })) } : null,
-            bj: p.bj ? bjPublic(p.bj) : null,
+            bj: p.bj ? bjPublic(p.bj, p.balance) : null,
             stats: p.stats
         })),
         history: full ? room.history : undefined // l'historique n'est envoyé qu'aux joueurs de la table Crash
@@ -242,13 +236,9 @@ const buildArrowTable = G.arrowTable;
 
 // État public d'une main de Blackjack : la pile reste secrète, la carte cachée n'est révélée qu'au bon moment.
 // Défini au niveau module (et non dans le handler de connexion) car publicRoom() s'en sert aussi.
-function bjPublic(bj) {
-    if (!bj || !bj.player) return null;
-    return {
-        phase: bj.phase === 'dealing' ? 'player' : bj.phase,
-        bet: bj.bet, doubled: !!bj.doubled,
-        player: bj.player.slice(), dealer: bj.dealer.slice(0, bj.holeRevealed ? 99 : 1)
-    };
+function bjPublic(bj, balance = 0) {
+    if (!bj || !bj.round) return null;
+    return BJ.publicView(bj.round, balance);
 }
 
 /* ------------------------------------------------------------------ */
@@ -278,9 +268,9 @@ function settlePending(room, player) { // règle les parties en cours d'un joueu
                 if (player.rl.feedId) feedUpdate(room, player.rl.feedId, { status: 'lost', win: 0, net: -player.rl.total });
                 player.rl.active = false;
             }
-            if (player.bj && (player.bj.phase === 'dealing' || player.bj.phase === 'player')) {
-                if (player.bj.feedId) feedUpdate(room, player.bj.feedId, { status: 'lost', win: 0, net: -player.bj.bet });
-                player.bj.phase = 'idle';
+            if (bjPending(player.bj)) {
+                if (player.bj.feedId) feedUpdate(room, player.bj.feedId, { status: 'lost', win: 0, net: -player.bj.round.bet });
+                player.bj.round.phase = 'done';
             }
             player.slots.forEach(sl => {
                 if (sl.bet > 0 && !sl.cashed && sl.feedId) feedUpdate(room, sl.feedId, { status: 'lost', win: 0, net: -sl.bet });
@@ -734,12 +724,26 @@ io.on('connection', (socket) => {
         broadcast(room);
     });
 
+    // annule le dernier jeton posé (remboursé)
+    socket.on('rl-undo', ({ roomCode } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        if (!room || !player || !player.rl || player.rl.active || room.status === 'ended') return;
+        const b = player.rl.bets.pop();
+        if (!b) return;
+        player.rl.total -= b.amount; player.balance += b.amount;
+        broadcast(room);
+    });
+
+    // La roue tourne RL_SPIN_MIN..RL_SPIN_MAX ms (durée tirée au hasard par le serveur à chaque tour) ; le résultat n'est
+    // crédité / diffusé (solde, "Paris en direct", classement) qu'une fois la bille tombée, pour ne rien dévoiler avant la fin.
+    const RL_SPIN_MIN = 3000, RL_SPIN_MAX = 6000, RL_REVEAL_MS = 1000;
     socket.on('rl-spin', ({ roomCode } = {}) => {
         const { room, player } = findPlayer(socket, roomCode);
         const rl = player && player.rl;
         if (!room || !rl || rl.active || !rl.bets.length || room.status === 'ended') return;
 
         rl.active = true;
+        const spinId = rl.spinId = crypto.randomBytes(6).toString('hex');
         const stake = rl.total;
         // ligne "en cours" dans le panneau latéral : une par table de jetons (le tour est en train de tourner)
         if (!hasPending(room, player.name, 'rl')) { // une seule ligne "en cours" par table de jetons
@@ -750,34 +754,49 @@ io.on('connection', (socket) => {
         const publicHash = crypto.createHash('sha256').update(seed).digest('hex');
         const u = parseInt(crypto.createHmac('sha256', seed).update('roulette').digest('hex').slice(0, 13), 16) / 4503599627370496;
         const num = Math.floor(u * 37); // 0..36 équiprobables : roue européenne réelle (un seul zéro)
+        const duration = RL_SPIN_MIN + crypto.randomInt(RL_SPIN_MAX - RL_SPIN_MIN + 1); // 3 à 6 secondes, au hasard
+        broadcast(room); // la ligne "en cours" apparaît tout de suite
+        socket.emit('rl-spin-start', { number: num, duration, publicHash });
 
-        let rawReturn = 0;
-        for (const b of rl.bets) if (rlWin(b.kind, num, b.sel)) rawReturn += b.amount * RL_BETS[b.kind];
-        const winnings = weightedRound(rawReturn);
-        player.balance += winnings;
+        setTimeout(() => {
+            // tour annulé entre-temps (déconnexion, fin de session) : la mise a déjà été remboursée, on ne fait rien
+            if (!rl.active || rl.spinId !== spinId || room.status === 'ended') return;
+            let rawReturn = 0;
+            for (const b of rl.bets) if (rlWin(b.kind, num, b.sel)) rawReturn += b.amount * RL_BETS[b.kind];
+            const winnings = weightedRound(rawReturn);
+            player.balance += winnings;
 
-        const betsSnapshot = rl.bets.slice(); // copié avant reset : le client s'en sert pour le bouton "Rejouer"
-        rl.active = false; rl.bets = []; rl.total = 0;
-        player.stats.gamesPlayed++;
-        if (winnings > 0) player.stats.wins++;
-        player.stats.totalProfit += winnings - stake;
+            const betsSnapshot = rl.bets.slice(); // copié avant reset : le client s'en sert pour le bouton "Rejouer"
+            rl.active = false; rl.bets = []; rl.total = 0;
+            player.stats.gamesPlayed++;
+            if (winnings > 0) player.stats.wins++;
+            player.stats.totalProfit += winnings - stake;
 
-        feedUpdate(room, rl.feedId, { status: winnings > 0 ? 'won' : 'lost', mult: stake > 0 ? Math.round(winnings / stake * 100) / 100 : 0, win: winnings, net: winnings - stake });
-        const cname = rlColor(num) === 'green' ? 'vert' : rlColor(num) === 'red' ? 'rouge' : 'noir';
-        socket.emit('rl-result', { number: num, color: rlColor(num), stake, winnings, seed, publicHash, betsSnapshot,
-            message: winnings > 0 ? `🎉 Le ${num} ${cname} ! +${winnings} 🪙` : `😬 Le ${num} ${cname}… perdu !` });
-        broadcast(room);
+            feedUpdate(room, rl.feedId, { status: winnings > 0 ? 'won' : 'lost', mult: stake > 0 ? Math.round(winnings / stake * 100) / 100 : 0, win: winnings, net: winnings - stake });
+            const cname = rlColor(num) === 'green' ? 'vert' : rlColor(num) === 'red' ? 'rouge' : 'noir';
+            const net = winnings - stake;
+            socket.emit('rl-result', { number: num, color: rlColor(num), stake, winnings, seed, publicHash, betsSnapshot,
+                message: winnings > 0 ? `🎉 Le ${num} ${cname} ! Tu récupères ${winnings} 🪙 (${net >= 0 ? '+' : ''}${net} net)` : `😬 Le ${num} ${cname}… perdu !` });
+            broadcast(room);
+        }, duration + RL_REVEAL_MS);
     });
 
-    /* ---------------- Blackjack classique (règles et probabilités naturelles du jeu) ---------------- */
-    // player.bj = { phase:'idle'|'dealing'|'player'|'dealer', bet, doubled, seed, deck, player[], dealer[], holeRevealed }
+    /* ---------------- Blackjack (règles : blackjack.js) ---------------- */
+    // player.bj = { seed, round (état de la main, voir blackjack.js), feedId }
     // (bjPublic est défini au niveau module : publicRoom() l'utilise aussi)
+
+    const bjGet = roomCode => {
+        const { room, player } = findPlayer(socket, roomCode);
+        if (!room || !player || room.status === 'ended') return {};
+        const bj = player.bj;
+        if (!bj || !bj.round || bj.round.phase === 'done') return {};
+        return { room, player, bj, r: bj.round };
+    };
 
     socket.on('bj-deal', ({ roomCode, amount } = {}) => {
         const { room, player } = findPlayer(socket, roomCode);
         if (!room || !player || !player.inGame || room.status === 'ended') return;
-        if (player.bj && (player.bj.phase === 'dealing' || player.bj.phase === 'player')) return socket.emit('error-message', 'Main déjà en cours !');
-        if (player.bj && player.bj.deck && player.bj.deck.length < 12) player.bj = null; // pioche épuisée : on repart sur une main neuve
+        if (bjPending(player.bj)) return socket.emit('error-message', 'Main déjà en cours !');
 
         amount = Math.floor(Number(amount)); // entier > 0
         { const a2 = stakeOf(socket, player, amount); if (a2 === null) return; }
@@ -790,93 +809,95 @@ io.on('connection', (socket) => {
             const j = parseInt(crypto.createHmac('sha256', seed).update('shuffle:' + i).digest('hex').slice(0, 8), 16) % (i + 1);
             [deck[i], deck[j]] = [deck[j], deck[i]];
         }
-        const draw = () => deck.pop();
-        player.bj = { phase: 'dealing', bet: amount, doubled: false, seed, deck, player: [draw(), draw()], dealer: [draw(), draw()], holeRevealed: false };
+        player.bj = { seed, round: BJ.deal(deck, amount), feedId: feedId() };
         // ligne "en cours" dans le panneau latéral (une par main) ; bjSettle la clôturera avec le résultat
-        player.bj.feedId = feedId();
         feedAdd(room, stamp({ id: player.bj.feedId, game: 'bj', icon: GAME_ICONS.bj, name: player.name, bet: amount, mult: null, win: 0, net: -amount, status: 'pending' }));
-        broadcast(room);
-        bjFinishDeal(room, player);
+        bjAfter(room, player);
     });
 
-    function bjFinishDeal(room, player) {
-        const bj = player.bj, ps = bjScore(bj.player), ds = bjScore(bj.dealer);
-        const pBJ = ps[0] === 21 && bj.player.length === 2, dBJ = ds[0] === 21 && bj.dealer.length === 2;
-        bj.holeRevealed = true;
-        if (pBJ || dBJ) { bjSettle(room, player, pBJ && !dBJ ? 'blackjack' : pBJ && dBJ ? 'push' : 'lose'); return; }
-        bj.phase = 'player';
-        bjSend(room, player, { message: 'À toi de jouer : tirer ou rester ?' });
+    const BJ_HINT = { player: 'À toi de jouer.', insurance: 'Le croupier montre un As : assurance ?' };
+    // après chaque action : si la main est finie on règle, sinon on renvoie l'état au joueur
+    function bjAfter(room, player, message) {
+        const r = player.bj.round;
+        if (r.phase === 'done') return bjSettle(room, player);
+        broadcast(room);
+        bjSend(room, player, { message: message || BJ_HINT[r.phase] || '' });
     }
 
     function bjSend(room, player, extra = {}) { // la graine est envoyée avec chaque état : le client l'affiche dès la donne
-        // dUp = total des cartes VISIBLES du croupier (la hole card reste cachée côté client) :
-        // le joueur voit p.-ex. « 6 » à côté d'un seul croupier visible, jamais le score complet tant que la cachée n'est pas révélée.
-        socket.emit('bj-state', Object.assign({ state: bjPublic(player.bj), seed: player.bj ? player.bj.seed : null,
-            pScore: player.bj && player.bj.phase !== 'idle' ? bjScore(player.bj.player)[0] : null,
-            dUp: player.bj && !player.bj.holeRevealed && player.bj.dealer.length ? bjScore(player.bj.dealer.slice(0, 1))[0] : null }, extra));
+        socket.emit('bj-state', Object.assign({ state: bjPublic(player.bj, player.balance), seed: player.bj ? player.bj.seed : null }, extra));
     }
 
+    socket.on('bj-insurance', ({ roomCode, take } = {}) => {
+        const { room, player, r } = bjGet(roomCode);
+        if (!r || r.phase !== 'insurance') return;
+        if (take) {
+            const cost = BJ.insuranceCost(r);
+            if (player.balance < cost) return socket.emit('error-message', 'Solde insuffisant pour l\'assurance !');
+            player.balance -= cost;
+        }
+        BJ.insure(r, !!take);
+        bjAfter(room, player, take ? 'Assurance prise.' : 'Pas d\'assurance.');
+    });
+
     socket.on('bj-hit', ({ roomCode } = {}) => {
-        const { room, player } = findPlayer(socket, roomCode);
-        const bj = player && player.bj;
-        if (!room || !bj || bj.phase !== 'player' || room.status === 'ended') return;
-        bj.player.push(bj.deck.pop());
-        const [t] = bjScore(bj.player);
-        if (t > 21) bjSettle(room, player, 'bust');
-        else { broadcast(room); bjSend(room, player, { message: t === 21 ? '21 ! Tu peux rester.' : `Tu as ${t}. Tirer encore ?` }); }
+        const { room, player, r } = bjGet(roomCode);
+        if (!r || r.phase !== 'player') return;
+        BJ.hit(r);
+        bjAfter(room, player);
     });
 
     socket.on('bj-stand', ({ roomCode } = {}) => {
-        const { room, player } = findPlayer(socket, roomCode);
-        const bj = player && player.bj;
-        if (!room || !bj || bj.phase !== 'player' || room.status === 'ended') return;
-        bjPlayDealer(bj);
-        const [pt] = bjScore(bj.player), [dt] = bjScore(bj.dealer);
-        bjSettle(room, player, dt > 21 ? 'win' : pt > dt ? 'win' : pt === dt ? 'push' : 'lose');
+        const { room, player, r } = bjGet(roomCode);
+        if (!r || r.phase !== 'player') return;
+        BJ.stand(r);
+        bjAfter(room, player);
     });
 
     socket.on('bj-double', ({ roomCode } = {}) => {
-        const { room, player } = findPlayer(socket, roomCode);
-        const bj = player && player.bj;
-        if (!room || !bj || bj.phase !== 'player' || bj.doubled || bj.player.length !== 2 || room.status === 'ended') return;
-        if (player.balance < bj.bet) return socket.emit('error-message', 'Solde insuffisant pour doubler !');
-        player.balance -= bj.bet;
-        bj.bet *= 2; bj.doubled = true;
-        bj.player.push(bj.deck.pop());
-        if (bjScore(bj.player)[0] > 21) bjSettle(room, player, 'bust');
-        else { bjPlayDealer(bj);
-            const [pt] = bjScore(bj.player), [dt] = bjScore(bj.dealer);
-            bjSettle(room, player, dt > 21 ? 'win' : pt > dt ? 'win' : pt === dt ? 'push' : 'lose'); }
+        const { room, player, r } = bjGet(roomCode);
+        if (!r || !BJ.canDouble(r)) return;
+        const cost = r.hands[r.active].bet;
+        if (player.balance < cost) return socket.emit('error-message', 'Solde insuffisant pour doubler !');
+        player.balance -= cost;
+        BJ.doubleDown(r);
+        bjAfter(room, player);
     });
 
-    function bjPlayDealer(bj) { // règle classique : le croupier tire jusqu'à 17 (il s'arrête sur 17 souple aussi)
-        bj.phase = 'dealer'; bj.holeRevealed = true;
-        do { bj.dealer.push(bj.deck.pop()); } while (bjScore(bj.dealer)[0] < 17);
-    }
+    socket.on('bj-split', ({ roomCode } = {}) => {
+        const { room, player, r } = bjGet(roomCode);
+        if (!r || !BJ.canSplit(r)) return;
+        const cost = r.hands[r.active].bet;
+        if (player.balance < cost) return socket.emit('error-message', 'Solde insuffisant pour séparer !');
+        player.balance -= cost;
+        BJ.split(r);
+        bjAfter(room, player, 'Paire séparée : une carte par main.');
+    });
 
-    function bjSettle(room, player, outcome) {
-        const bj = player.bj;
-        if (!bj || bj.phase === 'idle') return;
-        let winnings = 0, msg = '';
-        if (outcome === 'blackjack') { winnings = Math.floor(bj.bet * 2.5); msg = `♠️ BLACKJACK ! +${winnings} 🪙 (payé 3:2)`; }
-        else if (outcome === 'win') { winnings = bj.bet * 2; msg = `🎉 Gagné ! +${winnings} 🪙`; }
-        else if (outcome === 'push') { winnings = bj.bet; msg = '🤝 Égalité : mise rendue.'; }
-        else if (outcome === 'bust') { msg = `💥 Tu as sauté (${bjScore(bj.player)[0]}) : perdu !`; }
-        else { msg = `😬 Le croupier gagne (${bjScore(bj.dealer)[0]}) : perdu !`; }
+    const BJ_TXT = { blackjack: 'Blackjack', win: 'gagné', push: 'égalité', lose: 'perdu', bust: 'sauté' };
+    function bjSettle(room, player) {
+        const bj = player.bj, r = bj.round, res = r.result;
+        // seul un blackjack sur mise impaire donne un demi-jeton : arrondi tiré au sort, espérance exacte
+        const winnings = weightedRound(res.winnings);
+        const committed = res.committed, net = winnings - committed;
 
         player.balance += winnings;
         player.stats.gamesPlayed++;
-        if (outcome === 'win' || outcome === 'blackjack') player.stats.wins++;
-        player.stats.totalProfit += winnings - bj.bet;
+        if (net > 0) player.stats.wins++;
+        player.stats.totalProfit += net;
 
-        // clôture de la ligne "en cours" dans le panneau latéral : x2 pour une victoire, x1 pour un push (mise rendue)
-        const betTotal = bj.bet;
-        if (bj.feedId) feedUpdate(room, bj.feedId, { status: winnings > betTotal ? 'won' : 'lost', mult: Math.round(winnings / betTotal * 100) / 100, win: winnings, net: winnings - betTotal });
+        if (bj.feedId) feedUpdate(room, bj.feedId, { status: net > 0 ? 'won' : 'lost', mult: Math.round(winnings / committed * 100) / 100, win: winnings, net, bet: committed });
         bj.feedId = null;
 
-        socket.emit('bj-result', { outcome, winnings, message: msg, seed: bj.seed,
-            player: bj.player, dealer: bj.dealer, pScore: bjScore(bj.player)[0], dScore: bjScore(bj.dealer)[0] });
-        bj.phase = 'idle';
+        const ds = BJ.score(r.dealer).total;
+        const parts = res.hands.map((h, i) => (res.hands.length > 1 ? `Main ${i + 1} : ` : '') + BJ_TXT[h.outcome]);
+        if (res.insuranceStake) parts.push(res.insuranceWin ? 'assurance gagnée' : 'assurance perdue');
+        const head = net > 0 ? `🎉 +${net} 🪙` : net === 0 ? '🤝 Mise rendue' : `😬 ${net} 🪙`;
+        const message = `${head} — ${parts.join(' · ')}` + (res.dealerBJ ? ' (blackjack du croupier)' : ds > 21 ? ' (le croupier saute)' : ` (croupier : ${ds})`);
+
+        socket.emit('bj-result', { net, winnings, committed, message, seed: bj.seed,
+            insurance: { stake: res.insuranceStake, win: res.insuranceWin },
+            state: bjPublic(bj, player.balance), outcomes: res.hands.map(h => h.outcome) });
         broadcast(room);
     }
 
@@ -1028,7 +1049,7 @@ function endSession(room) {
     room.players.forEach(p => {
         if (p.ar && p.ar.active) { p.balance += p.ar.bet; p.ar.active = false; }
         if (p.rl && p.rl.active) { p.balance += p.rl.total; p.rl.active = false; p.rl.bets = []; p.rl.total = 0; }
-        if (p.bj && (p.bj.phase === 'player' || p.bj.phase === 'dealing')) { p.balance += p.bj.bet; p.bj.phase = 'idle'; }
+        if (bjPending(p.bj)) { p.balance += p.bj.round.bet; p.bj.round.phase = 'done'; }
     });
 
     // Redistribution du pot : performance de chacun (solde final vs mise de départ), voir G.settlePot
