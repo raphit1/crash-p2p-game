@@ -50,7 +50,7 @@ function parseStake(v) {
     const n = Math.round(Number(v) * 100) / 100;
     return Number.isFinite(n) && n >= G.STAKE_MIN_EUR && n <= G.STAKE_MAX_EUR ? n : null;
 }
-const STAKE_ERR = `Mise invalide : entre ${G.STAKE_MIN_EUR} € et ${G.STAKE_MAX_EUR} €.`;
+const STAKE_ERR = `Mise invalide : entre ${String(G.STAKE_MIN_EUR).replace('.', ',')} € et ${G.STAKE_MAX_EUR} €.`;
 
 /*
  * Provably fair :
