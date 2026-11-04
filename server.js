@@ -701,8 +701,11 @@ io.on('connection', (socket) => {
     }
 
     function bjSend(room, player, extra = {}) { // la graine est envoyée avec chaque état : le client l'affiche dès la donne
+        // dUp = total des cartes VISIBLES du croupier (la hole card reste cachée côté client) :
+        // le joueur voit p.-ex. « 6 » à côté d'un seul croupier visible, jamais le score complet tant que la cachée n'est pas révélée.
         socket.emit('bj-state', Object.assign({ state: bjPublic(player.bj), seed: player.bj ? player.bj.seed : null,
-            pScore: player.bj && player.bj.phase !== 'idle' ? bjScore(player.bj.player)[0] : null }, extra));
+            pScore: player.bj && player.bj.phase !== 'idle' ? bjScore(player.bj.player)[0] : null,
+            dUp: player.bj && !player.bj.holeRevealed && player.bj.dealer.length ? bjScore(player.bj.dealer.slice(0, 1))[0] : null }, extra));
     }
 
     socket.on('bj-hit', ({ roomCode } = {}) => {
