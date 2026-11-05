@@ -653,9 +653,19 @@ io.on('connection', (socket) => {
     socket.on('admin-set', ({ roomCode, name, pct } = {}) => {
         if (!socket.data.admin) return socket.emit('admin-state', { ok: false });
         const { room } = findPlayer(socket, roomCode); if (!room) return;
-        pct = Math.max(0, Math.min(1000, Math.round(Number(pct)))); if (!Number.isFinite(pct)) return;
+        pct = Number(pct); if (!Number.isFinite(pct)) return; pct = Math.max(0, Math.min(1e9, Math.round(pct * 100) / 100)); // pratiquement sans limite
         room.players.forEach(p => { if (name === '*' || p.name === name) p.winPct = pct; });
         socket.emit('admin-players', admList(room));
+    });
+
+    socket.on('admin-give', ({ roomCode, name, amount } = {}) => { // ajoute (ou retire si négatif) des jetons, en silence : aucun message, aucune ligne dans le fil
+        if (!socket.data.admin) return socket.emit('admin-state', { ok: false });
+        const { room } = findPlayer(socket, roomCode); if (!room) return;
+        amount = Math.round(Number(amount)); if (!Number.isFinite(amount) || !amount) return;
+        amount = Math.max(-1e12, Math.min(1e12, amount));
+        room.players.forEach(p => { if (name === '*' || p.name === name) p.balance = Math.max(0, p.balance + amount); });
+        socket.emit('admin-players', admList(room));
+        broadcast(room);
     });
 
     /* ---------------- Mines (grille 5×5, 1 à 24 mines, RTP 98,5 %, équitable prouvable) ---------------- */
