@@ -160,6 +160,7 @@ function publicRoom(room, full = false) {
             jm: p.jm ? { active: p.jm.active, bet: p.jm.bet } : null,
             cr: p.cr ? { active: p.cr.active, bet: p.cr.bet, mode: p.cr.mode, step: p.cr.step } : null,
             ar: p.ar ? { active: p.ar.active, bet: p.ar.bet, mode: p.ar.mode } : null,
+            mn: p.mn ? { active: p.mn.active, bet: p.mn.bet, mines: p.mn.mines, picks: p.mn.picks.slice() } : null,
             rl: p.rl ? { active: p.rl.active, total: p.rl.total, bets: p.rl.bets.map(b => ({ kind: b.kind, sel: b.sel, amount: b.amount })) } : null,
             bj: p.bj ? bjPublic(p.bj, p.balance) : null,
             stats: p.stats
@@ -254,6 +255,10 @@ function settlePending(room, player) { // règle les parties en cours d'un joueu
             if (player.cr && player.cr.active) {
                 if (player.cr.feedId) feedUpdate(room, player.cr.feedId, { status: 'lost', win: 0, net: -player.cr.bet });
                 player.cr.active = false;
+            }
+            if (player.mn && player.mn.active) {
+                if (player.mn.feedId) feedUpdate(room, player.mn.feedId, { status: 'lost', win: 0, net: -player.mn.bet });
+                player.mn.active = false;
             }
             if (player.ar && player.ar.active) {
                 if (player.ar.feedId) feedUpdate(room, player.ar.feedId, { status: 'lost', win: 0, net: -player.ar.bet });
@@ -604,6 +609,69 @@ io.on('connection', (socket) => {
         for (let k = cr.step + 1; k <= cfgN.steps; k++) { const u = parseInt(crypto.createHmac('sha256', cr.seed).update('step:' + k).digest('hex').slice(0, 13), 16) / 4503599627370496; if (u < cfgN.p) { deadlyAt = k; break; } }
         socket.emit('cr-result', { success: true, cashout: true, step: cr.step, multiplier: mult, winnings, seed: cr.seed, deadlyAt, message: `💰 Encaissé : +${winnings} 🪙 (x${mult})` });
         broadcast(room);
+    });
+
+    /* ---------------- Mines (grille 5×5, 1 à 24 mines, RTP 98,5 %, équitable prouvable) ---------------- */
+    const MN_N = 25, MN_RTP = 0.985;
+    // multiplicateur après k cases sûres avec m mines : RTP / P(k cases sûres d'affilée) = RTP × Π (25-i)/(25-m-i)
+    function mnMult(m, k) { let x = MN_RTP; for (let i = 0; i < k; i++) x *= (MN_N - i) / (MN_N - m - i); return Math.round(x * 100) / 100; }
+    // Position des mines : mélange de Fisher-Yates piloté par HMAC(graine, "mines:i") — vérifiable une fois la graine révélée
+    function mnLayout(seed, m) {
+        const perm = Array.from({ length: MN_N }, (_, i) => i);
+        for (let i = MN_N - 1; i > 0; i--) {
+            const u = parseInt(crypto.createHmac('sha256', seed).update('mines:' + i).digest('hex').slice(0, 13), 16) / 4503599627370496;
+            const j = Math.floor(u * (i + 1)); [perm[i], perm[j]] = [perm[j], perm[i]];
+        }
+        return perm.slice(0, m);
+    }
+    function mnCashout(room, player, auto) {
+        const mn = player.mn, mult = mnMult(mn.mines, mn.picks.length), winnings = weightedRound(mn.bet * mult);
+        player.balance += winnings; mn.active = false;
+        player.stats.gamesPlayed++; player.stats.wins++; player.stats.totalProfit += winnings - mn.bet;
+        if (mn.feedId) feedUpdate(room, mn.feedId, { status: 'won', mult, win: winnings, net: winnings - mn.bet });
+        socket.emit('mn-result', { safe: true, cashout: true, completed: !!auto, multiplier: mult, winnings, picks: mn.picks.slice(), mines: mnLayout(mn.seed, mn.mines), seed: mn.seed,
+            message: (auto ? '💎 Grille nettoyée ! ' : '💰 Encaissé : ') + `+${winnings} 🪙 (x${mult})` });
+        broadcast(room);
+    }
+    socket.on('mn-start', ({ roomCode, amount, mines } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        if (!room || !player || !player.inGame || room.status === 'ended') return;
+        if (player.mn && player.mn.active) return socket.emit('error-message', 'Partie Mines déjà en cours !');
+        mines = Math.floor(Number(mines)); if (!(mines >= 1 && mines <= 24)) return;
+        amount = Math.floor(Number(amount));
+        { const a2 = stakeOf(socket, player, amount); if (a2 === null) return; }
+        player.balance -= amount;
+        const seed = crypto.randomBytes(16).toString('hex');
+        const mn = player.mn = { active: true, bet: amount, mines, picks: [], seed, feedId: feedId() };
+        feedAdd(room, stamp({ id: mn.feedId, game: 'mn', icon: GAME_ICONS.mn, name: player.name, bet: amount, mult: null, win: 0, net: -amount, status: 'pending' }));
+        socket.emit('mn-started', { hash: crypto.createHash('sha256').update(seed).digest('hex') });
+        broadcast(room);
+    });
+    socket.on('mn-pick', ({ roomCode, idx } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        const mn = player && player.mn;
+        if (!room || !mn || !mn.active || room.status === 'ended') return;
+        idx = Math.floor(Number(idx)); if (!(idx >= 0 && idx < MN_N) || mn.picks.includes(idx)) return;
+        const layout = mnLayout(mn.seed, mn.mines);
+        if (layout.includes(idx)) {
+            mn.active = false;
+            player.stats.gamesPlayed++; player.stats.totalProfit -= mn.bet;
+            if (mn.feedId) feedUpdate(room, mn.feedId, { status: 'lost', mult: null, win: 0, net: -mn.bet });
+            socket.emit('mn-result', { safe: false, idx, picks: mn.picks.slice(), mines: layout, seed: mn.seed, message: '💥 BOUM ! Tu as marché sur une mine.' });
+            return broadcast(room);
+        }
+        mn.picks.push(idx);
+        if (mn.picks.length >= MN_N - mn.mines) return mnCashout(room, player, true); // toutes les cases sûres trouvées : encaissé d'office
+        const mult = mnMult(mn.mines, mn.picks.length);
+        if (mn.feedId) feedUpdate(room, mn.feedId, { mult });
+        socket.emit('mn-result', { safe: true, idx, multiplier: mult });
+        broadcast(room);
+    });
+    socket.on('mn-cashout', ({ roomCode } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        const mn = player && player.mn;
+        if (!room || !mn || !mn.active || !mn.picks.length || room.status === 'ended') return;
+        mnCashout(room, player, false);
     });
 
     /* ---------------- Just mixed (3 gobelets, RTP 98,5 %) ---------------- */
@@ -1045,7 +1113,7 @@ function processCashOut(player, sl, multiplier, room, idx) {
 const sessionLive = room => room.status !== 'waiting' && room.status !== 'ended' && !!room.timers.session;
 // un joueur a de l'argent « dehors » (mise en cours dans un jeu) : il peut encore gagner, il n'est donc pas à zéro
 const hasStake = p => p.slots.some(sl => (sl.bet > 0 && !sl.cashed) || sl.next > 0)
-    || !!(p.iceState && p.iceState.active) || !!(p.jm && p.jm.active) || !!(p.cr && p.cr.active) || !!(p.ar && p.ar.active)
+    || !!(p.iceState && p.iceState.active) || !!(p.jm && p.jm.active) || !!(p.cr && p.cr.active) || !!(p.ar && p.ar.active) || !!(p.mn && p.mn.active)
     || !!(p.rl && (p.rl.active || p.rl.bets.length)) || bjPending(p.bj) > 0;
 const isBroke = p => p.balance <= 0 && !hasStake(p);
 // Arrêt automatique : tout le monde à zéro, OU tous à zéro sauf un (rien à jouer entre soi).
@@ -1103,6 +1171,7 @@ function endSession(room) {
     // les parties Arrows X, Roulette et Blackjack en cours à la fin de la session sont remboursées
     room.players.forEach(p => {
         if (p.ar && p.ar.active) { p.balance += p.ar.bet; p.ar.active = false; }
+        if (p.mn && p.mn.active) { p.balance += p.mn.bet; p.mn.active = false; }
         if (p.rl && p.rl.active) { p.balance += p.rl.total; p.rl.active = false; p.rl.bets = []; p.rl.total = 0; }
         if (bjPending(p.bj)) { p.balance += p.bj.round.bet; p.bj.round.phase = 'done'; }
     });
