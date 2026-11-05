@@ -188,6 +188,14 @@ ul{padding-left:20px;text-align:left}
 .rl-res.rl-wait{animation:rlWait 1s ease-in-out infinite}
 @keyframes rlWait{50%{opacity:.35}}
 
+#admGear{position:fixed;left:6px;bottom:6px;z-index:960;display:none;width:26px;height:26px;border-radius:50%;background:transparent;border:0;color:#fff;font-size:15px;opacity:.06;cursor:pointer;padding:0;margin:0;box-shadow:none}
+#admGear:hover{opacity:.5}
+#admPanel{position:fixed;left:8px;bottom:38px;z-index:961;width:340px;max-width:calc(100vw - 16px);max-height:60vh;overflow:auto;display:none;background:rgba(10,12,20,.97);border:1px solid #7c3aed;border-radius:12px;padding:10px;font-size:12px;color:#c4b5fd;box-shadow:0 8px 28px rgba(0,0,0,.7)}
+#admPanel input{margin:0;padding:6px 8px;font-size:13px}
+.adm-row{display:flex;align-items:center;gap:6px;padding:6px 0;border-top:1px solid rgba(124,58,237,.25)}
+.adm-row b{flex:1;color:#fff;min-width:0;overflow:hidden;text-overflow:ellipsis}.adm-row small{color:#94a3b8}
+.adm-row input{width:62px;text-align:center}
+.adm-q{margin:0;padding:3px 6px;font-size:11px;width:auto;border-radius:6px;background:#312e81;box-shadow:none}
 /* ---- Mines ---- */
 .mn-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-width:420px;margin:12px auto}
 .mn-cell{margin:0;padding:0;aspect-ratio:1;font-size:clamp(22px,6vw,34px);border-radius:12px;background:linear-gradient(180deg,#2d3a52,#1b2436);border:1px solid rgba(120,160,220,.3);box-shadow:0 3px 0 #0e1522;cursor:default;display:grid;place-items:center;transition:transform .12s,background .2s}
@@ -710,7 +718,9 @@ ul{padding-left:20px;text-align:left}
     </div>
 
     <!-- PANNEAU LATÉRAL : HISTORIQUE DES PARIS EN DIRECT (rétractable) -->
-    <div id="roomChip" onclick="copyRoomCode()" title="Clique pour copier le code">🔑 Code de la room <b id="roomChipCode">----</b></div>
+    <button id="admGear" onclick="admToggle()" aria-label="zone secrète">⚙️</button>
+<div id="admPanel"><div id="admLock"><div style="margin-bottom:6px">🔒 Zone secrète</div><input type="password" id="admCode" placeholder="Code" autocomplete="off" onkeydown="if(event.key==='Enter')admUnlock()"><div id="admErr" style="color:#f87171;margin-top:4px"></div></div><div id="admBody" style="display:none"></div></div>
+<div id="roomChip" onclick="copyRoomCode()" title="Clique pour copier le code">🔑 Code de la room <b id="roomChipCode">----</b></div>
 <div id="feedPanel" class="hidden">
         <div class="feed-head" onclick="toggleFeed()">
             <span class="feed-title"><span class="live-dot"></span>📡 Paris en direct</span>
@@ -1055,7 +1065,7 @@ function renderRank(room) {
 function enterLobby(room) {
   S.code = room.code;
   show('auth-screen', false); show('lobby');
-  $('displayCode').textContent = room.code; $('roomChipCode').textContent = room.code; $('roomChip').style.display = 'flex';
+  $('displayCode').textContent = room.code; $('roomChipCode').textContent = room.code; $('roomChip').style.display = 'flex'; $('admGear').style.display = 'block';
   sync(room);
 }
 
@@ -1751,6 +1761,29 @@ socket.on('mn-result', d => {
 });
 
 /* ============================================================
+   PANNEAU ADMIN SECRET — tout est vérifié côté serveur ; sans le bon code, ce panneau ne reçoit jamais aucune donnée.
+   ============================================================ */
+function admToggle() { const p = $('admPanel'); const open = p.style.display !== 'block'; p.style.display = open ? 'block' : 'none'; if (open) { if (S.isAdmin) admRefresh(); else $('admCode').focus(); } }
+function admUnlock() { socket.emit('admin-unlock', { code: $('admCode').value }); $('admCode').value = ''; }
+function admRefresh() { if (S.isAdmin && $('admPanel').style.display === 'block') socket.emit('admin-list', { roomCode: S.code }); }
+function admSet(name, pct) { socket.emit('admin-set', { roomCode: S.code, name, pct }); }
+socket.on('admin-state', d => {
+  S.isAdmin = !!d.ok;
+  $('admLock').style.display = d.ok ? 'none' : 'block'; $('admBody').style.display = d.ok ? 'block' : 'none';
+  $('admErr').textContent = d.ok ? '' : d.locked ? 'Trop d\'essais, attends 1 min.' : 'Code incorrect.';
+  if (d.ok) admRefresh();
+});
+socket.on('admin-players', list => {
+  const q = n => [0, 50, 100, 150, 300].map(v => `<button class="adm-q" data-n="${esc(n)}" data-v="${v}">${v}</button>`).join('');
+  $('admBody').innerHTML = `<div style="margin-bottom:6px;color:#a78bfa">🎭 % du bénéfice touché à chaque victoire (100 = normal)</div>`
+    + `<div class="adm-row"><b>Tout le monde</b>${q('*')}</div>`
+    + list.map(p => `<div class="adm-row"><div style="flex:1;min-width:0"><b>${esc(p.name)}</b><br><small>${p.balance} 🪙 · ${p.profit >= 0 ? '+' : ''}${p.profit} · ${p.games} parties</small></div><input type="number" min="0" max="1000" value="${p.pct}" data-name="${esc(p.name)}"><span>%</span></div><div class="adm-row" style="border:0;padding-top:0;justify-content:flex-end">${q(p.name)}</div>`).join('');
+});
+$('admPanel').addEventListener('click', e => { const b = e.target.closest('.adm-q'); if (b) admSet(b.dataset.n, +b.dataset.v); });
+$('admPanel').addEventListener('change', e => { const i = e.target.closest('input[data-name]'); if (i) admSet(i.dataset.name, +i.value); });
+setInterval(admRefresh, 2500);
+
+/* ============================================================
    ARROWS X 🎯 — fléchettes sur cible annulaire, RTP exact 98,5 %
    Mêmes tables de multiplicateurs que le serveur (AR_MODES dans server.js).
    Le serveur résout "hit = 0,985 × Σpoids / Σ(m×poids)" pour garantir l'espérance ;
@@ -2416,7 +2449,7 @@ function renderStopBar(room) {
 function voteStop() { socket.emit('vote-stop', { roomCode: S.code, vote: !S.iVoted }); }
 socket.on('stop-notice', d => { S.stopMsg = d.message; $('stopMsg').textContent = d.message; clearTimeout(S.stopMsgT); S.stopMsgT = setTimeout(() => { S.stopMsg = ''; }, 3200); });
 
-Object.assign(window, { mnStart, mnCash, copyRoomCode, voteStop, setStake, onStakeInput, leaveRoom, authSubmit, logout, createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash, arStart, arThrow, rlSpin, rlClear, rlRepeat, bjDeal, bjHit, bjStand, bjDouble, bjSplit, bjInsurance, rlUndo, toggleFeed });
+Object.assign(window, { admToggle, admUnlock, mnStart, mnCash, copyRoomCode, voteStop, setStake, onStakeInput, leaveRoom, authSubmit, logout, createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash, arStart, arThrow, rlSpin, rlClear, rlRepeat, bjDeal, bjHit, bjStand, bjDouble, bjSplit, bjInsurance, rlUndo, toggleFeed });
 
 /* ============================================================
    PANNEAU LATÉRAL « 📡 PARIS EN DIRECT » (feed) — flux temps réel
