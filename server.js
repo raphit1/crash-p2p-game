@@ -49,21 +49,18 @@ function tilt(player, bet, winnings) {
     return bet + Math.max(0, Math.round((winnings - bet) * pct / 100));
 }
 
-/* ---------------- Plinko : règlement (après l'animation des billes) ---------------- */
-const PK_STEP = 115, PK_STAGGER = 170, PK_MAX_BALLS = 20; // ms par rangée, délai entre deux billes, billes max par lancer
-function pkSettle(room, player) {
-    const pk = player.pk; if (!pk || !pk.active) return;
-    pk.active = false; if (pk.timer) { clearTimeout(pk.timer); pk.timer = null; }
-    const rawSum = pk.wins.reduce((a, b) => a + b, 0), winnings = tilt(player, pk.bet, rawSum);
-    player.balance += winnings;
-    player.stats.gamesPlayed += pk.balls; if (winnings > pk.bet) player.stats.wins++;
-    player.stats.totalProfit += winnings - pk.bet;
-    const mult = shown(player, pk.bet, winnings, round2(rawSum / pk.bet));
-    if (pk.feedId) feedUpdate(room, pk.feedId, { status: winnings >= pk.bet ? 'won' : 'lost', mult, win: winnings, net: winnings - pk.bet });
-    io.to(player.id).emit('pk-result', { winnings, bet: pk.bet, multiplier: mult, seed: pk.seed, rows: pk.rows, risk: pk.risk, slots: pk.slots,
-        message: winnings > pk.bet ? `🔴 +${winnings - pk.bet} 🪙 (x${mult} sur ${pk.balls} bille${pk.balls > 1 ? 's' : ''})` : winnings === pk.bet ? `🔴 Égalité : mise rendue (x${mult})` : `🔴 ${winnings - pk.bet} 🪙 (x${mult})` });
+/* ---------------- Plinko : chaque bille est réglée toute seule, quand elle touche sa case ---------------- */
+const PK_STEP = 190, PK_STAGGER = 220, PK_MAX_BALLS = 20, PK_MAX_INFLIGHT = 400; // ms par rangée, délai entre deux billes, billes max par lancer / en l'air
+function pkLand(room, player, ball) {
+    if (ball.done) return; ball.done = true; if (ball.timer) { clearTimeout(ball.timer); ball.timer = null; }
+    const q = player.pkQ || [], i = q.indexOf(ball); if (i >= 0) q.splice(i, 1);
+    player.balance += ball.win; player.stats.gamesPlayed++; if (ball.win > ball.unit) player.stats.wins++;
+    player.stats.totalProfit += ball.win - ball.unit;
+    if (ball.feedId) feedUpdate(room, ball.feedId, { status: ball.win >= ball.unit ? 'won' : 'lost', mult: ball.mult, win: ball.win, net: ball.win - ball.unit });
+    if (--ball.batch.left === 0) io.to(player.id).emit('pk-result', { seed: ball.batch.seed, rows: ball.batch.rows, risk: ball.batch.risk, slots: ball.batch.slots });
     broadcast(room);
 }
+function pkSettle(room, player) { (player.pkQ || []).slice().forEach(b => pkLand(room, player, b)); } // départ / fin de session : tout est réglé tout de suite
 
 function generateRoomCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sans O/0/I/1 pour éviter les confusions
@@ -195,7 +192,7 @@ function publicRoom(room, full = false) {
             jm: p.jm ? { active: p.jm.active, bet: p.jm.bet } : null,
             cr: p.cr ? { active: p.cr.active, bet: p.cr.bet, mode: p.cr.mode, step: p.cr.step } : null,
             ar: p.ar ? { active: p.ar.active, bet: p.ar.bet, mode: p.ar.mode } : null,
-            pk: p.pk ? { active: p.pk.active, bet: p.pk.bet } : null,
+            pk: { active: !!(p.pkQ && p.pkQ.length), bet: (p.pkQ || []).reduce((a, b) => a + b.unit, 0) },
             mn: p.mn ? { active: p.mn.active, bet: p.mn.bet, mines: p.mn.mines, picks: p.mn.picks.slice() } : null,
             rl: p.rl ? { active: p.rl.active, total: p.rl.total, bets: p.rl.bets.map(b => ({ kind: b.kind, sel: b.sel, amount: b.amount })) } : null,
             bj: p.bj ? bjPublic(p.bj, p.balance) : null,
@@ -288,7 +285,7 @@ function bjPublic(bj, balance = 0) {
 const LEAVE_GRACE = 90 * 1000; // délai avant qu'un joueur déconnecté soit réellement retiré
 
 function settlePending(room, player) { // règle les parties en cours d'un joueur qui part pour de bon
-            if (player.pk && player.pk.active) pkSettle(room, player);
+            pkSettle(room, player);
             // les lignes "en cours" du panneau latéral se règlent proprement à la déconnexion (pas de ligne bloquée en pending)
             if (player.cr && player.cr.active) {
                 if (player.cr.feedId) feedUpdate(room, player.cr.feedId, { status: 'lost', win: 0, net: -player.cr.bet });
@@ -700,22 +697,26 @@ io.on('connection', (socket) => {
     socket.on('pk-start', ({ roomCode, amount, rows, risk, balls } = {}) => {
         const { room, player } = findPlayer(socket, roomCode);
         if (!room || !player || !player.inGame || room.status === 'ended') return;
-        if (player.pk && player.pk.active) return socket.emit('error-message', 'Des billes sont déjà en train de tomber !');
         rows = Math.floor(Number(rows)); balls = Math.floor(Number(balls)); amount = Math.floor(Number(amount));
         if (!(rows >= PK.MIN_ROWS && rows <= PK.MAX_ROWS) || !PK.RISKS.includes(risk) || !(balls >= 1 && balls <= PK_MAX_BALLS)) return;
         if (!Number.isFinite(amount) || amount <= 0) return socket.emit('error-message', 'Montant invalide !');
-        const total = amount * balls;
-        { const a2 = stakeOf(socket, player, total); if (a2 === null) return; }
-        player.balance -= total;
-        const seed = crypto.randomBytes(16).toString('hex'), table = PK.multipliers(rows, risk), slots = [], wins = [], paths = [];
+        player.pkQ = player.pkQ || [];
+        if (player.pkQ.length + balls > PK_MAX_INFLIGHT) return socket.emit('error-message', 'Trop de billes en l\'air, laisse-en retomber quelques-unes !');
+        { const a2 = stakeOf(socket, player, amount * balls); if (a2 === null) return; } // pas de cooldown : on peut relancer à volonté tant que le solde suit
+        player.balance -= amount * balls;
+        const seed = crypto.randomBytes(16).toString('hex'), table = PK.multipliers(rows, risk), slots = [], wins = [], paths = [], mults = [];
+        const batch = { seed, rows, risk, slots, left: balls };
         for (let j = 0; j < balls; j++) {
             let k = 0, bits = ''; for (let i = 0; i < rows; i++) { const b = parseInt(crypto.createHmac('sha256', seed).update(`plinko:${j}:${i}`).digest('hex')[0], 16) & 1; k += b; bits += b; }
-            paths.push(bits); slots.push(k); wins.push(weightedRound(amount * table[k]));
+            const win = tilt(player, amount, weightedRound(amount * table[k])), mult = shown(player, amount, win, table[k]);
+            paths.push(bits); slots.push(k); wins.push(win); mults.push(mult);
+            const fid = feedId(); // une ligne par bille dans « Paris en direct »
+            feedAdd(room, stamp({ id: fid, game: 'pk', icon: GAME_ICONS.pk, name: player.name, bet: amount, mult: null, win: 0, net: -amount, status: 'pending' }));
+            const ball = { unit: amount, win, mult, feedId: fid, batch, done: false, timer: null };
+            ball.timer = setTimeout(() => pkLand(room, player, ball), j * PK_STAGGER + (rows + 1) * PK_STEP + 120);
+            player.pkQ.push(ball);
         }
-        const pk = player.pk = { active: true, bet: total, unit: amount, rows, risk, balls, seed, slots, wins, feedId: feedId() };
-        feedAdd(room, stamp({ id: pk.feedId, game: 'pk', icon: GAME_ICONS.pk, name: player.name, bet: total, mult: null, win: 0, net: -total, status: 'pending' }));
-        socket.emit('pk-started', { hash: crypto.createHash('sha256').update(seed).digest('hex'), rows, risk, balls, slots, paths, mults: slots.map(k => table[k]), step: PK_STEP, stagger: PK_STAGGER });
-        pk.timer = setTimeout(() => pkSettle(room, player), (balls - 1) * PK_STAGGER + rows * PK_STEP + 900);
+        socket.emit('pk-started', { hash: crypto.createHash('sha256').update(seed).digest('hex'), rows, risk, balls, unit: amount, slots, paths, mults, wins, step: PK_STEP, stagger: PK_STAGGER });
         broadcast(room);
     });
 
@@ -1235,7 +1236,7 @@ function processCashOut(player, sl, multiplier, room, idx) {
 const sessionLive = room => room.status !== 'waiting' && room.status !== 'ended' && !!room.timers.session;
 // un joueur a de l'argent « dehors » (mise en cours dans un jeu) : il peut encore gagner, il n'est donc pas à zéro
 const hasStake = p => p.slots.some(sl => (sl.bet > 0 && !sl.cashed) || sl.next > 0)
-    || !!(p.iceState && p.iceState.active) || !!(p.jm && p.jm.active) || !!(p.cr && p.cr.active) || !!(p.ar && p.ar.active) || !!(p.mn && p.mn.active) || !!(p.pk && p.pk.active)
+    || !!(p.iceState && p.iceState.active) || !!(p.jm && p.jm.active) || !!(p.cr && p.cr.active) || !!(p.ar && p.ar.active) || !!(p.mn && p.mn.active) || !!(p.pkQ && p.pkQ.length)
     || !!(p.rl && (p.rl.active || p.rl.bets.length)) || bjPending(p.bj) > 0;
 const isBroke = p => p.balance <= 0 && !hasStake(p);
 // Arrêt automatique : tout le monde à zéro, OU tous à zéro sauf un (rien à jouer entre soi).
@@ -1288,7 +1289,7 @@ function endSession(room) {
     }));
 
     // une traversée Icefield en cours à la fin de la session est remboursée
-    room.players.forEach(p => { if (p.pk && p.pk.active) pkSettle(room, p); });
+    room.players.forEach(p => pkSettle(room, p));
     room.players.forEach(p => { if (p.iceState && p.iceState.active) { p.balance += p.iceState.bet; p.iceState.active = false; } if (p.jm && p.jm.active) { p.balance += p.jm.bet; p.jm.active = false; } if (p.cr && p.cr.active) { p.balance += p.cr.bet; p.cr.active = false; } });
 
     // les parties Arrows X, Roulette et Blackjack en cours à la fin de la session sont remboursées
