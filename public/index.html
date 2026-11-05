@@ -1094,7 +1094,6 @@ function sync(room) {
   S.crState = me ? me.cr : null;
   S.vip = new Set(room.players.filter(p => p.vip).map(p => p.name));
   S.mnState = me ? me.mn : null; if (S.view === 'mn') mnPaint();
-  S.pkState = me ? me.pk : null; if (S.view === 'pk' && $('pkRows')) pkPaint();
   crSync();
   S.arState = me ? me.ar : null;
   arSync();
@@ -1919,20 +1918,20 @@ function pkPaintFrame(now) {
     c.strokeText(p.txt, p.x, p.y - age * .05); c.fillText(p.txt, p.x, p.y - age * .05); c.globalAlpha = 1;
   }
   for (const b of S.pkBalls || []) { // billes
-    if (b.pos) { const gr = c.createRadialGradient(b.pos.x - g.br * .35, b.pos.y - g.br * .35, 1, b.pos.x, b.pos.y, g.br);
+    if (b.pos && b.vis) { const gr = c.createRadialGradient(b.pos.x - g.br * .35, b.pos.y - g.br * .35, 1, b.pos.x, b.pos.y, g.br);
       gr.addColorStop(0, '#fff'); gr.addColorStop(.35, b.col); gr.addColorStop(1, '#7a0f2a'); c.beginPath(); c.arc(b.pos.x, b.pos.y, g.br, 0, 7); c.fillStyle = gr; c.shadowColor = b.col; c.shadowBlur = 8; c.fill(); c.shadowBlur = 0; }
   }
 }
-function pkBallPos(g, b, now) { // position de la bille (ou null) + événements (touche un piton / tombe dans une case)
+function pkBallPos(b, now) { // position de la bille (ou null) + événements (touche un piton / tombe dans une case)
   const el = now - b.t0; if (el < 0) return null;
-  const n = g.n, st = b.step, seg = Math.floor(el / st), u = (el - seg * st) / st;
+  const g = b.g, n = g.n, st = b.step, seg = Math.floor(el / st), u = (el - seg * st) / st;
+  b.vis = b.n === S.pkRows && b.risk === S.pkRisk; // si tu changes de plateau, les billes déjà lâchées continuent "hors écran" (historique compris)
   const kBefore = i => { let k = 0; for (let q = 0; q < i; q++) k += +b.bits[q]; return k; };
   const C = i => ({ x: pkX(g, i, kBefore(i)), y: g.top + i * g.dy - g.pr - g.br + 1 });
   while (b.ev < Math.min(seg, n + 1)) { // seg = nombre de contacts déjà faits
     const i = b.ev; // contact n°i : piton de la rangée i (i < n) ou case d'arrivée (i == n)
-    if (i < n) { const k = kBefore(i); S.pkPegHit[i + ',' + (k + 1)] = now; pkSnd('pkpeg'); }
-    else { b.done = true; S.pkFlash[b.slot] = now; (S.pkPops = S.pkPops || []).push({ x: g.cx + (b.slot - n / 2) * g.dx, y: g.slotY - 4, t: now, txt: '×' + pkLabel(b.mult), col: pkColor(b.mult) });
-      pkSnd('pkland', Math.min(1, Math.max(0, (Math.log10(Math.max(b.mult, .1)) + 1) / 4.2))); if (b.mult >= 10) sound('win'); }
+    if (i < n) { if (b.vis) { const k = kBefore(i); S.pkPegHit[i + ',' + (k + 1)] = now; pkSnd('pkpeg'); } }
+    else { b.done = true; pkLanded(b, now); }
     b.ev++;
   }
   if (seg > n) return null; // arrivée : la bille disparaît dans la case
@@ -1944,17 +1943,26 @@ function pkBallPos(g, b, now) { // position de la bille (ou null) + événements
   const xe = seg > 0 && seg < n ? (1 - Math.cos(Math.PI * u)) / 2 : u;
   return { x: a.x + (z.x - a.x) * xe, y: a.y + (z.y - a.y) * e - hop * 4 * u * (1 - u) * (seg > 0 && seg < n ? 1 : 0) };
 }
+function pkLanded(b, now) { // UNE bille est arrivée : case qui s'allume, multiplicateur, ligne d'historique rien que pour elle
+  const g = b.g, net = b.win - b.unit;
+  if (b.vis) {
+    S.pkFlash[b.slot] = now; (S.pkPops = S.pkPops || []).push({ x: g.cx + (b.slot - g.n / 2) * g.dx, y: g.slotY - 4, t: now, txt: '×' + pkLabel(b.mult), col: pkColor(b.mult) });
+  }
+  pkSnd('pkland', Math.min(1, Math.max(0, (Math.log10(Math.max(b.mult, .1)) + 1) / 4.2))); if (b.mult >= 10) sound('win');
+  S.pkHist = S.pkHist || []; S.pkHist.unshift({ cls: b.win >= b.unit ? 'cr-win' : 'cr-lose', txt: '×' + pkLabel(b.mult) }); S.pkHist.length = Math.min(S.pkHist.length, 40);
+  setH($('pkHist'), S.pkHist.map(h => `<div class="history-pill ${h.cls}">${h.txt}</div>`).join(''));
+  $('pkStatus').textContent = `Bille : ×${pkLabel(b.mult)} → ${net > 0 ? '+' : ''}${net} 🪙`;
+}
 function pkLoop(now) {
-  if (S.view !== 'pk') { S.pkRun = false; S.pkBalls = []; return; }
-  const g = S.pkGeo;
-  for (const b of S.pkBalls) b.pos = pkBallPos(g, b, now);
+  if (S.view !== 'pk') { S.pkBalls.filter(b => !b.done).forEach(b => { b.done = true; b.vis = false; pkLanded(b, now); }); S.pkBalls = []; S.pkRun = false; return; } // tu quittes l'écran : les billes en vol sont comptées d'un coup
+  for (const b of S.pkBalls) b.pos = pkBallPos(b, now);
   pkPaintFrame(now);
-  S.pkBalls = S.pkBalls.filter(b => !b.done || now - b.t0 < (g.n + 1) * b.step + 120);
+  S.pkBalls = S.pkBalls.filter(b => !b.done);
   if (S.pkBalls.length || Object.keys(S.pkFlash).length || (S.pkPops || []).length || Object.keys(S.pkPegHit).length) requestAnimationFrame(pkLoop); else S.pkRun = false;
 }
 function pkLaunch(d) {
-  const now = performance.now(); S.pkBalls = S.pkBalls || [];
-  d.paths.forEach((bits, j) => S.pkBalls.push({ bits, slot: d.slots[j], mult: d.mults[j], t0: now + 60 + j * d.stagger, step: d.step, ev: 0, done: false, col: ['#ff4d6d', '#ffb703', '#4cc9f0', '#80ed99', '#c77dff'][j % 5], pos: null }));
+  const now = performance.now(), g = pkGeo(d.rows); S.pkBalls = S.pkBalls || [];
+  d.paths.forEach((bits, j) => S.pkBalls.push({ bits, slot: d.slots[j], mult: d.mults[j], win: d.wins[j], unit: d.unit, n: d.rows, risk: d.risk, g, t0: now + 60 + j * d.stagger, step: d.step, ev: 0, done: false, vis: true, col: ['#ff4d6d', '#ffb703', '#4cc9f0', '#80ed99', '#c77dff'][j % 5], pos: null }));
   if (!S.pkRun) { S.pkRun = true; requestAnimationFrame(pkLoop); }
 }
 const pkBallsVal = () => Math.max(1, Math.min(20, parseInt($('pkBalls').value) || 1));
@@ -1962,11 +1970,7 @@ function pkTotal() {
   const amt = parseInt($('pkBetAmount').value) || 0, n = pkBallsVal();
   $('pkTotal').textContent = amt > 0 ? `Mise totale : ${(amt * n).toLocaleString('fr-FR')} 🪙 (${n} bille${n > 1 ? 's' : ''} × ${amt.toLocaleString('fr-FR')})` : 'Mise totale : —';
 }
-function pkPaint() {
-  const active = !!(S.pkState && S.pkState.active);
-  $('pkStartBtn').disabled = active; $('pkStartBtn').textContent = active ? 'Les billes tombent… 🔴' : 'Lâcher les billes 🔴';
-  ['pkRows', 'pkBalls', 'pkBetAmount', 'pkRowsMinus', 'pkRowsPlus'].forEach(id => { $(id).disabled = active; });
-  document.querySelectorAll('#pkRisks .cr-mode, #pkRowQuick button, #pkBallQuick button, #pkQuick button').forEach(b => { b.disabled = active; });
+function pkPaint() { // jamais de bouton bloqué : on peut relancer des billes à tout moment
   document.querySelectorAll('#pkRisks .cr-mode').forEach(b => { b.classList.toggle('on', b.dataset.r === S.pkRisk); b.querySelector('small').textContent = 'max ×' + pkLabel(PKT.multipliers(S.pkRows, b.dataset.r)[0]); });
   pkTotal();
 }
@@ -1978,14 +1982,14 @@ function pkInit() {
   if (!S.pkInited) {
     S.pkInited = true; S.pkRows = 12; S.pkRisk = 'medium'; S.pkBalls = [];
     $('pkRisks').innerHTML = PKT.RISKS.map(r => `<button class="cr-mode${r === 'ultra' ? ' pk-ultra' : ''}" data-r="${r}">${PK_NAMES[r]}<small></small></button>`).join('');
-    $('pkRisks').addEventListener('click', e => { const b = e.target.closest('.cr-mode'); if (!b || b.disabled) return; S.pkRisk = b.dataset.r; pkDrawStatic(); pkPaint(); });
+    $('pkRisks').addEventListener('click', e => { const b = e.target.closest('.cr-mode'); if (!b) return; S.pkRisk = b.dataset.r; pkDrawStatic(); pkPaint(); });
     $('pkRowsMinus').onclick = () => pkSetRows(S.pkRows - 1); $('pkRowsPlus').onclick = () => pkSetRows(S.pkRows + 1);
     $('pkRows').addEventListener('change', () => pkSetRows(parseInt($('pkRows').value) || 12, true));
-    $('pkRowQuick').addEventListener('click', e => { const b = e.target.closest('button'); if (b && !b.disabled) pkSetRows(+b.dataset.n); });
-    $('pkBallQuick').addEventListener('click', e => { const b = e.target.closest('button'); if (b && !b.disabled) { $('pkBalls').value = b.dataset.n; pkTotal(); } });
+    $('pkRowQuick').addEventListener('click', e => { const b = e.target.closest('button'); if (b) pkSetRows(+b.dataset.n); });
+    $('pkBallQuick').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { $('pkBalls').value = b.dataset.n; pkTotal(); } });
     $('pkBalls').addEventListener('input', pkTotal); $('pkBetAmount').addEventListener('input', pkTotal);
     $('pkQuick').addEventListener('click', e => {
-      const b = e.target.closest('button'), amt = $('pkBetAmount'); if (!b || amt.disabled) return;
+      const b = e.target.closest('button'), amt = $('pkBetAmount'); if (!b) return;
       if (b.dataset.a) amt.value = b.dataset.a;
       else if (b.dataset.f === 'max') amt.value = Math.max(1, Math.floor(S.balance / pkBallsVal()));
       else amt.value = Math.max(1, Math.floor((parseFloat(amt.value) || 0) * b.dataset.f));
@@ -1994,30 +1998,18 @@ function pkInit() {
   }
   pkSetRows(S.pkRows, true); pkPaint();
 }
-function pkStart() {
+function pkStart() { // aucun cooldown : tu peux spammer, même avec 20 billes déjà en l'air
   const amount = parseInt($('pkBetAmount').value), balls = pkBallsVal();
   if (!amount || amount <= 0) return alert('Entre une mise valide !');
-  if (S.pkWait || (S.pkState && S.pkState.active)) return;
-  S.pkWait = true; setTimeout(() => { S.pkWait = false; }, 2500); sound('bet');
-  $('pkBalls').value = balls;
+  sound('bet'); $('pkBalls').value = balls;
   socket.emit('pk-start', { roomCode: S.code, amount, rows: S.pkRows, risk: S.pkRisk, balls });
 }
 socket.on('pk-started', d => {
-  S.pkWait = false; S.pkState = { active: true, bet: 0 };
-  if (d.rows !== S.pkRows || d.risk !== S.pkRisk) { S.pkRows = d.rows; S.pkRisk = d.risk; $('pkRows').value = d.rows; pkDrawStatic(); }
   $('pkProof').textContent = 'Hash SHA-256 de la graine : ' + d.hash;
-  $('pkStatus').textContent = `${d.balls} bille${d.balls > 1 ? 's' : ''} lâchée${d.balls > 1 ? 's' : ''}…`;
-  pkPaint(); pkLaunch(d); sound('pkdrop');
+  pkLaunch(d); sound('pkdrop');
 });
-socket.on('pk-result', d => {
-  S.pkWait = false; if (S.pkState) S.pkState.active = false;
-  const win = d.winnings >= d.bet;
-  $('pkStatus').textContent = d.message;
-  $('pkProof').textContent = `Graine révélée : ${d.seed} — SHA-256(graine) = hash ci-dessus ; bille j, rangée i : bit = 1er chiffre hexa de HMAC-SHA256(graine, "plinko:j:i") modulo 2 (1 = droite). Cases : ${d.slots.join(', ')}.`;
-  S.pkHist = S.pkHist || []; S.pkHist.unshift({ cls: win ? 'cr-win' : 'cr-lose', txt: '×' + pkLabel(d.multiplier) }); S.pkHist.length = Math.min(S.pkHist.length, 14);
-  setH($('pkHist'), S.pkHist.map(h => `<div class="history-pill ${h.cls}">${h.txt}</div>`).join(''));
-  if (d.winnings > d.bet) sound('win');
-  pkPaint();
+socket.on('pk-result', d => { // dernière bille d'un lancer arrivée : la graine est révélée
+  $('pkProof').textContent = `Graine révélée : ${d.seed} — SHA-256(graine) = hash du lancer ; bille j, rangée i : bit = 1er chiffre hexa de HMAC-SHA256(graine, "plinko:j:i") modulo 2 (1 = droite). Cases : ${d.slots.join(', ')}.`;
 });
 
 /* ============================================================
