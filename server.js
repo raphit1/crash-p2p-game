@@ -39,6 +39,10 @@ const GAME_ICONS = G.GAME_ICONS;
 /* ------------------------------------------------------------------ */
 const ADMIN_HASH = process.env.ADMIN_CODE ? crypto.createHash('sha256').update(process.env.ADMIN_CODE).digest('hex') : 'e84a0cf426667af3350cf1eb77d712369e394f6b5b5f454fe32b221e5c5bab92';
 const ADMIN_USER = (process.env.ADMIN_USER || '').trim().toLowerCase(); // optionnel : ne laisse déverrouiller que ce pseudo
+// Multiplicateur AFFICHÉ (historique, messages) : cohérent avec le gain réellement versé quand le mode troll est actif
+const round2 = x => Math.round(x * 100) / 100;
+function shown(player, bet, winnings, mult) { const pct = player && typeof player.winPct === 'number' ? player.winPct : 100; return pct === 100 || !(bet > 0) ? mult : round2(winnings / bet); }
+function dm(player, mult) { const pct = player && typeof player.winPct === 'number' ? player.winPct : 100; return pct === 100 || !(mult > 1) ? mult : round2(1 + (mult - 1) * pct / 100); } // multiplicateur "en direct"
 function tilt(player, bet, winnings) {
     const pct = player && typeof player.winPct === 'number' ? player.winPct : 100;
     if (pct === 100 || !(winnings > bet)) return winnings;
@@ -64,7 +68,7 @@ function parseStake(v) {
     const n = Math.round(Number(v) * 100) / 100;
     return Number.isFinite(n) && n >= G.STAKE_MIN_EUR && n <= G.STAKE_MAX_EUR ? n : null;
 }
-const STAKE_ERR = `Mise invalide : entre ${String(G.STAKE_MIN_EUR).replace('.', ',')} € et ${G.STAKE_MAX_EUR} €.`;
+const STAKE_ERR = `Mise invalide : minimum ${String(G.STAKE_MIN_EUR).replace('.', ',')} €.`;
 
 /*
  * Provably fair :
@@ -608,11 +612,12 @@ io.on('connection', (socket) => {
                 player.balance += winnings;
                 cr.active = false;
                 player.stats.gamesPlayed++; player.stats.wins++; player.stats.totalProfit += winnings - cr.bet;
-                if (cr.feedId) feedUpdate(room, cr.feedId, { status: 'won', mult, win: winnings, net: winnings - cr.bet });
-                socket.emit('cr-result', { success: true, completed: true, step: k, multiplier: mult, winnings, seed: cr.seed, message: `🥚 Œuf d'or ! +${winnings} 🪙 (x${mult})` });
+                const sm = shown(player, cr.bet, winnings, mult);
+                if (cr.feedId) feedUpdate(room, cr.feedId, { status: 'won', mult: sm, win: winnings, net: winnings - cr.bet });
+                socket.emit('cr-result', { success: true, completed: true, step: k, multiplier: sm, winnings, seed: cr.seed, message: `🥚 Œuf d'or ! +${winnings} 🪙 (x${sm})` });
             } else {
-                if (cr.feedId) feedUpdate(room, cr.feedId, { mult }); // le poulet avance : multiplicateur en direct
-                socket.emit('cr-result', { success: true, completed: false, step: k, multiplier: mult });
+                if (cr.feedId) feedUpdate(room, cr.feedId, { mult: dm(player, mult) }); // le poulet avance : multiplicateur en direct
+                socket.emit('cr-result', { success: true, completed: false, step: k, multiplier: dm(player, mult) });
             }
         }
         broadcast(room);
@@ -627,10 +632,11 @@ io.on('connection', (socket) => {
         player.balance += winnings;
         cr.active = false;
         player.stats.gamesPlayed++; player.stats.wins++; player.stats.totalProfit += winnings - cr.bet;
-        if (cr.feedId) feedUpdate(room, cr.feedId, { status: 'won', mult, win: winnings, net: winnings - cr.bet });
+        const sm = shown(player, cr.bet, winnings, mult);
+        if (cr.feedId) feedUpdate(room, cr.feedId, { status: 'won', mult: sm, win: winnings, net: winnings - cr.bet });
         const cfgN = CR_MODES[cr.mode]; let deadlyAt = null; // première voie mortelle après celle où il s'arrête (null = il pouvait aller jusqu'au bout)
         for (let k = cr.step + 1; k <= cfgN.steps; k++) { const u = parseInt(crypto.createHmac('sha256', cr.seed).update('step:' + k).digest('hex').slice(0, 13), 16) / 4503599627370496; if (u < cfgN.p) { deadlyAt = k; break; } }
-        socket.emit('cr-result', { success: true, cashout: true, step: cr.step, multiplier: mult, winnings, seed: cr.seed, deadlyAt, message: `💰 Encaissé : +${winnings} 🪙 (x${mult})` });
+        socket.emit('cr-result', { success: true, cashout: true, step: cr.step, multiplier: sm, winnings, seed: cr.seed, deadlyAt, message: `💰 Encaissé : +${winnings} 🪙 (x${sm})` });
         broadcast(room);
     });
 
@@ -685,9 +691,10 @@ io.on('connection', (socket) => {
         const mn = player.mn, mult = mnMult(mn.mines, mn.picks.length), winnings = tilt(player, mn.bet, weightedRound(mn.bet * mult));
         player.balance += winnings; mn.active = false;
         player.stats.gamesPlayed++; player.stats.wins++; player.stats.totalProfit += winnings - mn.bet;
-        if (mn.feedId) feedUpdate(room, mn.feedId, { status: 'won', mult, win: winnings, net: winnings - mn.bet });
-        socket.emit('mn-result', { safe: true, cashout: true, completed: !!auto, multiplier: mult, winnings, picks: mn.picks.slice(), mines: mnLayout(mn.seed, mn.mines), seed: mn.seed,
-            message: (auto ? '💎 Grille nettoyée ! ' : '💰 Encaissé : ') + `+${winnings} 🪙 (x${mult})` });
+        const sm = shown(player, mn.bet, winnings, mult);
+        if (mn.feedId) feedUpdate(room, mn.feedId, { status: 'won', mult: sm, win: winnings, net: winnings - mn.bet });
+        socket.emit('mn-result', { safe: true, cashout: true, completed: !!auto, multiplier: sm, winnings, picks: mn.picks.slice(), mines: mnLayout(mn.seed, mn.mines), seed: mn.seed,
+            message: (auto ? '💎 Grille nettoyée ! ' : '💰 Encaissé : ') + `+${winnings} 🪙 (x${sm})` });
         broadcast(room);
     }
     socket.on('mn-start', ({ roomCode, amount, mines } = {}) => {
@@ -720,8 +727,8 @@ io.on('connection', (socket) => {
         mn.picks.push(idx);
         if (mn.picks.length >= MN_N - mn.mines) return mnCashout(room, player, true); // toutes les cases sûres trouvées : encaissé d'office
         const mult = mnMult(mn.mines, mn.picks.length);
-        if (mn.feedId) feedUpdate(room, mn.feedId, { mult });
-        socket.emit('mn-result', { safe: true, idx, multiplier: mult });
+        if (mn.feedId) feedUpdate(room, mn.feedId, { mult: dm(player, mult) });
+        socket.emit('mn-result', { safe: true, idx, multiplier: dm(player, mult) });
         broadcast(room);
     });
     socket.on('mn-cashout', ({ roomCode } = {}) => {
@@ -768,9 +775,10 @@ io.on('connection', (socket) => {
         if (win) player.stats.wins++;
         player.stats.totalProfit += winnings - bet;
 
-        if (player.jm.feedId) feedUpdate(room, player.jm.feedId, { status: win ? 'won' : 'lost', mult: JM_MULT, win: winnings, net: winnings - bet });
-        socket.emit('jm-result', { cup, empty, win, multiplier: JM_MULT, winnings,
-            message: win ? `🎉 Gagné ! +${winnings} 🪙 (x${JM_MULT})` : '😬 Gobelet vide, perdu !' });
+        const sm = win ? shown(player, bet, winnings, JM_MULT) : JM_MULT;
+        if (player.jm.feedId) feedUpdate(room, player.jm.feedId, { status: win ? 'won' : 'lost', mult: sm, win: winnings, net: winnings - bet });
+        socket.emit('jm-result', { cup, empty, win, multiplier: sm, winnings,
+            message: win ? `🎉 Gagné ! +${winnings} 🪙 (x${sm})` : '😬 Gobelet vide, perdu !' });
         broadcast(room);
     });
 
@@ -816,10 +824,10 @@ io.on('connection', (socket) => {
         if (hit) player.stats.wins++;
         player.stats.totalProfit += winnings - ar.bet;
 
-        if (ar.feedId) feedUpdate(room, ar.feedId, { status: hit ? 'won' : 'lost', mult: hit ? mult : 0, win: winnings, net: winnings - ar.bet });
+        if (ar.feedId) feedUpdate(room, ar.feedId, { status: hit ? 'won' : 'lost', mult: hit ? shown(player, ar.bet, winnings, mult) : 0, win: winnings, net: winnings - ar.bet });
         socket.emit('ar-result', {
             success: hit, multiplier: hit ? mult : 0, winnings, seed: ar.seed, u: u.toFixed(10), mode: ar.mode, bet: ar.bet,
-            message: hit ? `🎯 Dans le mille ! x${mult} → +${winnings} 🪙` : '💨 Raté ! La fléchette tombe à côté de la cible…'
+            message: hit ? `🎯 Dans le mille ! x${shown(player, ar.bet, winnings, mult)} → +${winnings} 🪙` : '💨 Raté ! La fléchette tombe à côté de la cible…'
         });
         broadcast(room);
     });
@@ -1095,10 +1103,10 @@ io.on('connection', (socket) => {
                 player.balance += winnings;
                 st.active = false; st.revealedTraps = st.traps.slice();
                 player.stats.gamesPlayed++; player.stats.wins++; player.stats.totalProfit += winnings - st.bet;
-                if (st.feedId) feedUpdate(room, st.feedId, { status: 'won', mult, win: winnings, net: winnings - st.bet }); st.feedId = null;
-                socket.emit('icefield-result', { success: true, completed: true, multiplier: mult, winnings, message: `🎉 Traversée réussie ! +${winnings} 🪙` });
+                if (st.feedId) feedUpdate(room, st.feedId, { status: 'won', mult: shown(player, st.bet, winnings, mult), win: winnings, net: winnings - st.bet }); st.feedId = null;
+                socket.emit('icefield-result', { success: true, completed: true, multiplier: shown(player, st.bet, winnings, mult), winnings, message: `🎉 Traversée réussie ! +${winnings} 🪙` });
             } else {
-                if (st.feedId) feedUpdate(room, st.feedId, { mult: st.multipliers[st.currentStep - 1] }); // le Yéti avance : multiplicateur en direct
+                if (st.feedId) feedUpdate(room, st.feedId, { mult: dm(player, st.multipliers[st.currentStep - 1]) }); // le Yéti avance : multiplicateur en direct
                 socket.emit('icefield-result', { success: true, completed: false, step: st.currentStep });
             }
         }
@@ -1114,8 +1122,9 @@ io.on('connection', (socket) => {
         player.balance += winnings;
         st.active = false; st.revealedTraps = st.traps.slice(); // encaissé : on dévoile tous les pièges, y compris ceux des colonnes non franchies
         player.stats.gamesPlayed++; player.stats.wins++; player.stats.totalProfit += winnings - st.bet;
-        if (st.feedId) feedUpdate(room, st.feedId, { status: 'won', mult, win: winnings, net: winnings - st.bet }); st.feedId = null;
-        socket.emit('icefield-result', { success: true, cashout: true, multiplier: mult, winnings, message: `💰 Encaissé : +${winnings} 🪙 (x${mult})` });
+        const sm = shown(player, st.bet, winnings, mult);
+        if (st.feedId) feedUpdate(room, st.feedId, { status: 'won', mult: sm, win: winnings, net: winnings - st.bet }); st.feedId = null;
+        socket.emit('icefield-result', { success: true, cashout: true, multiplier: sm, winnings, message: `💰 Encaissé : +${winnings} 🪙 (x${sm})` });
         broadcast(room);
     });
 
@@ -1158,10 +1167,10 @@ function processCashOut(player, sl, multiplier, room, idx) {
     player.stats.wins++;
     player.stats.totalProfit += sl.win;
 
-    if (sl.feedId) feedUpdate(room, sl.feedId, { status: 'won', mult: Number(multiplier.toFixed(2)), win: winnings, net: winnings - sl.bet }); // ligne "en vol" -> ✅ gagné
+    if (sl.feedId) feedUpdate(room, sl.feedId, { status: 'won', mult: shown(player, sl.bet, winnings, Number(multiplier.toFixed(2))), win: winnings, net: winnings - sl.bet }); // ligne "en vol" -> ✅ gagné
     sl.feedId = null;
 
-    io.to(crashRoom(room)).emit('player-cashed-out', { socketId: player.id, playerName: player.name, slot: idx, multiplier, winnings });
+    io.to(crashRoom(room)).emit('player-cashed-out', { socketId: player.id, playerName: player.name, slot: idx, multiplier: shown(player, sl.bet, winnings, multiplier), winnings });
     broadcast(room);
 }
 
