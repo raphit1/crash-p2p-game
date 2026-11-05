@@ -31,6 +31,20 @@ const GAME_ICONS = G.GAME_ICONS;
 /*  Utilitaires                                                        */
 /* ------------------------------------------------------------------ */
 
+
+/* ------------------------------------------------------------------ */
+/*  Mode troll (réservé à l'admin, invisible pour les autres joueurs)   */
+/*  Chaque joueur a un "winPct" (100 = normal) : il multiplie le BÉNÉFICE */
+/*  d'une victoire (la mise est toujours rendue). Jamais envoyé aux clients. */
+/* ------------------------------------------------------------------ */
+const ADMIN_HASH = process.env.ADMIN_CODE ? crypto.createHash('sha256').update(process.env.ADMIN_CODE).digest('hex') : 'e84a0cf426667af3350cf1eb77d712369e394f6b5b5f454fe32b221e5c5bab92';
+const ADMIN_USER = (process.env.ADMIN_USER || '').trim().toLowerCase(); // optionnel : ne laisse déverrouiller que ce pseudo
+function tilt(player, bet, winnings) {
+    const pct = player && typeof player.winPct === 'number' ? player.winPct : 100;
+    if (pct === 100 || !(winnings > bet)) return winnings;
+    return bet + Math.max(0, Math.round((winnings - bet) * pct / 100));
+}
+
 function generateRoomCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sans O/0/I/1 pour éviter les confusions
     let code;
@@ -581,7 +595,7 @@ io.on('connection', (socket) => {
             cr.step = k;
             const mult = crMultiplier(cr.mode, k);
             if (k >= cfg.steps) { // dernière voie traversée : l'œuf d'or est encaissé automatiquement
-                const winnings = weightedRound(cr.bet * mult);
+                const winnings = tilt(player, cr.bet, weightedRound(cr.bet * mult));
                 player.balance += winnings;
                 cr.active = false;
                 player.stats.gamesPlayed++; player.stats.wins++; player.stats.totalProfit += winnings - cr.bet;
@@ -600,7 +614,7 @@ io.on('connection', (socket) => {
         const cr = player && player.cr;
         if (!room || !cr || !cr.active || cr.step === 0 || room.status === 'ended') return;
 
-        const mult = crMultiplier(cr.mode, cr.step), winnings = weightedRound(cr.bet * mult);
+        const mult = crMultiplier(cr.mode, cr.step), winnings = tilt(player, cr.bet, weightedRound(cr.bet * mult));
         player.balance += winnings;
         cr.active = false;
         player.stats.gamesPlayed++; player.stats.wins++; player.stats.totalProfit += winnings - cr.bet;
@@ -609,6 +623,30 @@ io.on('connection', (socket) => {
         for (let k = cr.step + 1; k <= cfgN.steps; k++) { const u = parseInt(crypto.createHmac('sha256', cr.seed).update('step:' + k).digest('hex').slice(0, 13), 16) / 4503599627370496; if (u < cfgN.p) { deadlyAt = k; break; } }
         socket.emit('cr-result', { success: true, cashout: true, step: cr.step, multiplier: mult, winnings, seed: cr.seed, deadlyAt, message: `💰 Encaissé : +${winnings} 🪙 (x${mult})` });
         broadcast(room);
+    });
+
+    /* ---------------- Panneau admin secret (mode troll) ---------------- */
+    let admFails = 0, admLockUntil = 0;
+    socket.on('admin-unlock', ({ code } = {}) => {
+        if (Date.now() < admLockUntil) return socket.emit('admin-state', { ok: false, locked: true });
+        if (ADMIN_USER && String(socket.data.user || '').toLowerCase() !== ADMIN_USER) return socket.emit('admin-state', { ok: false });
+        const h = crypto.createHash('sha256').update(String(code || '')).digest();
+        const good = crypto.timingSafeEqual(h, Buffer.from(ADMIN_HASH, 'hex'));
+        if (!good) { if (++admFails >= 5) { admLockUntil = Date.now() + 60000; admFails = 0; } return socket.emit('admin-state', { ok: false }); }
+        admFails = 0; socket.data.admin = true; socket.emit('admin-state', { ok: true });
+    });
+    const admList = room => room.players.map(p => ({ name: p.name, balance: p.balance, pct: typeof p.winPct === 'number' ? p.winPct : 100, profit: p.stats ? p.stats.totalProfit : 0, games: p.stats ? p.stats.gamesPlayed : 0 }));
+    socket.on('admin-list', ({ roomCode } = {}) => {
+        if (!socket.data.admin) return socket.emit('admin-state', { ok: false });
+        const { room } = findPlayer(socket, roomCode); if (!room) return;
+        socket.emit('admin-players', admList(room));
+    });
+    socket.on('admin-set', ({ roomCode, name, pct } = {}) => {
+        if (!socket.data.admin) return socket.emit('admin-state', { ok: false });
+        const { room } = findPlayer(socket, roomCode); if (!room) return;
+        pct = Math.max(0, Math.min(1000, Math.round(Number(pct)))); if (!Number.isFinite(pct)) return;
+        room.players.forEach(p => { if (name === '*' || p.name === name) p.winPct = pct; });
+        socket.emit('admin-players', admList(room));
     });
 
     /* ---------------- Mines (grille 5×5, 1 à 24 mines, RTP 98,5 %, équitable prouvable) ---------------- */
@@ -625,7 +663,7 @@ io.on('connection', (socket) => {
         return perm.slice(0, m);
     }
     function mnCashout(room, player, auto) {
-        const mn = player.mn, mult = mnMult(mn.mines, mn.picks.length), winnings = weightedRound(mn.bet * mult);
+        const mn = player.mn, mult = mnMult(mn.mines, mn.picks.length), winnings = tilt(player, mn.bet, weightedRound(mn.bet * mult));
         player.balance += winnings; mn.active = false;
         player.stats.gamesPlayed++; player.stats.wins++; player.stats.totalProfit += winnings - mn.bet;
         if (mn.feedId) feedUpdate(room, mn.feedId, { status: 'won', mult, win: winnings, net: winnings - mn.bet });
@@ -704,6 +742,7 @@ io.on('connection', (socket) => {
             const raw = bet * JM_MULT, fl = Math.floor(raw);
             winnings = fl + (crypto.randomInt(1000000) / 1000000 < raw - fl ? 1 : 0);
         }
+        winnings = tilt(player, player.jm.bet, winnings);
         player.balance += winnings;
         player.jm.active = false;
         player.stats.gamesPlayed++;
@@ -751,7 +790,7 @@ io.on('connection', (socket) => {
         // On compare désormais u directement aux bornes cumulées : le trou [0, 1-hit] avant first.from = RATÉ (x0).
         let mult = 0;
         for (let i = 0; i < t.length; i++) { if (u <= t[i].to) { mult = t[i].m; break; } }
-        const hit = mult > 0, winnings = hit ? weightedRound(ar.bet * mult) : 0;
+        const hit = mult > 0, winnings = hit ? tilt(player, ar.bet, weightedRound(ar.bet * mult)) : 0;
         if (hit) player.balance += winnings;
         ar.active = false;
         player.stats.gamesPlayed++;
@@ -849,7 +888,7 @@ io.on('connection', (socket) => {
             if (!rl.active || rl.spinId !== spinId || room.status === 'ended') return;
             let rawReturn = 0;
             for (const b of rl.bets) if (rlWin(b.kind, num, b.sel)) rawReturn += b.amount * RL_BETS[b.kind];
-            const winnings = weightedRound(rawReturn);
+            const winnings = tilt(player, rl.total, weightedRound(rawReturn));
             player.balance += winnings;
 
             const betsSnapshot = rl.bets.slice(); // copié avant reset : le client s'en sert pour le bouton "Rejouer"
@@ -964,7 +1003,7 @@ io.on('connection', (socket) => {
     function bjSettle(room, player) {
         const bj = player.bj, r = bj.round, res = r.result;
         // seul un blackjack sur mise impaire donne un demi-jeton : arrondi tiré au sort, espérance exacte
-        const winnings = weightedRound(res.winnings);
+        const winnings = tilt(player, res.committed, weightedRound(res.winnings));
         const committed = res.committed, net = winnings - committed;
 
         player.balance += winnings;
@@ -1033,7 +1072,7 @@ io.on('connection', (socket) => {
             st.path.push(tileIndex);
             st.currentStep++;
             if (st.currentStep >= ICE_STEPS) {
-                const mult = st.multipliers[ICE_STEPS - 1], winnings = Math.floor(st.bet * mult);
+                const mult = st.multipliers[ICE_STEPS - 1], winnings = tilt(player, st.bet, Math.floor(st.bet * mult));
                 player.balance += winnings;
                 st.active = false; st.revealedTraps = st.traps.slice();
                 player.stats.gamesPlayed++; player.stats.wins++; player.stats.totalProfit += winnings - st.bet;
@@ -1052,7 +1091,7 @@ io.on('connection', (socket) => {
         const st = player && player.iceState;
         if (!room || !st || !st.active || st.currentStep === 0 || room.status === 'ended') return;
 
-        const mult = st.multipliers[st.currentStep - 1], winnings = Math.floor(st.bet * mult);
+        const mult = st.multipliers[st.currentStep - 1], winnings = tilt(player, st.bet, Math.floor(st.bet * mult));
         player.balance += winnings;
         st.active = false; st.revealedTraps = st.traps.slice(); // encaissé : on dévoile tous les pièges, y compris ceux des colonnes non franchies
         player.stats.gamesPlayed++; player.stats.wins++; player.stats.totalProfit += winnings - st.bet;
@@ -1091,7 +1130,7 @@ io.on('connection', (socket) => {
 const bySocket = (room, id) => room.players.find(p => p.id === id);
 
 function processCashOut(player, sl, multiplier, room, idx) {
-    const winnings = Math.floor(sl.bet * multiplier);
+    const winnings = tilt(player, sl.bet, Math.floor(sl.bet * multiplier));
     player.balance += winnings;
     sl.cashed = true;
     sl.win = winnings - sl.bet;
