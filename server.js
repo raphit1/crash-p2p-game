@@ -177,6 +177,7 @@ function publicRoom(room, full = false) {
             mn: p.mn ? { active: p.mn.active, bet: p.mn.bet, mines: p.mn.mines, picks: p.mn.picks.slice() } : null,
             rl: p.rl ? { active: p.rl.active, total: p.rl.total, bets: p.rl.bets.map(b => ({ kind: b.kind, sel: b.sel, amount: b.amount })) } : null,
             bj: p.bj ? bjPublic(p.bj, p.balance) : null,
+            vip: !!ADMIN_USER && String(p.name).toLowerCase() === ADMIN_USER, // couronne publique du créateur (le panneau, lui, reste privé)
             stats: p.stats
         })),
         history: full ? room.history : undefined // l'historique n'est envoyé qu'aux joueurs de la table Crash
@@ -361,7 +362,15 @@ io.on('connection', (socket) => {
     const ip = socket.handshake.address || '';
 
     // ---- Comptes ----
-    const authOk = (name, token) => { socket.data.user = name; socket.data.token = token; socket.emit('auth-ok', { name, token }); resumeRoom(socket, name); };
+    const authOk = (name, token) => {
+        socket.data.user = name; socket.data.token = token;
+        // Reconnaissance automatique de l'admin : ton compte (protégé par ton mot de passe) = ADMIN_USER sur Render
+        const isAdm = !!ADMIN_USER && String(name).toLowerCase() === ADMIN_USER;
+        socket.data.admin = isAdm;
+        socket.emit('auth-ok', { name, token, adminCode: !ADMIN_USER }); // adminCode : sans ADMIN_USER, le panneau reste déverrouillable par code
+        if (isAdm) socket.emit('admin-state', { ok: true, auto: true });
+        resumeRoom(socket, name);
+    };
     socket.on('auth-register', async ({ username, password } = {}) => {
         try { const r = await A.register(username, password); r.error ? socket.emit('auth-error', r.error) : authOk(r.name, r.token); }
         catch (e) { console.error(e); socket.emit('auth-error', 'Erreur serveur.'); }
@@ -391,7 +400,7 @@ io.on('connection', (socket) => {
         }
         socket.emit('left-room');
     });
-    socket.on('auth-logout', () => { A.logout(socket.data.token); socket.data.user = null; socket.data.token = null; });
+    socket.on('auth-logout', () => { socket.data.admin = false; A.logout(socket.data.token); socket.data.user = null; socket.data.token = null; });
 
     socket.on('create-room', ({ duration, stake } = {}) => {
         const name = socket.data.user;
