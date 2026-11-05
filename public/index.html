@@ -196,6 +196,10 @@ ul{padding-left:20px;text-align:left}
 .adm-row b{flex:1;color:#fff;min-width:0;overflow:hidden;text-overflow:ellipsis}.adm-row small{color:#94a3b8}
 .adm-row input{width:62px;text-align:center}
 .adm-q{margin:0;padding:3px 6px;font-size:11px;width:auto;border-radius:6px;background:#312e81;box-shadow:none}
+.adm-name{color:#ff2a3f!important;font-weight:900;letter-spacing:.3px;text-shadow:0 0 2px #000,0 0 6px #ff1030,0 0 14px #e0001a,0 0 26px rgba(120,0,15,.9);animation:admGlow 2.2s ease-in-out infinite alternate}
+@keyframes admGlow{from{text-shadow:0 0 2px #000,0 0 5px #ff1030,0 0 10px #c0001a,0 0 18px rgba(90,0,10,.8)}to{text-shadow:0 0 2px #000,0 0 9px #ff3a52,0 0 20px #ff0022,0 0 34px rgba(140,0,20,1)}}
+.adm-r{position:relative;display:inline-block}.adm-r i{position:absolute;left:-5px;top:-.6em;font-size:.75em;font-style:normal;transform:rotate(-22deg);text-shadow:none;filter:drop-shadow(0 0 4px #ffb800);pointer-events:none;animation:none}
+#admGear.adm-on{opacity:.9;background:#4c1d95;border:1px solid #a78bfa;box-shadow:0 0 10px rgba(167,139,250,.6)}
 /* ---- Mines ---- */
 .mn-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-width:420px;margin:12px auto}
 .mn-cell{margin:0;padding:0;aspect-ratio:1;font-size:clamp(22px,6vw,34px);border-radius:12px;background:linear-gradient(180deg,#2d3a52,#1b2436);border:1px solid rgba(120,160,220,.3);box-shadow:0 3px 0 #0e1522;cursor:default;display:grid;place-items:center;transition:transform .12s,background .2s}
@@ -737,6 +741,8 @@ ul{padding-left:20px;text-align:left}
 const socket = io({ transports: ['websocket', 'polling'] }); // websocket direct : pas de long-polling
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Pseudo du créateur : rouge néon + couronne sur la 1re lettre, visible par TOUT LE MONDE (seul le panneau admin est privé)
+const nm = n => { const e = esc(n); if (!n || !((S.isAdmin && n === S.myName) || (S.vip && S.vip.has(n)))) return e; return `<span class="adm-name"><span class="adm-r">${esc(n[0])}<i>👑</i></span>${esc(n.slice(1))}</span>`; };
 const show = (id, on = true) => $(id).classList.toggle('hidden', !on);
 
 /* ---------- État ---------- */
@@ -995,14 +1001,14 @@ function renderPlayers(room) {
     document.querySelectorAll('.playerBalance').forEach(e => { if (e.textContent != me.balance) e.textContent = me.balance; });
   }
   if (!$('lobby').classList.contains('hidden')) {
-    setH($('playersList'), room.players.map(p => `<li>${esc(p.name)} · mise ${eur(p.stake || 0)} (${p.balance} 🪙) ${p.isAdmin ? '👑 Hôte' : ''}${p.connected === false ? ' 💤 déconnecté' : ''}</li>`).join(''));
+    setH($('playersList'), room.players.map(p => `<li>${nm(p.name)} · mise ${eur(p.stake || 0)} (${p.balance} 🪙) ${p.isAdmin ? '👑 Hôte' : ''}${p.connected === false ? ' 💤 déconnecté' : ''}</li>`).join(''));
     $('potTotal').textContent = eur(room.players.reduce((a, p) => a + (p.stake || 0), 0));
   }
   if (S.view === 'crash') { // la liste des mises et les stats ne servent que sur l'écran Crash
     const avg = room.players.reduce((a, p) => a + p.stats.totalProfit, 0) / (room.players.length || 1);
     setH($('gamePlayersList'), room.players.map(p => {
       const st = p.slots.map(x => x.cashed ? `✅ +${x.win} 🪙` : x.bet > 0 ? `Mise ${x.bet} 🪙${x.auto ? ' (auto ' + x.auto + 'x)' : ''}` : x.next > 0 ? `Prête ${x.next} 🪙` : '').filter(Boolean).join(' · ');
-      return `<li><b>${esc(p.name)}</b> - ${st || 'Observe'} | Profit: <span class="${p.stats.totalProfit >= avg ? 'text-green' : 'text-red'}">${sg(p.stats.totalProfit)}${p.stats.totalProfit} 🪙</span> (Solde: ${p.balance} 🪙)</li>`;
+      return `<li><b>${nm(p.name)}</b> - ${st || 'Observe'} | Profit: <span class="${p.stats.totalProfit >= avg ? 'text-green' : 'text-red'}">${sg(p.stats.totalProfit)}${p.stats.totalProfit} 🪙</span> (Solde: ${p.balance} 🪙)</li>`;
     }).join(''));
     if (me) setH($('myStatsBadge'), `<span>📊 <b>Mes Stats :</b> ${me.stats.gamesPlayed} jouées</span><span>Victoires : ${me.stats.wins}</span>
       <span>Profit : <span class="${me.stats.totalProfit >= 0 ? 'text-green' : 'text-red'}">${sg(me.stats.totalProfit)}${me.stats.totalProfit} 🪙</span></span>`);
@@ -1039,6 +1045,7 @@ function sync(room) {
   S.iceState = me ? me.iceState : null;
   updateIce();
   S.crState = me ? me.cr : null;
+  S.vip = new Set(room.players.filter(p => p.vip).map(p => p.name));
   S.mnState = me ? me.mn : null; if (S.view === 'mn') mnPaint();
   crSync();
   S.arState = me ? me.ar : null;
@@ -1057,7 +1064,7 @@ function renderRank(room) {
   const mine = rows.findIndex(p => p.id === socket.id);
   const html = rows.map((p, i) => {
     const pr = eq(p) - (p.initialBalance || 1000);
-    return `<div class="rank-row${p.id === socket.id ? ' me' : ''}"><b>${i < 3 ? ['🥇', '🥈', '🥉'][i] : '#' + (i + 1)}</b><span>${esc(p.name)}${p.connected === false ? ' 💤' : ''}</span><b>${eq(p)} 🪙</b><span class="${pr >= 0 ? 'text-green' : 'text-red'}">${pr >= 0 ? '+' : ''}${pr}</span></div>`;
+    return `<div class="rank-row${p.id === socket.id ? ' me' : ''}"><b>${i < 3 ? ['🥇', '🥈', '🥉'][i] : '#' + (i + 1)}</b><span>${nm(p.name)}${p.connected === false ? ' 💤' : ''}</span><b>${eq(p)} 🪙</b><span class="${pr >= 0 ? 'text-green' : 'text-red'}">${pr >= 0 ? '+' : ''}${pr}</span></div>`;
   }).join('');
   document.querySelectorAll('.rankList').forEach(e => setH(e, html));
   document.querySelectorAll('.rankMe').forEach(e => e.textContent = mine >= 0 ? `Tu es #${mine + 1} sur ${rows.length}` : '');
@@ -1065,7 +1072,7 @@ function renderRank(room) {
 function enterLobby(room) {
   S.code = room.code;
   show('auth-screen', false); show('lobby');
-  $('displayCode').textContent = room.code; $('roomChipCode').textContent = room.code; $('roomChip').style.display = 'flex'; $('admGear').style.display = 'block';
+  $('displayCode').textContent = room.code; $('roomChipCode').textContent = room.code; $('roomChip').style.display = 'flex'; $('admGear').style.display = (S.isAdmin || S.admCodeMode) ? 'block' : 'none';
   sync(room);
 }
 
@@ -1227,7 +1234,7 @@ socket.on('game-session-ended', d => {
     const row = document.createElement('div');
     row.style.cssText = 'background:#0d0814;padding:10px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px';
     const perf = (p.performance >= 0 ? '+' : '') + Math.round(p.performance * 100) + ' %';
-    row.innerHTML = `<span><b>#${i + 1} ${esc(p.name)}</b><br><small style="color:#94a3b8">mise ${eur(p.stake)} · ${p.finalBalance} 🪙 (${perf})</small></span>
+    row.innerHTML = `<span><b>#${i + 1} ${nm(p.name)}</b><br><small style="color:#94a3b8">mise ${eur(p.stake)} · ${p.finalBalance} 🪙 (${perf})</small></span>
       <span style="text-align:right">reçoit <b>${eur(p.payout)}</b><br><b class="${p.net >= 0 ? 'text-green' : 'text-red'}">${p.net >= 0 ? '+' : ''}${eur(p.net)}</b></span>`;
     box.appendChild(row);
   });
@@ -1250,7 +1257,7 @@ function authSubmit(mode) {
 function logout() { socket.emit('auth-logout'); setTok(null); location.reload(); }
 socket.on('auth-ok', d => {
   S.myName = d.name; setTok(d.token);
-  $('whoami').textContent = d.name; $('authPass').value = '';
+  S.admCodeMode = !!d.adminCode; $('whoami').textContent = d.name; $('authPass').value = ''; if (S.isAdmin) $('whoami').innerHTML = nm(d.name);
   if (!S.code) { show('loginCard', false); show('roomCards'); }
 });
 socket.on('auth-error', m => alert(m));
@@ -1768,7 +1775,7 @@ function admUnlock() { socket.emit('admin-unlock', { code: $('admCode').value })
 function admRefresh() { if (S.isAdmin && $('admPanel').style.display === 'block') socket.emit('admin-list', { roomCode: S.code }); }
 function admSet(name, pct) { socket.emit('admin-set', { roomCode: S.code, name, pct }); }
 socket.on('admin-state', d => {
-  S.isAdmin = !!d.ok;
+  S.isAdmin = !!d.ok; if (d.ok) { $('whoami').innerHTML = nm(S.myName || ''); $('admGear').classList.add('adm-on'); if (S.code) $('admGear').style.display = 'block'; }
   $('admLock').style.display = d.ok ? 'none' : 'block'; $('admBody').style.display = d.ok ? 'block' : 'none';
   $('admErr').textContent = d.ok ? '' : d.locked ? 'Trop d\'essais, attends 1 min.' : 'Code incorrect.';
   if (d.ok) admRefresh();
@@ -2486,7 +2493,7 @@ function feedRowHtml(r) {
   const me = S.code && r.name === (S.myName || '') ? ' style="background:rgba(92,200,255,.08)"' : '';
   return `<div class="feed-row ${cls}"${me}>
     <span class="feed-ic">${r.icon || '🎲'}</span>
-    <span class="feed-mid"><span class="feed-name">${esc(r.name)}</span>
+    <span class="feed-mid"><span class="feed-name">${nm(r.name)}</span>
       <span class="feed-sub">${FEED_NAMES[r.game] || r.game} · mise ${fmtN(r.bet)} 🪙${r.status !== 'pending' && r.win ? ' · gagne ' + fmtN(r.win) : ''} · ${ago(r.ts || Date.now())}</span></span>
     <span class="feed-right"><div class="feed-net ${netCls}">${netTxt}</div>${mult ? `<div class="feed-mult">${mult}</div>` : ''}</span>
   </div>`;
