@@ -203,6 +203,10 @@ ul{padding-left:20px;text-align:left}
 @keyframes admGlow{from{text-shadow:0 0 2px #000,0 0 5px #ff1030,0 0 10px #c0001a,0 0 18px rgba(90,0,10,.8)}to{text-shadow:0 0 2px #000,0 0 9px #ff3a52,0 0 20px #ff0022,0 0 34px rgba(140,0,20,1)}}
 .adm-r{position:relative;display:inline-block}.adm-r i{position:absolute;left:-5px;top:-.6em;font-size:.75em;font-style:normal;transform:rotate(-22deg);text-shadow:none;filter:drop-shadow(0 0 4px #ffb800);pointer-events:none;animation:none}
 #admGear.adm-on{opacity:.9;background:#4c1d95;border:1px solid #a78bfa;box-shadow:0 0 10px rgba(167,139,250,.6)}
+.pk-wrap{max-width:700px;margin:10px auto;padding:8px;border-radius:16px;background:radial-gradient(circle at 50% 0,#1d2547,#0b0f1f 70%);border:1px solid rgba(120,150,255,.3);box-shadow:0 10px 30px rgba(0,0,0,.5)}
+#pkCanvas{width:100%;height:auto;display:block}
+.cr-mode.pk-ultra.on{background:linear-gradient(180deg,#ff4d6d,#8a0a2a);color:#fff;border-color:#ff9aa9;box-shadow:0 0 16px rgba(255,60,90,.7)}
+.cr-mode.pk-ultra{border-color:rgba(255,80,110,.6)}
 /* ---- Mines ---- */
 .mn-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-width:420px;margin:12px auto}
 .mn-cell{margin:0;padding:0;aspect-ratio:1;font-size:clamp(22px,6vw,34px);border-radius:12px;background:linear-gradient(180deg,#2d3a52,#1b2436);border:1px solid rgba(120,160,220,.3);box-shadow:0 3px 0 #0e1522;cursor:default;display:grid;place-items:center;transition:transform .12s,background .2s}
@@ -366,6 +370,7 @@ ul{padding-left:20px;text-align:left}
             <div class="game-thumbnail" style="background: linear-gradient(135deg, #450a0a, #b91c1c 60%, #d4a24c);" onclick="switchGame('Roulette')" title="Roue européenne 0-36, payouts réels (plein x36, simple chance x2, douzaine/colonne x3) → avantage maison naturel de 2,70 %.">🎡 Roulette européenne (roue réelle · edge 2,70 %)</div>
             <div class="game-thumbnail" style="background: linear-gradient(135deg, #052e16, #14532d 60%, #ffd45c);" onclick="switchGame('Blackjack')" title="Une main = un jeu de 52 cartes mélangé en provably fair. Croupier stand 17, blackjack payé 3:2, égalité = mise rendue.">🃏 Blackjack (règles classiques · BJ payé 3:2)</div>
             <div class="game-thumbnail" style="background: linear-gradient(135deg, #0c4a6e, #0e7490 60%, #f87171);" onclick="switchGame('Mines')" title="Grille 5×5 : trouve les cases sûres, évite les mines. 1 à 24 mines, RTP 98,5 %, équitable prouvable.">💣 Mines (5×5 · 1 à 24 mines)</div>
+            <div class="game-thumbnail" style="background: linear-gradient(135deg, #1e1b4b, #4338ca 55%, #ec4899);" onclick="switchGame('Plinko')" title="Plinko : 8 à 16 rangées, 4 risques (dont ULTRA jusqu'à ×16 384), jusqu'à 20 billes d'un coup. RTP 98,5 %.">🔴 Plinko (8-16 rangées · 4 risques · multi-billes)</div>
             <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
         </div>
 
@@ -511,6 +516,36 @@ ul{padding-left:20px;text-align:left}
         </div>
 
         <!-- 7. ÉCRAN CHICKEN ROAD -->
+        <div id="pk-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h3 style="margin: 5px 0; color: #ffd45c;">🔴 Plinko</h3>
+            <p id="pkStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Choisis les rangées, le risque et le nombre de billes, puis lâche-les !</p>
+            <div class="bet-control-box" style="margin: 0 0 10px;">
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Risque</label>
+                <div class="cr-modes" id="pkRisks"></div>
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Rangées (8 à 16)</label>
+                <div class="mn-count"><button id="pkRowsMinus" type="button">−</button><input type="number" id="pkRows" value="12" min="8" max="16"><button id="pkRowsPlus" type="button">+</button></div>
+                <div class="quick-bet-row" id="pkRowQuick"><button class="quick-btn" data-n="8">8</button><button class="quick-btn" data-n="10">10</button><button class="quick-btn" data-n="12">12</button><button class="quick-btn" data-n="14">14</button><button class="quick-btn" data-n="16">16</button></div>
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Nombre de billes (1 à 20)</label>
+                <input type="number" id="pkBalls" value="1" min="1" max="20" style="margin: 4px 0 8px;">
+                <div class="quick-bet-row" id="pkBallQuick"><button class="quick-btn" data-n="1">1</button><button class="quick-btn" data-n="3">3</button><button class="quick-btn" data-n="5">5</button><button class="quick-btn" data-n="10">10</button><button class="quick-btn" data-n="20">20</button></div>
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise par bille</label>
+                <input type="number" id="pkBetAmount" value="50" min="1" style="margin: 4px 0 8px;">
+                <div class="quick-bet-row" id="pkQuick" style="margin-bottom:0">
+                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
+                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+                </div>
+                <div id="pkTotal" style="font-size:12px;color:#cdbf9f;margin-top:8px">Mise totale : —</div>
+            </div>
+            <div class="pk-wrap"><canvas id="pkCanvas" width="680" height="560"></canvas></div>
+            <button id="pkStartBtn" onclick="pkStart()">Lâcher les billes 🔴</button>
+            <div class="history-bar" id="pkHist" style="margin-top: 10px;"></div>
+            <div id="pkProof" style="font-size:11px;color:#7c8aa5;word-break:break-all;margin-top:8px"></div>
+        </div>
         <div id="mn-screen" class="hidden">
             <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
             <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
@@ -584,13 +619,17 @@ ul{padding-left:20px;text-align:left}
             <div class="bet-control-box" style="margin: 0 0 10px;">
                 <div class="cr-modes" id="arModes"></div>
                 <div class="cr-info" id="arInfo"></div>
-                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Fléchettes d'affilée (1 à 20)</label>
+                <input type="number" id="arDarts" value="1" min="1" max="20" style="margin: 4px 0 8px;">
+                <div class="quick-bet-row" id="arDartQuick"><button class="quick-btn" data-n="1">1</button><button class="quick-btn" data-n="3">3</button><button class="quick-btn" data-n="5">5</button><button class="quick-btn" data-n="10">10</button><button class="quick-btn" data-n="20">20</button></div>
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise par fléchette</label>
                 <input type="number" id="arBetAmount" value="50" min="1" style="margin: 4px 0 8px;">
                 <div class="quick-bet-row" id="arQuick" style="margin-bottom:0">
                     <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
                     <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
                 </div>
             </div>
+            <div id="arTotal" style="font-size:12px;color:#cdbf9f;margin:-4px 0 8px">Mise totale : —</div>
             <div class="provably-fair-box">🔒 <b>Hash SHA-256 de la partie :</b> <span id="arHash" style="color: #38bdf8;">—</span><br><span id="arProof"></span></div>
             <div class="ar-hud"><div>Mode<b id="arModeName">Facile</b></div><div>Chance de toucher<b id="arHitPct">61,9 %</b></div><div>Gain max<b id="arMax">x20</b></div></div>
             <div class="ar-stage" id="arStage"><svg id="arSvg" viewBox="0 0 640 320" preserveAspectRatio="xMidYMid meet"></svg><div id="arToast" class="ice-toast"></div><div id="arPop" class="ar-pop"></div></div>
@@ -738,7 +777,8 @@ ul{padding-left:20px;text-align:left}
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script>
+    <script src="/plinko-tables.js"></script>
+<script>
 (() => {
 'use strict';
 const socket = io({ transports: ['websocket', 'polling'] }); // websocket direct : pas de long-polling
@@ -802,6 +842,9 @@ const Snd = (() => {
 
   // Effets : sinusoïdes/triangles arrondis + réverb, rien d'agressif
   const FX = {
+    pkpeg:     t => { tone(1500 + Math.random() * 900, t, .04, { type: 'triangle', v: .05 }); tone(420 + Math.random() * 120, t, .03, { v: .035 }); },
+    pkland:    t => { const f = 460 + (S.pkNote || 0) * 900; tone(f, t, .28, { type: 'triangle', v: .12 }); tone(f * 1.5, t + .04, .22, { v: .06 }); tone(f / 2, t, .12, { v: .06 }); },
+    pkdrop:    t => { tone(900, t, .12, { type: 'triangle', to: 380, v: .06 }); },
     mngem:     t => { tone(988, t, .12, { type: 'triangle', v: .13 }); tone(1480, t + .06, .2, { v: .08 }); },
     mnboom:    t => { noise(t, .7, { f: 1800, to: 60, v: .55, a: .005 }); tone(90, t, .6, { to: 28, v: .5, a: .005 }); tone(55, t + .05, .5, { type: 'sawtooth', to: 25, v: .25 }); },
     bet:       t => { tone(660, t, .14, { type: 'triangle', v: .16 }); tone(990, t + .06, .18, { type: 'triangle', v: .14 }); },
@@ -923,7 +966,7 @@ function switchGame(name) {
   show('game-hub', false);
   socket.emit('join-game-table', { roomCode: S.code });
   S.view = name === 'Icefield' ? 'ice' : name === 'Just mixed' ? 'jm' : name === 'Chicken Road' ? 'cr'
-         : name === 'Arrows X' ? 'ar' : name === 'Roulette' ? 'rl' : name === 'Blackjack' ? 'bj' : name === 'Mines' ? 'mn' : 'crash';
+         : name === 'Arrows X' ? 'ar' : name === 'Roulette' ? 'rl' : name === 'Blackjack' ? 'bj' : name === 'Mines' ? 'mn' : name === 'Plinko' ? 'pk' : 'crash';
   if (S.view === 'ice') { show('icefield-screen'); updateIce(); }
   else if (S.view === 'jm') { show('jm-screen'); if (!S.jmCups) buildJm(); }
   else if (S.view === 'cr') { show('cr-screen'); crInit(); }
@@ -931,13 +974,14 @@ function switchGame(name) {
   else if (S.view === 'rl') { show('rl-screen'); rlInit(); }
   else if (S.view === 'bj') { show('bj-screen'); bjInit(); }
   else if (S.view === 'mn') { show('mn-screen'); mnInit(); }
+  else if (S.view === 'pk') { show('pk-screen'); pkInit(); }
   else { show('game-screen'); socket.emit('crash-join', { roomCode: S.code }); startCrashUI(); }
 }
 function returnToHub() {
   if (S.view === 'crash') { socket.emit('crash-leave', { roomCode: S.code }); stopCrashUI(); } // le jeu Crash s'arrête chez toi ET sur le serveur si tu es seul
   S.view = 'hub';
   show('game-screen', false); show('icefield-screen', false); show('jm-screen', false); show('cr-screen', false); crStop();
-  show('ar-screen', false); show('rl-screen', false); show('bj-screen', false); show('mn-screen', false); // Arrows/Roulette/Blackjack : aucun timer client, rien à arrêter
+  show('ar-screen', false); show('rl-screen', false); show('bj-screen', false); show('mn-screen', false); show('pk-screen', false); // Arrows/Roulette/Blackjack : aucun timer client, rien à arrêter
   show('game-hub');
 }
 function buildPanels() {
@@ -1050,6 +1094,7 @@ function sync(room) {
   S.crState = me ? me.cr : null;
   S.vip = new Set(room.players.filter(p => p.vip).map(p => p.name));
   S.mnState = me ? me.mn : null; if (S.view === 'mn') mnPaint();
+  S.pkState = me ? me.pk : null; if (S.view === 'pk' && $('pkRows')) pkPaint();
   crSync();
   S.arState = me ? me.ar : null;
   arSync();
@@ -1062,7 +1107,7 @@ function sync(room) {
 
 // Classement commun : trié sur la fortune totale (solde + mises en jeu) pour qu'il ne saute pas à chaque mise
 function renderRank(room) {
-  const eq = p => p.balance + p.slots.reduce((a, x) => a + x.bet + x.next, 0) + (p.iceState && p.iceState.active ? p.iceState.bet : 0) + (p.jm && p.jm.active ? p.jm.bet : 0) + (p.cr && p.cr.active ? p.cr.bet : 0) + (p.ar && p.ar.active ? p.ar.bet : 0) + (p.mn && p.mn.active ? p.mn.bet : 0) + extraEq(p); // mises en cours sur tous les jeux : le classement ne saute pas à chaque pari
+  const eq = p => p.balance + p.slots.reduce((a, x) => a + x.bet + x.next, 0) + (p.iceState && p.iceState.active ? p.iceState.bet : 0) + (p.jm && p.jm.active ? p.jm.bet : 0) + (p.cr && p.cr.active ? p.cr.bet : 0) + (p.ar && p.ar.active ? p.ar.bet : 0) + (p.mn && p.mn.active ? p.mn.bet : 0) + (p.pk && p.pk.active ? p.pk.bet : 0) + extraEq(p); // mises en cours sur tous les jeux : le classement ne saute pas à chaque pari
   const rows = [...room.players].sort((a, b) => eq(b) - eq(a));
   const mine = rows.findIndex(p => p.id === socket.id);
   const html = rows.map((p, i) => {
@@ -1820,6 +1865,162 @@ $('admPanel').addEventListener('click', e => {
 setInterval(admRefresh, 2500);
 
 /* ============================================================
+   PLINKO 🔴 — 8 à 16 rangées, 4 risques (Faible / Moyen / Élevé / ULTRA), jusqu'à 20 billes par lancer.
+   Le serveur tire le chemin de chaque bille (graine HMAC, vérifiable) et l'envoie ; ici on ne fait que l'animer.
+   Tables de multiplicateurs : /plinko-tables.js (partagé avec le serveur, RTP exact 98,5 %).
+   ============================================================ */
+const PKT = window.PlinkoTables;
+const PK_NAMES = { low: 'Faible', medium: 'Moyen', high: 'Élevé', ultra: 'ULTRA' };
+const pkLabel = m => m >= 10000 ? Math.round(m / 1000) + 'k' : m >= 1000 ? (m / 1000).toFixed(1).replace('.0', '') + 'k' : m >= 100 ? String(Math.round(m)) : m >= 10 ? m.toFixed(1).replace('.0', '') : m.toFixed(2).replace(/\.?0+$/, '');
+const pkColor = m => { const t = Math.max(0, Math.min(1, (Math.log10(Math.max(m, .1)) + 1) / 4.2)); return `hsl(${Math.round(58 - 58 * t)} 92% ${Math.round(54 - 8 * t)}%)`; };
+const pkGeo = n => { const W = 680, dx = Math.min(44, (W - 24) / (n + 2)), dy = Math.min(32, 470 / n), top = 26, slotH = 30, slotY = top + (n - 1) * dy + 36;
+  return { W, H: Math.round(slotY + slotH + 14), dx, dy, top, n, cx: W / 2, slotY, slotH, pr: Math.max(2.6, dx * .085), br: Math.max(4.4, dx * .16) }; };
+const pkX = (g, r, k) => g.cx + (k - r / 2) * g.dx; // x du piton frappé à la rangée r par une bille qui a fait k "droite"
+let pkLastSnd = 0;
+const pkSnd = (name, note) => { const t = performance.now(); if (t - pkLastSnd < 16 && name === 'pkpeg') return; pkLastSnd = t; S.pkNote = note == null ? Math.random() : note; sound(name); };
+
+function pkDrawStatic() {
+  const n = S.pkRows, g = S.pkGeo = pkGeo(n), mults = PKT.multipliers(n, S.pkRisk), cv = $('pkCanvas'), dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = g.W * dpr; cv.height = g.H * dpr; cv.style.aspectRatio = g.W + ' / ' + g.H;
+  const off = S.pkStatic = document.createElement('canvas'); off.width = cv.width; off.height = cv.height;
+  const c = off.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  for (let r = 0; r < n; r++) for (let j = 0; j < r + 3; j++) {
+    const x = g.cx + (j - (r + 2) / 2) * g.dx, y = g.top + r * g.dy;
+    c.beginPath(); c.arc(x, y, g.pr, 0, 7); c.fillStyle = '#dbe4ff'; c.shadowColor = 'rgba(160,190,255,.7)'; c.shadowBlur = 5; c.fill();
+  }
+  c.shadowBlur = 0;
+  const sw = g.dx - 3;
+  mults.forEach((m, k) => {
+    const x = g.cx + (k - n / 2) * g.dx - sw / 2, y = g.slotY;
+    c.fillStyle = pkColor(m); c.beginPath(); c.roundRect(x, y, sw, g.slotH, 6); c.fill();
+    c.fillStyle = 'rgba(0,0,0,.78)'; c.font = `800 ${Math.max(8, Math.min(12, sw * .34))}px system-ui,sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(pkLabel(m), x + sw / 2, y + g.slotH / 2 + 1);
+  });
+  S.pkMults = mults; S.pkPegHit = {}; S.pkFlash = {};
+  pkPaintFrame(performance.now());
+}
+function pkPaintFrame(now) {
+  const cv = $('pkCanvas'), g = S.pkGeo; if (!cv || !g || !S.pkStatic) return;
+  const c = cv.getContext('2d'), dpr = cv.width / g.W; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, g.W, g.H); c.drawImage(S.pkStatic, 0, 0, g.W, g.H);
+  for (const key in S.pkPegHit) { // éclat des pitons touchés
+    const age = now - S.pkPegHit[key]; if (age > 350) { delete S.pkPegHit[key]; continue; }
+    const [r, j] = key.split(',').map(Number), x = g.cx + (j - (r + 2) / 2) * g.dx, y = g.top + r * g.dy, a = 1 - age / 350;
+    c.beginPath(); c.arc(x, y, g.pr + 3 + 5 * (1 - a), 0, 7); c.fillStyle = `rgba(255,255,255,${(.45 * a).toFixed(2)})`; c.fill();
+  }
+  for (const k in S.pkFlash) { // case qui s'illumine quand une bille y tombe
+    const age = now - S.pkFlash[k], a = 1 - age / 520; if (a <= 0) { delete S.pkFlash[k]; continue; }
+    const sw = g.dx - 3, x = g.cx + (k - g.n / 2) * g.dx - sw / 2;
+    c.fillStyle = `rgba(255,255,255,${(.55 * a).toFixed(2)})`; c.beginPath(); c.roundRect(x, g.slotY + 3 * a, sw, g.slotH, 6); c.fill();
+  }
+  const pops = S.pkPops || [];
+  for (let i = pops.length - 1; i >= 0; i--) { // multiplicateur qui s'envole au-dessus de la case
+    const p = pops[i], age = now - p.t; if (age > 800) { pops.splice(i, 1); continue; }
+    c.globalAlpha = 1 - age / 800; c.fillStyle = p.col; c.font = '800 15px system-ui,sans-serif'; c.textAlign = 'center'; c.strokeStyle = 'rgba(0,0,0,.7)'; c.lineWidth = 3;
+    c.strokeText(p.txt, p.x, p.y - age * .05); c.fillText(p.txt, p.x, p.y - age * .05); c.globalAlpha = 1;
+  }
+  for (const b of S.pkBalls || []) { // billes
+    if (b.pos) { const gr = c.createRadialGradient(b.pos.x - g.br * .35, b.pos.y - g.br * .35, 1, b.pos.x, b.pos.y, g.br);
+      gr.addColorStop(0, '#fff'); gr.addColorStop(.35, b.col); gr.addColorStop(1, '#7a0f2a'); c.beginPath(); c.arc(b.pos.x, b.pos.y, g.br, 0, 7); c.fillStyle = gr; c.shadowColor = b.col; c.shadowBlur = 8; c.fill(); c.shadowBlur = 0; }
+  }
+}
+function pkBallPos(g, b, now) { // position de la bille (ou null) + événements (touche un piton / tombe dans une case)
+  const el = now - b.t0; if (el < 0) return null;
+  const n = g.n, st = b.step, seg = Math.floor(el / st), u = (el - seg * st) / st;
+  const kBefore = i => { let k = 0; for (let q = 0; q < i; q++) k += +b.bits[q]; return k; };
+  const C = i => ({ x: pkX(g, i, kBefore(i)), y: g.top + i * g.dy - g.pr - g.br + 1 });
+  while (b.ev < Math.min(seg, n + 1)) { // seg = nombre de contacts déjà faits
+    const i = b.ev; // contact n°i : piton de la rangée i (i < n) ou case d'arrivée (i == n)
+    if (i < n) { const k = kBefore(i); S.pkPegHit[i + ',' + (k + 1)] = now; pkSnd('pkpeg'); }
+    else { b.done = true; S.pkFlash[b.slot] = now; (S.pkPops = S.pkPops || []).push({ x: g.cx + (b.slot - n / 2) * g.dx, y: g.slotY - 4, t: now, txt: '×' + pkLabel(b.mult), col: pkColor(b.mult) });
+      pkSnd('pkland', Math.min(1, Math.max(0, (Math.log10(Math.max(b.mult, .1)) + 1) / 4.2))); if (b.mult >= 10) sound('win'); }
+    b.ev++;
+  }
+  if (seg > n) return null; // arrivée : la bille disparaît dans la case
+  let a, z, hop = 0;
+  if (seg === 0) { a = { x: g.cx, y: g.top - g.dy * 1.4 }; z = C(0); }
+  else if (seg < n) { a = C(seg - 1); z = C(seg); hop = g.dy * .42; }
+  else { a = C(n - 1); z = { x: g.cx + (b.slot - n / 2) * g.dx, y: g.slotY + g.slotH * .45 }; }
+  const e = seg === 0 || seg === n ? u * u : u; // 1re chute et plongeon final : accélèrent ; entre les pitons : rebond
+  const xe = seg > 0 && seg < n ? (1 - Math.cos(Math.PI * u)) / 2 : u;
+  return { x: a.x + (z.x - a.x) * xe, y: a.y + (z.y - a.y) * e - hop * 4 * u * (1 - u) * (seg > 0 && seg < n ? 1 : 0) };
+}
+function pkLoop(now) {
+  if (S.view !== 'pk') { S.pkRun = false; S.pkBalls = []; return; }
+  const g = S.pkGeo;
+  for (const b of S.pkBalls) b.pos = pkBallPos(g, b, now);
+  pkPaintFrame(now);
+  S.pkBalls = S.pkBalls.filter(b => !b.done || now - b.t0 < (g.n + 1) * b.step + 120);
+  if (S.pkBalls.length || Object.keys(S.pkFlash).length || (S.pkPops || []).length || Object.keys(S.pkPegHit).length) requestAnimationFrame(pkLoop); else S.pkRun = false;
+}
+function pkLaunch(d) {
+  const now = performance.now(); S.pkBalls = S.pkBalls || [];
+  d.paths.forEach((bits, j) => S.pkBalls.push({ bits, slot: d.slots[j], mult: d.mults[j], t0: now + 60 + j * d.stagger, step: d.step, ev: 0, done: false, col: ['#ff4d6d', '#ffb703', '#4cc9f0', '#80ed99', '#c77dff'][j % 5], pos: null }));
+  if (!S.pkRun) { S.pkRun = true; requestAnimationFrame(pkLoop); }
+}
+const pkBallsVal = () => Math.max(1, Math.min(20, parseInt($('pkBalls').value) || 1));
+function pkTotal() {
+  const amt = parseInt($('pkBetAmount').value) || 0, n = pkBallsVal();
+  $('pkTotal').textContent = amt > 0 ? `Mise totale : ${(amt * n).toLocaleString('fr-FR')} 🪙 (${n} bille${n > 1 ? 's' : ''} × ${amt.toLocaleString('fr-FR')})` : 'Mise totale : —';
+}
+function pkPaint() {
+  const active = !!(S.pkState && S.pkState.active);
+  $('pkStartBtn').disabled = active; $('pkStartBtn').textContent = active ? 'Les billes tombent… 🔴' : 'Lâcher les billes 🔴';
+  ['pkRows', 'pkBalls', 'pkBetAmount', 'pkRowsMinus', 'pkRowsPlus'].forEach(id => { $(id).disabled = active; });
+  document.querySelectorAll('#pkRisks .cr-mode, #pkRowQuick button, #pkBallQuick button, #pkQuick button').forEach(b => { b.disabled = active; });
+  document.querySelectorAll('#pkRisks .cr-mode').forEach(b => { b.classList.toggle('on', b.dataset.r === S.pkRisk); b.querySelector('small').textContent = 'max ×' + pkLabel(PKT.multipliers(S.pkRows, b.dataset.r)[0]); });
+  pkTotal();
+}
+function pkSetRows(v, force) {
+  v = Math.max(PKT.MIN_ROWS, Math.min(PKT.MAX_ROWS, v | 0)); if (v === S.pkRows && !force) return;
+  S.pkRows = v; $('pkRows').value = v; pkDrawStatic(); pkPaint();
+}
+function pkInit() {
+  if (!S.pkInited) {
+    S.pkInited = true; S.pkRows = 12; S.pkRisk = 'medium'; S.pkBalls = [];
+    $('pkRisks').innerHTML = PKT.RISKS.map(r => `<button class="cr-mode${r === 'ultra' ? ' pk-ultra' : ''}" data-r="${r}">${PK_NAMES[r]}<small></small></button>`).join('');
+    $('pkRisks').addEventListener('click', e => { const b = e.target.closest('.cr-mode'); if (!b || b.disabled) return; S.pkRisk = b.dataset.r; pkDrawStatic(); pkPaint(); });
+    $('pkRowsMinus').onclick = () => pkSetRows(S.pkRows - 1); $('pkRowsPlus').onclick = () => pkSetRows(S.pkRows + 1);
+    $('pkRows').addEventListener('change', () => pkSetRows(parseInt($('pkRows').value) || 12, true));
+    $('pkRowQuick').addEventListener('click', e => { const b = e.target.closest('button'); if (b && !b.disabled) pkSetRows(+b.dataset.n); });
+    $('pkBallQuick').addEventListener('click', e => { const b = e.target.closest('button'); if (b && !b.disabled) { $('pkBalls').value = b.dataset.n; pkTotal(); } });
+    $('pkBalls').addEventListener('input', pkTotal); $('pkBetAmount').addEventListener('input', pkTotal);
+    $('pkQuick').addEventListener('click', e => {
+      const b = e.target.closest('button'), amt = $('pkBetAmount'); if (!b || amt.disabled) return;
+      if (b.dataset.a) amt.value = b.dataset.a;
+      else if (b.dataset.f === 'max') amt.value = Math.max(1, Math.floor(S.balance / pkBallsVal()));
+      else amt.value = Math.max(1, Math.floor((parseFloat(amt.value) || 0) * b.dataset.f));
+      pkTotal();
+    });
+  }
+  pkSetRows(S.pkRows, true); pkPaint();
+}
+function pkStart() {
+  const amount = parseInt($('pkBetAmount').value), balls = pkBallsVal();
+  if (!amount || amount <= 0) return alert('Entre une mise valide !');
+  if (S.pkWait || (S.pkState && S.pkState.active)) return;
+  S.pkWait = true; setTimeout(() => { S.pkWait = false; }, 2500); sound('bet');
+  $('pkBalls').value = balls;
+  socket.emit('pk-start', { roomCode: S.code, amount, rows: S.pkRows, risk: S.pkRisk, balls });
+}
+socket.on('pk-started', d => {
+  S.pkWait = false; S.pkState = { active: true, bet: 0 };
+  if (d.rows !== S.pkRows || d.risk !== S.pkRisk) { S.pkRows = d.rows; S.pkRisk = d.risk; $('pkRows').value = d.rows; pkDrawStatic(); }
+  $('pkProof').textContent = 'Hash SHA-256 de la graine : ' + d.hash;
+  $('pkStatus').textContent = `${d.balls} bille${d.balls > 1 ? 's' : ''} lâchée${d.balls > 1 ? 's' : ''}…`;
+  pkPaint(); pkLaunch(d); sound('pkdrop');
+});
+socket.on('pk-result', d => {
+  S.pkWait = false; if (S.pkState) S.pkState.active = false;
+  const win = d.winnings >= d.bet;
+  $('pkStatus').textContent = d.message;
+  $('pkProof').textContent = `Graine révélée : ${d.seed} — SHA-256(graine) = hash ci-dessus ; bille j, rangée i : bit = 1er chiffre hexa de HMAC-SHA256(graine, "plinko:j:i") modulo 2 (1 = droite). Cases : ${d.slots.join(', ')}.`;
+  S.pkHist = S.pkHist || []; S.pkHist.unshift({ cls: win ? 'cr-win' : 'cr-lose', txt: '×' + pkLabel(d.multiplier) }); S.pkHist.length = Math.min(S.pkHist.length, 14);
+  setH($('pkHist'), S.pkHist.map(h => `<div class="history-pill ${h.cls}">${h.txt}</div>`).join(''));
+  if (d.winnings > d.bet) sound('win');
+  pkPaint();
+});
+
+/* ============================================================
    ARROWS X 🎯 — fléchettes sur cible annulaire, RTP exact 98,5 %
    Mêmes tables de multiplicateurs que le serveur (AR_MODES dans server.js).
    Le serveur résout "hit = 0,985 × Σpoids / Σ(m×poids)" pour garantir l'espérance ;
@@ -1981,10 +2182,12 @@ function arInfo() {
 function arControls() {
   const active = !!(S.arState && S.arState.active);
   show('arStartBtn', !active); show('arThrowBtn', active);
-  $('arBetAmount').disabled = active;
+  $('arBetAmount').disabled = active; $('arDarts').disabled = active; document.querySelectorAll('#arDartQuick button').forEach(b => { b.disabled = active; }); arTotal();
   document.querySelectorAll('#arModes .cr-mode').forEach(b => { b.disabled = active; });
   $('arStatus').textContent = active ? 'Fléchette armée — relance autant de fois que tu veux (nouvelle mise à chaque lancer).' : 'Choisis un mode, mise, puis arme ta fléchette.';
 }
+const arDartsVal = () => Math.max(1, Math.min(20, parseInt($('arDarts').value) || 1));
+function arTotal() { const a = parseInt($('arBetAmount').value) || 0, n = arDartsVal(); $('arTotal').textContent = a > 0 ? `Mise totale : ${(a * n).toLocaleString('fr-FR')} 🪙 (${n} fléchette${n > 1 ? 's' : ''} × ${a.toLocaleString('fr-FR')})` : 'Mise totale : —'; }
 function arSync() { // appelé par sync() à chaque update-room : recolle le client au serveur sans jamais rien bloquer
   if (S.view !== 'ar' || S.arThrowing) return;
   const st = S.arState, active = !!(st && st.active);
@@ -2041,7 +2244,7 @@ function arRipple(x, y, color = '#ffd45c') { // onde de choc à l'impact
   tween(480, k => { c.setAttribute('r', (3 + 26 * k).toFixed(1)); c.setAttribute('opacity', (.85 * (1 - k)).toFixed(2)); c.setAttribute('stroke-width', (2.4 * (1 - k) + .3).toFixed(2)); }).then(() => c.remove());
 }
 async function arAnimateThrow(d) { // armement → traction → tenue → relâchement → vol (trajectoire réaliste) → impact
-  S.arThrowing = true;
+  S.arThrowing = true; const sp = d.fast ? .42 : 1; // fléchettes suivantes d'une rafale : même animation, en plus rapide
   const tok = S.arTok = (S.arTok || 0) + 1, alive = () => S.arTok === tok;
   const wrap = $('arArrowWrap'), trail = $('arTrail'), P = S.arP || (S.arP = arNewPose());
   const cx = 420, cy = 132, R = 104, mode = d.mode || S.arBuilt || 'easy', rows = AR_MODES[mode].rows, rad = arRadii(mode);
@@ -2068,26 +2271,26 @@ async function arAnimateThrow(d) { // armement → traction → tenue → relâc
   // 1) le tireur arme : il lève l'arc, encoche et bande la corde jusqu'à la joue
   sound('lift'); P.th = th; P.rel = 0; P.hold = false;
   const u0 = P.u, p0 = P.p, h0 = P.hp;
-  await tween(310, k => { if (!alive()) return; const e = arSmooth(k), q = arSmooth(arClamp((k - .25) / .75));
+  await tween(310 * sp, k => { if (!alive()) return; const e = arSmooth(k), q = arSmooth(arClamp((k - .25) / .75));
     P.u = arLerp(u0, 1, e); P.nock = P.u > .35; P.p = arLerp(p0, 1, q); P.hp = arLerp(h0, 1, q); });
   if (!alive()) return;
   // 2) tenue : il vise, léger tremblement
-  P.hold = true; await wait(80 + Math.random() * 60); P.hold = false;
+  P.hold = true; await wait((80 + Math.random() * 60) * sp); P.hold = false;
   if (!alive()) return;
   // 3) relâchement : la corde claque et vibre, la main recule, la flèche part
   sound('twang'); P.nock = false;
   wrap.setAttribute('opacity', 1); trail.setAttribute('opacity', .6);
   const pts = [];
   (async () => { // geste du tireur, en parallèle du vol
-    await tween(260, k => { if (!alive()) return; const t = k * .26;
+    await tween(260 * sp, k => { if (!alive()) return; const t = k * .26;
       P.p = Math.max(0, 1 - k * 9); P.rel = 6 * Math.sin(t * 52) * Math.exp(-t * 12); P.hp = 1 + .26 * (1 - Math.exp(-k * 14)) - .3 * arSmooth(k); });
     if (!alive()) return;
     const hp1 = P.hp; P.rel = 0; P.p = 0;
-    await tween(420, k => { if (!alive()) return; const e = arSmooth(k); P.u = 1 - e; P.hp = hp1 * (1 - e); P.th = arLerp(th, -.25, e); });
+    await tween(420 * sp, k => { if (!alive()) return; const e = arSmooth(k); P.u = 1 - e; P.hp = hp1 * (1 - e); P.th = arLerp(th, -.25, e); });
     if (alive()) { P.u = 0; P.hp = 0; }
   })();
   const dist = Math.hypot(end.x - S0[0], end.y - S0[1]);
-  await tween(360 + dist * .42, k0 => {
+  await tween((360 + dist * .42) * sp, k0 => {
     const k = k0 * (1.2 - .2 * k0), q = bez(k);
     wrap.setAttribute('transform', `translate(${q.x.toFixed(1)},${q.y.toFixed(1)}) rotate(${(q.a * 57.2958).toFixed(1)}) scale(${AR_ARW.toFixed(3)})`);
     pts.push(q.x.toFixed(1) + ' ' + q.y.toFixed(1)); if (pts.length > 10) pts.shift();
@@ -2108,7 +2311,7 @@ async function arAnimateThrow(d) { // armement → traction → tenue → relâc
     $('arStage').classList.add('shake'); setTimeout(() => $('arStage').classList.remove('shake'), 400);
   }
   arPop(d.multiplier, d.success, d.winnings); // ← le multiplicateur apparaît dans l'air, pas sur la cible
-  await wait(350);
+  await wait(350 * sp);
   if (alive()) S.arThrowing = false;
   if (S.arState && S.arState.active) arControls(); // partie relancée entre-temps : on réaffiche tout de suite le bouton LANCER
 }
@@ -2119,10 +2322,12 @@ function arInit() {
       const b = e.target.closest('.cr-mode'); if (!b || (S.arState && S.arState.active)) return;
       S.arMode = b.dataset.m; arBuild(S.arMode); arInfo(); arControls();
     });
+    $('arDartQuick').addEventListener('click', e => { const b = e.target.closest('button'); if (b && !b.disabled) { $('arDarts').value = b.dataset.n; arTotal(); } });
+    $('arDarts').addEventListener('input', arTotal); $('arBetAmount').addEventListener('input', arTotal);
     $('arQuick').addEventListener('click', e => {
       const b = e.target.closest('button'), amt = $('arBetAmount'); if (!b || amt.disabled) return;
       if (b.dataset.a) amt.value = b.dataset.a;
-      else if (b.dataset.f === 'max') amt.value = S.balance;
+      else if (b.dataset.f === 'max') amt.value = Math.max(1, Math.floor(S.balance / arDartsVal()));
       else amt.value = Math.max(1, Math.floor((parseFloat(amt.value) || 0) * b.dataset.f));
     });
   }
@@ -2134,7 +2339,7 @@ function arStart() {
   if (!amount || amount <= 0) return alert('Entre une mise valide !');
   if (S.arState && S.arState.active) return;
   sound('bet'); S.arBusy = true;
-  socket.emit('ar-start', { roomCode: S.code, amount, mode: S.arMode });
+  socket.emit('ar-start', { roomCode: S.code, amount, mode: S.arMode, darts: arDartsVal() });
 }
 function arThrow() { // aucune cooldown serveur : on peut spammer les lancers dès que la partie est armée.
   if (!(S.arState && S.arState.active) || S.arBusy) return;
@@ -2150,11 +2355,15 @@ socket.on('ar-started', d => {
 socket.on('ar-result', d => {
   S.arBusy = false;
   if (S.arState) S.arState.active = false;
-  $('arProof').textContent = `Graine révélée : ${d.seed} — SHA-256(graine) = hash ci-dessus ; u = HMAC-SHA256(graine,"arrow") = ${d.u} → ${d.success ? 'dans la cible' : 'à côté'} (mode ${S.arBuilt})`;
-  arHistPush(d.success, d.success ? 'x' + d.multiplier : '💨 x0');
-  arAnimateThrow(Object.assign({}, d, { mode: S.arBuilt }));
-  arToast(d.message);
+  const tt = d.throws && d.throws.length ? d.throws : [d], multi = tt.length > 1;
+  $('arProof').textContent = `Graine révélée : ${d.seed} — SHA-256(graine) = hash ci-dessus ; u = HMAC-SHA256(graine,"arrow"${multi ? ', puis "arrow:1", "arrow:2"…' : ''}) = ${tt.map(x => x.u).join(', ')} (mode ${S.arBuilt})`;
+  if (!multi) { arHistPush(d.success, d.success ? 'x' + d.multiplier : '💨 x0'); arToast(d.message); }
+  else arHistPush(d.winnings >= d.bet, `${tt.filter(x => x.success).length}/${tt.length} · x${d.totalMult}`);
   arControls();
+  (async () => { // rafale : la 1re fléchette à vitesse normale, les suivantes plus vite
+    for (let j = 0; j < tt.length; j++) await arAnimateThrow(Object.assign({}, tt[j], { mode: S.arBuilt, fast: j > 0 }));
+    if (multi) arToast(d.message);
+  })();
 });
 // ressource "mise en attente" pour le spam de fléchettes : si l'utilisateur relance pendant une animation,
 // on mémorise sa demande et on repart dès que l'animation se termine (le serveur, lui, n'a aucun cooldown).
@@ -2485,7 +2694,7 @@ function renderStopBar(room) {
 function voteStop() { socket.emit('vote-stop', { roomCode: S.code, vote: !S.iVoted }); }
 socket.on('stop-notice', d => { S.stopMsg = d.message; $('stopMsg').textContent = d.message; clearTimeout(S.stopMsgT); S.stopMsgT = setTimeout(() => { S.stopMsg = ''; }, 3200); });
 
-Object.assign(window, { admToggle, admUnlock, mnStart, mnCash, copyRoomCode, voteStop, setStake, onStakeInput, leaveRoom, authSubmit, logout, createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash, arStart, arThrow, rlSpin, rlClear, rlRepeat, bjDeal, bjHit, bjStand, bjDouble, bjSplit, bjInsurance, rlUndo, toggleFeed });
+Object.assign(window, { pkStart, admToggle, admUnlock, mnStart, mnCash, copyRoomCode, voteStop, setStake, onStakeInput, leaveRoom, authSubmit, logout, createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash, arStart, arThrow, rlSpin, rlClear, rlRepeat, bjDeal, bjHit, bjStand, bjDouble, bjSplit, bjInsurance, rlUndo, toggleFeed });
 
 /* ============================================================
    PANNEAU LATÉRAL « 📡 PARIS EN DIRECT » (feed) — flux temps réel
@@ -2494,7 +2703,7 @@ Object.assign(window, { admToggle, admUnlock, mnStart, mnCash, copyRoomCode, vot
    multiplicateur, résultat net, statut (pending / win / loss / push / void).
    Rétractable via l'en-tête ; les « il y a Xs » sont rafraîchis toutes les 5 s.
    ============================================================ */
-const FEED_NAMES = { crash:'Crash Out', ice:'Icefield', jm:'Just Mixed', cr:'Chicken Road', ar:'Arrows X', rl:'Roulette', bj:'Blackjack', mn:'Mines' };
+const FEED_NAMES = { crash:'Crash Out', ice:'Icefield', jm:'Just Mixed', cr:'Chicken Road', ar:'Arrows X', rl:'Roulette', bj:'Blackjack', mn:'Mines', pk:'Plinko' };
 let feedRows = [];
 try { if (localStorage.getItem('feedCollapsed') === '1') $('feedPanel').classList.add('collapsed'); } catch (e) {}
 
