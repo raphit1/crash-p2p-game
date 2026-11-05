@@ -190,12 +190,15 @@ ul{padding-left:20px;text-align:left}
 
 #admGear{position:fixed;left:6px;bottom:6px;z-index:960;display:none;width:26px;height:26px;border-radius:50%;background:transparent;border:0;color:#fff;font-size:15px;opacity:.06;cursor:pointer;padding:0;margin:0;box-shadow:none}
 #admGear:hover{opacity:.5}
-#admPanel{position:fixed;left:8px;bottom:38px;z-index:961;width:340px;max-width:calc(100vw - 16px);max-height:60vh;overflow:auto;display:none;background:rgba(10,12,20,.97);border:1px solid #7c3aed;border-radius:12px;padding:10px;font-size:12px;color:#c4b5fd;box-shadow:0 8px 28px rgba(0,0,0,.7)}
-#admPanel input{margin:0;padding:6px 8px;font-size:13px}
-.adm-row{display:flex;align-items:center;gap:6px;padding:6px 0;border-top:1px solid rgba(124,58,237,.25)}
-.adm-row b{flex:1;color:#fff;min-width:0;overflow:hidden;text-overflow:ellipsis}.adm-row small{color:#94a3b8}
-.adm-row input{width:62px;text-align:center}
-.adm-q{margin:0;padding:3px 6px;font-size:11px;width:auto;border-radius:6px;background:#312e81;box-shadow:none}
+#admPanel{position:fixed;left:8px;top:70px;bottom:44px;z-index:961;width:min(480px,calc(100vw - 16px));overflow-y:auto;display:none;background:rgba(10,12,20,.98);border:1px solid #7c3aed;border-radius:14px;padding:14px;font-size:14px;color:#c4b5fd;box-shadow:0 10px 36px rgba(0,0,0,.75)}
+#admPanel input{margin:0;padding:10px 12px;font-size:16px}
+.adm-card{border-top:1px solid rgba(124,58,237,.35);padding:12px 0}
+.adm-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}
+.adm-head b{font-size:16px;color:#fff;overflow:hidden;text-overflow:ellipsis}.adm-head small{color:#94a3b8;font-size:12px;white-space:nowrap}
+.adm-ctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.adm-ctl input{width:120px;text-align:center;font-weight:700}
+.adm-q{margin:0;padding:9px 12px;font-size:14px;width:auto;border-radius:8px;background:#312e81;box-shadow:none;min-width:44px}
+.adm-q.ok{background:#15803d}.adm-q.dbl{background:#7c3aed}
 .adm-name{color:#ff2a3f!important;font-weight:900;letter-spacing:.3px;text-shadow:0 0 2px #000,0 0 6px #ff1030,0 0 14px #e0001a,0 0 26px rgba(120,0,15,.9);animation:admGlow 2.2s ease-in-out infinite alternate}
 @keyframes admGlow{from{text-shadow:0 0 2px #000,0 0 5px #ff1030,0 0 10px #c0001a,0 0 18px rgba(90,0,10,.8)}to{text-shadow:0 0 2px #000,0 0 9px #ff3a52,0 0 20px #ff0022,0 0 34px rgba(140,0,20,1)}}
 .adm-r{position:relative;display:inline-block}.adm-r i{position:absolute;left:-5px;top:-.6em;font-size:.75em;font-style:normal;transform:rotate(-22deg);text-shadow:none;filter:drop-shadow(0 0 4px #ffb800);pointer-events:none;animation:none}
@@ -1773,6 +1776,7 @@ socket.on('mn-result', d => {
 function admToggle() { const p = $('admPanel'); const open = p.style.display !== 'block'; p.style.display = open ? 'block' : 'none'; if (open) { if (S.isAdmin) admRefresh(); else $('admCode').focus(); } }
 function admUnlock() { socket.emit('admin-unlock', { code: $('admCode').value }); $('admCode').value = ''; }
 function admRefresh() { if (S.isAdmin && $('admPanel').style.display === 'block') socket.emit('admin-list', { roomCode: S.code }); }
+function admGive(name, amount) { amount = Math.round(Number(amount)); if (!Number.isFinite(amount) || !amount) return; socket.emit('admin-give', { roomCode: S.code, name, amount }); const i = document.querySelector(`#admPanel input[data-give="${CSS.escape(name)}"]`); if (i) { i.value = ''; i.placeholder = (amount > 0 ? '+' : '') + amount + ' ✓'; setTimeout(() => { i.placeholder = 'jetons 🪙'; }, 1500); } }
 function admSet(name, pct) { socket.emit('admin-set', { roomCode: S.code, name, pct }); }
 socket.on('admin-state', d => {
   S.isAdmin = !!d.ok; if (d.ok) { $('whoami').innerHTML = nm(S.myName || ''); $('admGear').classList.add('adm-on'); if (S.code) $('admGear').style.display = 'block'; }
@@ -1780,14 +1784,39 @@ socket.on('admin-state', d => {
   $('admErr').textContent = d.ok ? '' : d.locked ? 'Trop d\'essais, attends 1 min.' : 'Code incorrect.';
   if (d.ok) admRefresh();
 });
+// Rendu "clé par joueur" : on ne reconstruit jamais une ligne qu'on est en train d'éditer (c'était le bug qui effaçait ce que tu tapais)
 socket.on('admin-players', list => {
-  const q = n => [0, 50, 100, 150, 300].map(v => `<button class="adm-q" data-n="${esc(n)}" data-v="${v}">${v}</button>`).join('');
-  $('admBody').innerHTML = `<div style="margin-bottom:6px;color:#a78bfa">🎭 % du bénéfice touché à chaque victoire (100 = normal)</div>`
-    + `<div class="adm-row"><b>Tout le monde</b>${q('*')}</div>`
-    + list.map(p => `<div class="adm-row"><div style="flex:1;min-width:0"><b>${esc(p.name)}</b><br><small>${p.balance} 🪙 · ${p.profit >= 0 ? '+' : ''}${p.profit} · ${p.games} parties</small></div><input type="number" min="0" max="1000" value="${p.pct}" data-name="${esc(p.name)}"><span>%</span></div><div class="adm-row" style="border:0;padding-top:0;justify-content:flex-end">${q(p.name)}</div>`).join('');
+  const body = $('admBody');
+  if (!body.querySelector('#admHead')) body.innerHTML = '<div id="admHead" style="margin-bottom:6px;color:#a78bfa;font-size:13px">🎭 % du bénéfice touché à chaque victoire (100 = normal, sans limite). Tape un nombre puis OK ou Entrée. Ligne « jetons » : ajoute des jetons en silence (négatif = retire).</div><div id="admAll"></div><div id="admRows"></div>';
+  const btns = n => `<button class="adm-q" data-act="set" data-n="${esc(n)}" data-v="0">0</button><button class="adm-q" data-act="set" data-n="${esc(n)}" data-v="100">100</button><button class="adm-q" data-act="div" data-n="${esc(n)}">÷2</button><button class="adm-q dbl" data-act="mul" data-n="${esc(n)}">×2</button>`;
+  const card = (n, label) => `<div class="adm-card" data-card="${esc(n)}"><div class="adm-head"><b>${label}</b><small class="adm-info"></small></div><div class="adm-ctl"><input type="number" min="0" step="any" inputmode="decimal" data-name="${esc(n)}" placeholder="%"><button class="adm-q ok" data-act="ok" data-n="${esc(n)}">OK</button>${btns(n)}</div><div class="adm-ctl" style="margin-top:8px"><input type="number" step="1" inputmode="numeric" data-give="${esc(n)}" placeholder="jetons 🪙"><button class="adm-q ok" data-act="give" data-n="${esc(n)}">OK</button>${[100, 500, 1000, 5000, 10000].map(v => `<button class="adm-q" data-act="fill" data-n="${esc(n)}" data-v="${v}">${v >= 1000 ? v / 1000 + 'k' : v}</button>`).join('')}</div></div>`;
+  if (!$('admAll').firstChild) $('admAll').innerHTML = card('*', 'Tout le monde');
+  const rows = $('admRows'), seen = new Set();
+  list.forEach(p => {
+    seen.add(p.name);
+    let c = [...rows.children].find(x => x.dataset.card === p.name);
+    if (!c) { rows.insertAdjacentHTML('beforeend', card(p.name, esc(p.name))); c = rows.lastElementChild; }
+    c.dataset.pct = p.pct;
+    c.querySelector('.adm-info').textContent = `${p.balance} 🪙 · ${p.profit >= 0 ? '+' : ''}${p.profit} · ${p.games} parties · actuel ${p.pct}%`;
+    const inp = c.querySelector('input');
+    if (document.activeElement !== inp && !inp.dataset.dirty) inp.value = p.pct; // jamais écrasé pendant que tu tapes
+  });
+  [...rows.children].forEach(c => { if (!seen.has(c.dataset.card)) c.remove(); });
 });
-$('admPanel').addEventListener('click', e => { const b = e.target.closest('.adm-q'); if (b) admSet(b.dataset.n, +b.dataset.v); });
-$('admPanel').addEventListener('change', e => { const i = e.target.closest('input[data-name]'); if (i) admSet(i.dataset.name, +i.value); });
+const admApply = (n, v) => { v = Number(v); if (!Number.isFinite(v) || v < 0) return; admSet(n, v); const i = document.querySelector(`#admPanel input[data-name="${CSS.escape(n)}"]`); if (i) { i.dataset.dirty = ''; if (n !== '*') i.value = v; } };
+$('admPanel').addEventListener('input', e => { const i = e.target.closest('input[data-name]'); if (i) i.dataset.dirty = '1'; });
+$('admPanel').addEventListener('keydown', e => { if (e.key !== 'Enter') return; const i = e.target.closest('input[data-name]'), g = e.target.closest('input[data-give]'); if (i) admApply(i.dataset.name, i.value); else if (g) admGive(g.dataset.give, g.value); });
+$('admPanel').addEventListener('click', e => {
+  const b = e.target.closest('.adm-q'); if (!b) return;
+  const n = b.dataset.n, card = b.closest('.adm-card'), inp = card.querySelector('input[data-name]'), gv = card.querySelector('input[data-give]');
+  if (b.dataset.act === 'give') return admGive(n, gv.value);
+  if (b.dataset.act === 'fill') { gv.value = (parseFloat(gv.value) || 0) + +b.dataset.v; return gv.focus(); }
+  const cur = n === '*' ? (parseFloat(inp.value) || 100) : (parseFloat(inp.value) || +card.dataset.pct || 0);
+  if (b.dataset.act === 'ok') admApply(n, inp.value);
+  else if (b.dataset.act === 'set') { inp.value = b.dataset.v; admApply(n, b.dataset.v); }
+  else if (b.dataset.act === 'mul') { const v = Math.round((cur === 0 ? 100 : cur) * 2 * 100) / 100; inp.value = v; admApply(n, v); }
+  else if (b.dataset.act === 'div') { const v = Math.round(cur / 2 * 100) / 100; inp.value = v; admApply(n, v); }
+});
 setInterval(admRefresh, 2500);
 
 /* ============================================================
