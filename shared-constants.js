@@ -132,7 +132,7 @@
     };
 
     /* --------- Petit picto utilisé dans le flux "Historique des paris" --------- */
-    const GAME_ICONS = { crash: '✈️', ice: '🧊', jm: '🥤', cr: '🐔', ar: '🎯', rl: '🎡', bj: '🃏', mn: '💣' };
+    const GAME_ICONS = { crash: '✈️', ice: '🧊', jm: '🥤', cr: '🐔', ar: '🎯', rl: '🎡', bj: '🃏', mn: '💣', pk: '🔴' };
 
     return {
         RTP, START_BALANCE, MAX_BET, TOKENS_PER_EUR, STAKE_MIN_EUR, STAKE_MAX_EUR, PERF_FLOOR, settlePot, settleTransfers, CRASH_INSTANT_CHANCE,
