@@ -10,8 +10,9 @@
      s'il a blackjack, la main s'arrête tout de suite (pas de doublage ni de split perdus).
    - Assurance quand le croupier montre un As : coûte la moitié de la mise, paie 2:1.
    - Doubler : sur les 2 premières cartes d'une main (aussi après un split), une seule carte ensuite.
-   - Séparer (split) : 2 cartes de même valeur (10, V, D, R comptent pareil), un seul split par main.
-     Après split, chaque main reçoit une carte ; un As séparé ne reçoit qu'une carte ;
+   - Séparer (split) : 2 cartes de même valeur (10, V, D, R comptent pareil). On peut re-séparer jusqu'à 4 mains
+     (sauf les As : un As séparé ne reçoit qu'une carte et ne se re-sépare pas). Doubler après split autorisé.
+     Après split, chaque main reçoit une carte ;
      un 21 après split compte 21 (pas un blackjack, payé 1:1).
    - Égalité = mise rendue. Un joueur qui saute perd tout de suite.
 
@@ -86,18 +87,23 @@ function doubleDown(r) {
     h.done = true;
     return advance(r);
 }
-const canSplit = r => r.phase === 'player' && r.hands.length === 1 && activeHand(r).cards.length === 2
-    && pairVal(activeHand(r).cards[0].r) === pairVal(activeHand(r).cards[1].r);
+const MAX_HANDS = 4;
+const canSplit = r => {
+    if (r.phase !== 'player' || r.hands.length >= MAX_HANDS) return false;
+    const h = activeHand(r);
+    if (h.done || h.cards.length !== 2) return false;
+    if (h.split && h.cards[0].r === 0) return false; // un As séparé ne se re-sépare pas
+    return pairVal(h.cards[0].r) === pairVal(h.cards[1].r);
+};
 function split(r) {
     if (!canSplit(r)) return r;
-    const h = r.hands[0], aces = h.cards[0].r === 0;
+    const h = activeHand(r), aces = h.cards[0].r === 0;
     const second = newHand([h.cards.pop()], h.bet, true);
     h.split = true;
     r.bet += h.bet;
-    r.hands = [h, second];
+    r.hands.splice(r.active + 1, 0, second);
     h.cards.push(r.deck.pop()); second.cards.push(r.deck.pop());
-    for (const x of r.hands) if (aces || score(x.cards).total === 21) x.done = true; // As séparé : 1 carte, point final
-    r.active = 0;
+    for (const x of [h, second]) if (aces || score(x.cards).total === 21) x.done = true; // As séparé : 1 carte, point final
     return advance(r);
 }
 
