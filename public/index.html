@@ -188,6 +188,19 @@ ul{padding-left:20px;text-align:left}
 .rl-res.rl-wait{animation:rlWait 1s ease-in-out infinite}
 @keyframes rlWait{50%{opacity:.35}}
 
+/* ---- Mines ---- */
+.mn-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-width:420px;margin:12px auto}
+.mn-cell{margin:0;padding:0;aspect-ratio:1;font-size:clamp(22px,6vw,34px);border-radius:12px;background:linear-gradient(180deg,#2d3a52,#1b2436);border:1px solid rgba(120,160,220,.3);box-shadow:0 3px 0 #0e1522;cursor:default;display:grid;place-items:center;transition:transform .12s,background .2s}
+.mn-cell.live{cursor:pointer;border-color:rgba(255,212,92,.5)}.mn-cell.live:hover{transform:translateY(-2px);background:linear-gradient(180deg,#3b4d6e,#243049)}
+.mn-cell.safe{background:radial-gradient(circle,#1f6b45,#0f3b26);border-color:#4ade80;box-shadow:0 0 14px rgba(74,222,128,.45);animation:mnPop .35s cubic-bezier(.2,1.6,.4,1)}
+.mn-cell.mine{background:radial-gradient(circle,#3a1218,#1a0a0d);border-color:#7f1d1d;opacity:.85;animation:mnPop .35s both}
+.mn-cell.hit{background:radial-gradient(circle,#ff6b4a,#9b1c1c);border-color:#ff9a8a;opacity:1;box-shadow:0 0 22px rgba(255,80,60,.8);animation:mnShake .5s}
+.mn-cell.wait{opacity:.6}
+@keyframes mnPop{0%{transform:scale(.5)}100%{transform:scale(1)}}
+@keyframes mnShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.mn-count{display:flex;gap:6px;align-items:center;margin:4px 0 8px}.mn-count input{margin:0;text-align:center;width:80px}.mn-count button{margin:0;width:40px;padding:8px 0}
+#roomChip{position:fixed;top:12px;right:14px;z-index:950;display:none;align-items:center;gap:8px;background:rgba(15,23,42,.92);border:1px solid rgba(56,189,248,.55);border-radius:12px;padding:6px 12px;font-size:12px;color:#94a3b8;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.45)}
+#roomChip b{font-size:18px;letter-spacing:3px;color:#38bdf8;font-family:ui-monospace,Menlo,monospace}
 /* ---- Blackjack ---- */
 .bj-felt{position:relative;border-radius:16px;border:1px solid rgba(212,162,76,.45);padding:16px 12px 18px;margin-bottom:10px;box-shadow:0 14px 36px rgba(0,0,0,.55);
   background:radial-gradient(120% 90% at 50% 0%,#14603b,#0b3a24 60%,#072a1a)}
@@ -337,6 +350,7 @@ ul{padding-left:20px;text-align:left}
             <div class="game-thumbnail" style="background: linear-gradient(135deg, #3b0764, #a21caf 60%, #f0abfc);" onclick="switchGame('Arrows X')" title="Fléchette sur cible annulaire : surface de chaque anneau = sa probabilité. Espérance 98,5 % dans les 3 modes.">🎯 Arrows X (3 modes · RTP 98,5 %)</div>
             <div class="game-thumbnail" style="background: linear-gradient(135deg, #450a0a, #b91c1c 60%, #d4a24c);" onclick="switchGame('Roulette')" title="Roue européenne 0-36, payouts réels (plein x36, simple chance x2, douzaine/colonne x3) → avantage maison naturel de 2,70 %.">🎡 Roulette européenne (roue réelle · edge 2,70 %)</div>
             <div class="game-thumbnail" style="background: linear-gradient(135deg, #052e16, #14532d 60%, #ffd45c);" onclick="switchGame('Blackjack')" title="Une main = un jeu de 52 cartes mélangé en provably fair. Croupier stand 17, blackjack payé 3:2, égalité = mise rendue.">🃏 Blackjack (règles classiques · BJ payé 3:2)</div>
+            <div class="game-thumbnail" style="background: linear-gradient(135deg, #0c4a6e, #0e7490 60%, #f87171);" onclick="switchGame('Mines')" title="Grille 5×5 : trouve les cases sûres, évite les mines. 1 à 24 mines, RTP 98,5 %, équitable prouvable.">💣 Mines (5×5 · 1 à 24 mines)</div>
             <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
         </div>
 
@@ -482,6 +496,37 @@ ul{padding-left:20px;text-align:left}
         </div>
 
         <!-- 7. ÉCRAN CHICKEN ROAD -->
+        <div id="mn-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h3 style="margin: 5px 0; color: #ffd45c;">💣 Mines</h3>
+            <p id="mnStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Choisis le nombre de mines et ta mise, puis dévoile les cases sûres. Encaisse quand tu veux !</p>
+            <div class="bet-control-box" style="margin: 0 0 10px;">
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Nombre de mines (1 à 24)</label>
+                <div class="mn-count"><button id="mnMinus" type="button">−</button><input type="number" id="mnMines" value="3" min="1" max="24"><button id="mnPlus" type="button">+</button></div>
+                <div class="quick-bet-row" id="mnMineQuick">
+                    <button class="quick-btn" data-m="1">1</button><button class="quick-btn" data-m="3">3</button><button class="quick-btn" data-m="5">5</button><button class="quick-btn" data-m="10">10</button><button class="quick-btn" data-m="15">15</button><button class="quick-btn" data-m="24">24</button>
+                </div>
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
+                <input type="number" id="mnBetAmount" value="50" min="1" style="margin: 4px 0 8px;">
+                <div class="quick-bet-row" id="mnQuick" style="margin-bottom:0">
+                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
+                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+                </div>
+            </div>
+            <div class="cr-hud">
+                <div>Multiplicateur<b id="mnMult">x1.00</b></div>
+                <div>Gain actuel<b id="mnGain">0 🪙</b></div>
+                <div>Prochaine case<b id="mnNext">—</b></div>
+            </div>
+            <div class="mn-grid" id="mnGrid"></div>
+            <button id="mnStartBtn" onclick="mnStart()">Lancer la partie 💣</button>
+            <button id="mnCashBtn" class="btn-cashout hidden" onclick="mnCash()">ENCAISSER</button>
+            <div id="mnProof" style="font-size:11px;color:#7c8aa5;word-break:break-all;margin-top:8px"></div>
+        </div>
         <div id="cr-screen" class="hidden">
             <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
             <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
@@ -609,7 +654,7 @@ ul{padding-left:20px;text-align:left}
                 <li><b>Blackjack :</b> As + carte de 10 sur les 2 premières cartes → payé <b>3 pour 2</b> (mise 100 → +150).</li>
                 <li><b>Croupier :</b> tire jusqu'à 16, <b>reste sur tous les 17</b> (même souple). Il regarde sa carte cachée s'il montre un As ou un 10 : en cas de blackjack, la main s'arrête.</li>
                 <li><b>Doubler :</b> sur tes 2 premières cartes, tu doubles ta mise et tu reçois <b>une seule</b> carte.</li>
-                <li><b>Séparer :</b> 2 cartes de même valeur (ex. 8+8, ou Roi+10) → 2 mains, 1 mise chacune. Un seul split ; un As séparé ne reçoit qu'une carte ; 21 après split = paiement 1:1 (pas un blackjack).</li>
+                <li><b>Séparer :</b> 2 cartes de même valeur (ex. 8+8, ou Roi+10) → 2 mains, 1 mise chacune. Tu peux re-séparer jusqu'à 4 mains et doubler après un split. Un As séparé ne reçoit qu'une carte et ne se re-sépare pas ; 21 après split = paiement 1:1 (pas un blackjack).</li>
                 <li><b>Assurance :</b> si le croupier montre un As, tu peux miser la moitié de ta mise : payée 2:1 s'il a blackjack.</li>
                 <li><b>Égalité :</b> mise rendue. Paiements : victoire 1:1, blackjack 3:2.</li></ul></details>
             <div class="provably-fair-box">🔒 <b>Graine de mélange (révélée en fin de main) :</b> <span id="bjSeed" style="color: #38bdf8;">—</span></div>
@@ -665,7 +710,8 @@ ul{padding-left:20px;text-align:left}
     </div>
 
     <!-- PANNEAU LATÉRAL : HISTORIQUE DES PARIS EN DIRECT (rétractable) -->
-    <div id="feedPanel" class="hidden">
+    <div id="roomChip" onclick="copyRoomCode()" title="Clique pour copier le code">🔑 Code de la room <b id="roomChipCode">----</b></div>
+<div id="feedPanel" class="hidden">
         <div class="feed-head" onclick="toggleFeed()">
             <span class="feed-title"><span class="live-dot"></span>📡 Paris en direct</span>
             <span class="feed-chev">▼</span>
@@ -737,6 +783,8 @@ const Snd = (() => {
 
   // Effets : sinusoïdes/triangles arrondis + réverb, rien d'agressif
   const FX = {
+    mngem:     t => { tone(988, t, .12, { type: 'triangle', v: .13 }); tone(1480, t + .06, .2, { v: .08 }); },
+    mnboom:    t => { noise(t, .7, { f: 1800, to: 60, v: .55, a: .005 }); tone(90, t, .6, { to: 28, v: .5, a: .005 }); tone(55, t + .05, .5, { type: 'sawtooth', to: 25, v: .25 }); },
     bet:       t => { tone(660, t, .14, { type: 'triangle', v: .16 }); tone(990, t + .06, .18, { type: 'triangle', v: .14 }); },
     cancel:    t => tone(520, t, .2, { type: 'triangle', to: 330, v: .14 }),
     tick:      t => tone(1250, t, .07, { v: .1 }),
@@ -835,6 +883,7 @@ function onStakeInput() {
   $('stakeInfo').textContent = v === null ? `Entre ${STAKE_RANGE}` : `= ${Math.round(v * TOKENS_PER_EUR).toLocaleString('fr-FR')} jetons (1 € = ${TOKENS_PER_EUR} 🪙)`;
 }
 function setStake(v) { $('stakeInput').value = v; onStakeInput(); }
+function copyRoomCode() { const c = S.code; if (!c) return; try { navigator.clipboard.writeText(c); $('roomChipCode').textContent = 'copié ✓'; setTimeout(() => { $('roomChipCode').textContent = S.code || c; }, 1200); } catch (e) {} }
 function leaveRoom() { socket.emit('leave-room'); }
 socket.on('left-room', () => location.reload());
 function createRoom() {
@@ -855,20 +904,21 @@ function switchGame(name) {
   show('game-hub', false);
   socket.emit('join-game-table', { roomCode: S.code });
   S.view = name === 'Icefield' ? 'ice' : name === 'Just mixed' ? 'jm' : name === 'Chicken Road' ? 'cr'
-         : name === 'Arrows X' ? 'ar' : name === 'Roulette' ? 'rl' : name === 'Blackjack' ? 'bj' : 'crash';
+         : name === 'Arrows X' ? 'ar' : name === 'Roulette' ? 'rl' : name === 'Blackjack' ? 'bj' : name === 'Mines' ? 'mn' : 'crash';
   if (S.view === 'ice') { show('icefield-screen'); updateIce(); }
   else if (S.view === 'jm') { show('jm-screen'); if (!S.jmCups) buildJm(); }
   else if (S.view === 'cr') { show('cr-screen'); crInit(); }
   else if (S.view === 'ar') { show('ar-screen'); arInit(); }
   else if (S.view === 'rl') { show('rl-screen'); rlInit(); }
   else if (S.view === 'bj') { show('bj-screen'); bjInit(); }
+  else if (S.view === 'mn') { show('mn-screen'); mnInit(); }
   else { show('game-screen'); socket.emit('crash-join', { roomCode: S.code }); startCrashUI(); }
 }
 function returnToHub() {
   if (S.view === 'crash') { socket.emit('crash-leave', { roomCode: S.code }); stopCrashUI(); } // le jeu Crash s'arrête chez toi ET sur le serveur si tu es seul
   S.view = 'hub';
   show('game-screen', false); show('icefield-screen', false); show('jm-screen', false); show('cr-screen', false); crStop();
-  show('ar-screen', false); show('rl-screen', false); show('bj-screen', false); // Arrows/Roulette/Blackjack : aucun timer client, rien à arrêter
+  show('ar-screen', false); show('rl-screen', false); show('bj-screen', false); show('mn-screen', false); // Arrows/Roulette/Blackjack : aucun timer client, rien à arrêter
   show('game-hub');
 }
 function buildPanels() {
@@ -979,6 +1029,7 @@ function sync(room) {
   S.iceState = me ? me.iceState : null;
   updateIce();
   S.crState = me ? me.cr : null;
+  S.mnState = me ? me.mn : null; if (S.view === 'mn') mnPaint();
   crSync();
   S.arState = me ? me.ar : null;
   arSync();
@@ -991,7 +1042,7 @@ function sync(room) {
 
 // Classement commun : trié sur la fortune totale (solde + mises en jeu) pour qu'il ne saute pas à chaque mise
 function renderRank(room) {
-  const eq = p => p.balance + p.slots.reduce((a, x) => a + x.bet + x.next, 0) + (p.iceState && p.iceState.active ? p.iceState.bet : 0) + (p.jm && p.jm.active ? p.jm.bet : 0) + (p.cr && p.cr.active ? p.cr.bet : 0) + (p.ar && p.ar.active ? p.ar.bet : 0) + extraEq(p); // mises en cours sur tous les jeux : le classement ne saute pas à chaque pari
+  const eq = p => p.balance + p.slots.reduce((a, x) => a + x.bet + x.next, 0) + (p.iceState && p.iceState.active ? p.iceState.bet : 0) + (p.jm && p.jm.active ? p.jm.bet : 0) + (p.cr && p.cr.active ? p.cr.bet : 0) + (p.ar && p.ar.active ? p.ar.bet : 0) + (p.mn && p.mn.active ? p.mn.bet : 0) + extraEq(p); // mises en cours sur tous les jeux : le classement ne saute pas à chaque pari
   const rows = [...room.players].sort((a, b) => eq(b) - eq(a));
   const mine = rows.findIndex(p => p.id === socket.id);
   const html = rows.map((p, i) => {
@@ -1004,7 +1055,7 @@ function renderRank(room) {
 function enterLobby(room) {
   S.code = room.code;
   show('auth-screen', false); show('lobby');
-  $('displayCode').textContent = room.code;
+  $('displayCode').textContent = room.code; $('roomChipCode').textContent = room.code; $('roomChip').style.display = 'flex';
   sync(room);
 }
 
@@ -1618,6 +1669,88 @@ socket.on('cr-result', d => {
 window.addEventListener('resize', () => { if (S.view === 'cr') crCam(); });
 
 /* ============================================================
+   MINES 💣 — grille 5×5, 1 à 24 mines. Le serveur place les mines (graine HMAC, vérifiable) et ne les révèle qu'à la fin.
+   Multiplicateur après k cases sûres = 0,985 / P(k sûres d'affilée) — même formule que server.js.
+   ============================================================ */
+const mnMult = (m, k) => { let x = .985; for (let i = 0; i < k; i++) x *= (25 - i) / (25 - m - i); return Math.round(x * 100) / 100; };
+const mnFmt = x => 'x' + (x >= 1000 ? Math.round(x).toLocaleString('fr-FR') : x.toFixed(2));
+function mnMinesVal() { return Math.max(1, Math.min(24, parseInt($('mnMines').value) || 1)); }
+function mnPaint() {
+  if (!$('mnGrid').children.length) return;
+  const st = S.mnState, active = !!(st && st.active), end = S.mnEnd;
+  const picks = new Set(active ? st.picks : end ? end.picks : (st ? st.picks : []));
+  const mines = !active && end ? end.mines : [];
+  [...$('mnGrid').children].forEach((c, i) => {
+    const isMine = mines.includes(i), hit = end && end.hit === i;
+    c.className = 'mn-cell' + (picks.has(i) ? ' safe' : '') + (isMine ? ' mine' : '') + (hit ? ' hit' : '') + (active && !picks.has(i) ? (S.mnWait ? ' wait' : ' live') : '');
+    c.textContent = picks.has(i) ? '💎' : hit ? '💥' : isMine ? '💣' : '';
+  });
+  const m = active ? st.mines : (st && !active && st.mines ? st.mines : mnMinesVal()), k = picks.size;
+  const cur = active || (end && end.hit < 0) ? (k ? mnMult(m, k) : 1) : (k && !end ? mnMult(m, k) : 1);
+  const left = 25 - m - k;
+  $('mnMult').textContent = mnFmt(active && k ? mnMult(m, k) : 1);
+  $('mnGain').textContent = active && k ? Math.floor(st.bet * mnMult(m, k)) + ' 🪙' : '0 🪙';
+  $('mnNext').textContent = active && left > 0 ? mnFmt(mnMult(m, k + 1)) : '—';
+  show('mnStartBtn', !active); show('mnCashBtn', active && k > 0);
+  $('mnMines').disabled = $('mnBetAmount').disabled = $('mnMinus').disabled = $('mnPlus').disabled = active;
+  if (active && k > 0) $('mnCashBtn').textContent = 'ENCAISSER ' + Math.floor(st.bet * mnMult(m, k)) + ' 🪙 (' + mnFmt(mnMult(m, k)) + ')';
+}
+function mnInit() {
+  if (!S.mnInited) {
+    S.mnInited = true;
+    $('mnGrid').innerHTML = Array.from({ length: 25 }, (_, i) => `<button class="mn-cell" data-i="${i}"></button>`).join('');
+    $('mnGrid').addEventListener('click', e => { const b = e.target.closest('.mn-cell'); if (b) mnPick(+b.dataset.i); });
+    $('mnQuick').addEventListener('click', e => {
+      const b = e.target.closest('button'), amt = $('mnBetAmount'); if (!b || amt.disabled) return;
+      if (b.dataset.a) amt.value = b.dataset.a;
+      else if (b.dataset.f === 'max') amt.value = S.balance;
+      else amt.value = Math.max(1, Math.floor((parseFloat(amt.value) || 0) * b.dataset.f));
+    });
+    const setM = v => { $('mnMines').value = Math.max(1, Math.min(24, v)); mnPaint(); };
+    $('mnMineQuick').addEventListener('click', e => { const b = e.target.closest('button'); if (b && !$('mnMines').disabled) setM(+b.dataset.m); });
+    $('mnMinus').onclick = () => setM(mnMinesVal() - 1); $('mnPlus').onclick = () => setM(mnMinesVal() + 1);
+    $('mnMines').addEventListener('change', () => setM(mnMinesVal()));
+  }
+  mnPaint();
+}
+function mnStart() {
+  const amount = parseInt($('mnBetAmount').value);
+  if (!amount || amount <= 0) return alert('Entre une mise valide !');
+  if (S.mnWait) return; S.mnWait = true; sound('bet');
+  setTimeout(() => { S.mnWait = false; mnPaint(); }, 2500);
+  S.mnBet = amount; S.mnEnd = null; $('mnProof').textContent = '';
+  socket.emit('mn-start', { roomCode: S.code, amount, mines: mnMinesVal() });
+}
+function mnPick(i) {
+  const st = S.mnState; if (!st || !st.active || S.mnWait || st.picks.includes(i)) return;
+  S.mnWait = true; mnPaint(); setTimeout(() => { if (S.mnWait) { S.mnWait = false; mnPaint(); } }, 2500);
+  socket.emit('mn-pick', { roomCode: S.code, idx: i });
+}
+const mnCash = () => { const st = S.mnState; if (!S.mnWait && st && st.active && st.picks.length) { S.mnWait = true; socket.emit('mn-cashout', { roomCode: S.code }); } };
+socket.on('mn-started', d => {
+  S.mnWait = false; S.mnEnd = null;
+  S.mnState = { active: true, bet: S.mnBet, mines: mnMinesVal(), picks: [] };
+  $('mnProof').textContent = 'Hash SHA-256 de la graine : ' + d.hash;
+  $('mnStatus').textContent = 'Dévoile une case sûre… ou encaisse dès que tu veux !'; mnPaint();
+});
+socket.on('mn-result', d => {
+  S.mnWait = false; const st = S.mnState;
+  if (d.seed) $('mnProof').textContent = `Graine révélée : ${d.seed} — SHA-256(graine) = hash ci-dessus ; mélange de Fisher-Yates avec HMAC-SHA256(graine, "mines:i"), les ${d.mines.length} premières cases du mélange sont les mines.`;
+  if (d.safe === false) {
+    if (st) { st.active = false; st.picks = d.picks; } S.mnEnd = { mines: d.mines, picks: d.picks, hit: d.idx };
+    sound('mnboom'); $('mnStatus').textContent = d.message;
+    $('mnGrid').classList.remove('shake'); void $('mnGrid').offsetWidth; $('mnGrid').classList.add('shake');
+  } else if (d.cashout) {
+    if (st) { st.active = false; st.picks = d.picks; } S.mnEnd = { mines: d.mines, picks: d.picks, hit: -1 };
+    sound('win'); $('mnStatus').textContent = d.message;
+  } else {
+    if (st && !st.picks.includes(d.idx)) st.picks.push(d.idx);
+    sound('mngem'); $('mnStatus').textContent = `💎 Sûr ! ${mnFmt(d.multiplier)} — continue ou encaisse.`;
+  }
+  mnPaint();
+});
+
+/* ============================================================
    ARROWS X 🎯 — fléchettes sur cible annulaire, RTP exact 98,5 %
    Mêmes tables de multiplicateurs que le serveur (AR_MODES dans server.js).
    Le serveur résout "hit = 0,985 × Σpoids / Σ(m×poids)" pour garantir l'espérance ;
@@ -2213,7 +2346,7 @@ function bjPaint(st) {
   if (phase === 'insurance') $('bjInsBtn').textContent = `Assurance 🛡️ (${st.insuranceOffer} 🪙)`;
   $('bjBetAmount').disabled = playing;
   $('bjStatus').textContent = phase === 'insurance' ? 'Le croupier montre un As : veux-tu t\'assurer contre son blackjack ?'
-    : phase === 'player' ? (hands.length > 1 ? `Main ${st.active + 1} sur 2 : tirer, rester ou doubler.` : 'À toi : tirer, rester, doubler' + (st.can.split ? ' ou séparer.' : '.'))
+    : phase === 'player' ? (hands.length > 1 ? `Main ${st.active + 1} sur ${hands.length} : tirer, rester, doubler` + (st.can.split ? ' ou séparer.' : '.') : 'À toi : tirer, rester, doubler' + (st.can.split ? ' ou séparer.' : '.'))
     : 'Mise, puis distribue !';
 }
 function bjHistPush(net, outcomes) {
@@ -2283,7 +2416,7 @@ function renderStopBar(room) {
 function voteStop() { socket.emit('vote-stop', { roomCode: S.code, vote: !S.iVoted }); }
 socket.on('stop-notice', d => { S.stopMsg = d.message; $('stopMsg').textContent = d.message; clearTimeout(S.stopMsgT); S.stopMsgT = setTimeout(() => { S.stopMsg = ''; }, 3200); });
 
-Object.assign(window, { voteStop, setStake, onStakeInput, leaveRoom, authSubmit, logout, createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash, arStart, arThrow, rlSpin, rlClear, rlRepeat, bjDeal, bjHit, bjStand, bjDouble, bjSplit, bjInsurance, rlUndo, toggleFeed });
+Object.assign(window, { mnStart, mnCash, copyRoomCode, voteStop, setStake, onStakeInput, leaveRoom, authSubmit, logout, createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash, arStart, arThrow, rlSpin, rlClear, rlRepeat, bjDeal, bjHit, bjStand, bjDouble, bjSplit, bjInsurance, rlUndo, toggleFeed });
 
 /* ============================================================
    PANNEAU LATÉRAL « 📡 PARIS EN DIRECT » (feed) — flux temps réel
@@ -2292,7 +2425,7 @@ Object.assign(window, { voteStop, setStake, onStakeInput, leaveRoom, authSubmit,
    multiplicateur, résultat net, statut (pending / win / loss / push / void).
    Rétractable via l'en-tête ; les « il y a Xs » sont rafraîchis toutes les 5 s.
    ============================================================ */
-const FEED_NAMES = { crash:'Crash Out', ice:'Icefield', jm:'Just Mixed', cr:'Chicken Road', ar:'Arrows X', rl:'Roulette', bj:'Blackjack' };
+const FEED_NAMES = { crash:'Crash Out', ice:'Icefield', jm:'Just Mixed', cr:'Chicken Road', ar:'Arrows X', rl:'Roulette', bj:'Blackjack', mn:'Mines' };
 let feedRows = [];
 try { if (localStorage.getItem('feedCollapsed') === '1') $('feedPanel').classList.add('collapsed'); } catch (e) {}
 
