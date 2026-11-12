@@ -861,13 +861,17 @@ ul{padding-left:20px;text-align:left}
 
     <!-- MODALE RÉSULTATS DE FIN DE SESSION -->
     <div id="gameOverModal" class="modal-overlay hidden">
-        <div class="modal-content" style="border: 2px solid #eab308;">
+        <div class="modal-content" id="endBox" style="border: 2px solid #eab308;max-width:560px;max-height:90vh">
             <h2 style="margin-top:0; color: #eab308;">🏁 Fin de la Session !</h2>
             <p style="color: #94a3b8; font-size: 14px;">Le temps est écoulé. Pot total à redistribuer : <b id="finalPot" style="color:#22c55e"></b></p>
-            <div id="finalLeaderboardList" style="text-align: left; margin: 15px 0; max-height: 250px; overflow-y: auto;"></div>
+            <div id="finalCharts" style="text-align:left;margin:12px 0"></div>
+            <h4 style="margin:10px 0 6px;text-align:left">🏆 Classement final</h4>
+            <div id="finalLeaderboardList" style="text-align: left; margin: 8px 0;"></div>
             <h4 style="margin:10px 0 6px;text-align:left">💸 Qui paie qui</h4>
             <div id="finalTransfers" style="text-align:left;font-size:14px;color:#cbd5e1"></div>
-            <button onclick="leaveRoom()" style="background: #22c55e; margin-top: 20px;">Retour à l'accueil</button>
+            <div id="rematchInfo" style="margin-top:16px;font-size:13px;color:#cdbf9f"></div>
+            <button id="rematchBtn" onclick="rematch()" style="background:linear-gradient(180deg,#d4562a,#8a1c3c);margin-top:8px">🔁 Continuer : nouvelle partie avec les mêmes joueurs</button>
+            <button onclick="leaveRoom()" style="background: #22c55e; margin-top: 10px;">Retour à l'accueil</button>
         </div>
     </div>
 
@@ -1393,15 +1397,45 @@ socket.on('game-session-ended', d => {
     const row = document.createElement('div');
     row.style.cssText = 'background:#0d0814;padding:10px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px';
     const perf = (p.performance >= 0 ? '+' : '') + Math.round(p.performance * 100) + ' %';
-    row.innerHTML = `<span><b>#${i + 1} ${nm(p.name)}</b><br><small style="color:#94a3b8">mise ${eur(p.stake)} · ${p.finalBalance} 🪙 (${perf})</small></span>
+    const gl = p.finalBalance - p.initialBalance, st = p.stats || {};
+    row.innerHTML = `<span><b>#${i + 1} ${nm(p.name)}</b><br><small style="color:#94a3b8">mise ${eur(p.stake)} · ${fmtN(p.finalBalance)} 🪙 (${perf})</small><br><small class="${gl >= 0 ? 'text-green' : 'text-red'}">${gl >= 0 ? 'a gagné +' : 'a perdu −'}${fmtN(Math.abs(gl))} 🪙 (${fmtPctG(pctOf(p.finalBalance, p.initialBalance))})</small><br><small style="color:#7d7494">${st.gamesPlayed || 0} parties · ${st.wins || 0} gagnées</small></span>
       <span style="text-align:right">reçoit <b>${eur(p.payout)}</b><br><b class="${p.net >= 0 ? 'text-green' : 'text-red'}">${p.net >= 0 ? '+' : ''}${eur(p.net)}</b></span>`;
     box.appendChild(row);
   });
   $('finalTransfers').innerHTML = d.transfers.length
     ? d.transfers.map(t => `<div><b>${esc(t.from)}</b> → <b>${esc(t.to)}</b> : ${eur(t.amount)}</div>`).join('')
     : 'Personne ne doit rien à personne.';
+  S.endData = d.charts || null; S.endSel = null; endCharts();
+  $('rematchBtn').disabled = false; $('rematchBtn').textContent = '🔁 Continuer : nouvelle partie avec les mêmes joueurs'; $('rematchInfo').textContent = '';
   show('gameOverModal');
 });
+function endCharts() {
+  const box = $('finalCharts'); if (!box) return; const d = S.endData;
+  if (!d || !d.players.length) { box.innerHTML = ''; return; }
+  const pls = d.players, sel = S.endSel ? pls.find(p => p.name === S.endSel) : null;
+  let h = '<h4 style="margin:0 0 6px">📈 Évolution des fortunes</h4>';
+  if (!sel) {
+    h += chSvg(pls.map((p, i) => ({ name: p.name, color: chColor(p, i), pts: chSeries(p, d.t) })), false);
+    h += '<div class="ch-sub" style="margin-top:6px">Clique sur un joueur pour voir son graphique et ses paris</div>';
+    h += pls.map((p, i) => ({ p, i, pc: pctOf(p.eq, p.initial) })).sort((a, b) => b.pc - a.pc).map(({ p, i, pc }) =>
+      `<div class="ch-pl" data-n="${esc(p.name)}"><i style="background:${chColor(p, i)};box-shadow:0 0 8px ${chColor(p, i)}"></i><span class="n">${nm(p.name)}</span><span class="v"><span class="${pc >= 0 ? 'text-green' : 'text-red'}">${fmtPctG(pc)}</span><small>${p.eq - p.initial >= 0 ? '+' : '−'}${fmtN(Math.abs(p.eq - p.initial))} 🪙 · ${fmtN(p.eq)} 🪙</small></span></div>`).join('');
+  } else {
+    const i = pls.indexOf(sel), pc = pctOf(sel.eq, sel.initial), ser = chSeries(sel, d.t), ys = ser.map(q => q[1]), best = Math.max(...ys), worst = Math.min(...ys), gl = sel.eq - sel.initial;
+    h += `<button class="ch-back" style="width:auto;margin:0 0 8px;padding:4px 12px;font-size:12px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#f0dcae;cursor:pointer" data-back="1">← Tous les joueurs</button> <b>${nm(sel.name)}</b>`;
+    h += chSvg([{ name: sel.name, color: chColor(sel, i), pts: ser }], true);
+    h += `<div class="ch-tiles"><div class="ch-tile"><b>${fmtN(sel.eq)} 🪙</b><span>Final</span></div><div class="ch-tile"><b class="${gl >= 0 ? 'text-green' : 'text-red'}">${gl >= 0 ? '+' : '−'}${fmtN(Math.abs(gl))} 🪙</b><span>${gl >= 0 ? 'Gagné' : 'Perdu'}</span></div><div class="ch-tile"><b class="${pc >= 0 ? 'text-green' : 'text-red'}">${fmtPctG(pc)}</b><span>Évolution</span></div><div class="ch-tile"><b class="text-green">${fmtPctG(best)}</b><span>Pic</span></div><div class="ch-tile"><b class="text-red">${fmtPctG(worst)}</b><span>Plus bas</span></div><div class="ch-tile"><b>${(sel.stats && sel.stats.wins) || 0}/${(sel.stats && sel.stats.gamesPlayed) || 0}</b><span>Victoires</span></div></div>`;
+    h += '<div class="ch-sub">Ses paris (récents en premier)</div><div style="max-height:220px;overflow-y:auto">' + (sel.bets.length ? sel.bets.map(feedRowHtml).join('') : '<div class="feed-empty">Aucun pari</div>') + '</div>';
+  }
+  box.innerHTML = h;
+}
+$('finalCharts').addEventListener('click', e => { if (e.target.closest('[data-back]')) { S.endSel = null; endCharts(); return; } const r = e.target.closest('.ch-pl'); if (r) { S.endSel = r.dataset.n; endCharts(); } });
+function rematch() { $('rematchBtn').disabled = true; $('rematchBtn').textContent = 'Création de la nouvelle partie…'; socket.emit('rematch', { roomCode: S.code }); }
+socket.on('rematch-go', () => location.reload()); // au rechargement, le compte est remis dans la nouvelle room (salon d'attente)
+socket.on('rematch-info', d => {
+  const el = $('rematchInfo'); if (!el) return;
+  el.innerHTML = d && d.code ? `🔁 Déjà partis sur la nouvelle partie : ${d.names.map(nm).join(', ')}.<br>Clique sur « Continuer » pour les rejoindre (code <b>${esc(d.code)}</b>).` : '';
+});
+socket.on('error-message', () => { const b = $('rematchBtn'); if (b && b.disabled && S.phase === 'ended') { b.disabled = false; b.textContent = '🔁 Continuer : nouvelle partie avec les mêmes joueurs'; } });
 
 // Connexion / reprise : le jeton de session est gardé dans le navigateur. À chaque (re)connexion on le renvoie au serveur,
 // qui nous remet dans notre room (même après un rafraîchissement ou une coupure réseau).
@@ -2798,7 +2832,7 @@ function renderStopBar(room) {
 function voteStop() { socket.emit('vote-stop', { roomCode: S.code, vote: !S.iVoted }); }
 socket.on('stop-notice', d => { S.stopMsg = d.message; $('stopMsg').textContent = d.message; clearTimeout(S.stopMsgT); S.stopMsgT = setTimeout(() => { S.stopMsg = ''; }, 3200); });
 
-Object.assign(window, { pkStart, admToggle, admUnlock, mnStart, mnCash, copyRoomCode, voteStop, setStake, onStakeInput, leaveRoom, authSubmit, logout, createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash, arStart, arThrow, rlSpin, rlClear, rlRepeat, bjDeal, bjHit, bjStand, bjDouble, bjSplit, bjInsurance, rlUndo, toggleFeed, chartToggle, chartBack });
+Object.assign(window, { pkStart, admToggle, admUnlock, mnStart, mnCash, copyRoomCode, voteStop, setStake, onStakeInput, leaveRoom, authSubmit, logout, createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash, arStart, arThrow, rlSpin, rlClear, rlRepeat, bjDeal, bjHit, bjStand, bjDouble, bjSplit, bjInsurance, rlUndo, toggleFeed, chartToggle, chartBack, rematch });
 
 /* ============================================================
    PANNEAU LATÉRAL « 📡 PARIS EN DIRECT » (feed) — flux temps réel
