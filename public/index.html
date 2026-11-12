@@ -361,8 +361,14 @@ html.rm *,html.rm *::before,html.rm *::after{animation:none!important;transition
 .gn-row .rk{width:30px;text-align:center;font-weight:900;color:#cdbf9f}
 .gn-row .n{flex:1;min-width:0;font-weight:800;color:#efe6ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gn-row .v{text-align:right;line-height:1.2;font-weight:900}.gn-row .v small{display:block;font-size:10px;color:#9a90ad;font-weight:600}
-.pf-bars{display:flex;align-items:center;gap:4px;height:70px;margin:6px 0;padding:6px;background:rgba(0,0,0,.25);border-radius:10px}
-.pf-bars i{flex:1;border-radius:3px;min-height:3px;align-self:center}
+.pf-wrap{position:relative;display:flex;gap:4px;height:130px;margin:6px 0;padding:4px;background:rgba(0,0,0,.25);border-radius:10px}
+.pf-wrap:before{content:'';position:absolute;left:4px;right:4px;top:50%;border-top:1px dashed rgba(255,255,255,.25)}
+.pf-col{flex:1;min-width:0;display:flex;flex-direction:column;cursor:pointer;border-radius:6px;position:relative;z-index:1}
+.pf-col:hover,.pf-col.on{background:rgba(255,255,255,.08)}
+.pf-col .h{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;min-height:0}.pf-col .l{flex:1;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;min-height:0}
+.pf-col i{display:block;width:70%;border-radius:3px;min-height:2px}
+.pf-col em{font-style:normal;font-size:9px;font-weight:800;line-height:1;margin:1px 0;white-space:nowrap}
+.pf-det{font-size:12px;background:rgba(255,255,255,.06);border-radius:10px;padding:8px 10px;margin-bottom:6px;line-height:1.5}
 .bd-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
 .bd{display:flex;gap:8px;align-items:center;padding:7px 8px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,212,92,.35)}
 .bd.lock{filter:grayscale(1);opacity:.38;border-color:rgba(255,255,255,.08)}
@@ -3316,7 +3322,7 @@ sideSet('charts');
 
 
 /* ---------- Général : classement (moyenne des % par session) + profils + badges ---------- */
-let genView = 'board', genBoard = null, genProf = null;
+let genView = 'board', genBoard = null, genProf = null, genMode = 'pct', genSel = -1;
 function sideVis() {
   $('sideTabs').classList.remove('hidden');
   document.querySelectorAll('#sideTabs .sb[data-t=charts],#sideTabs .sb[data-t=chat],.ch-tabs button[data-t=charts],.ch-tabs button[data-t=chat]').forEach(x => { x.style.display = S.code ? '' : 'none'; });
@@ -3326,10 +3332,20 @@ function genOpen() { socket.emit('gen-get'); if (genView !== 'board') socket.emi
 function genRender() {
   const b = $('genBody'); if (!b) return; const top = b.scrollTop; let h = '';
   if (genView === 'board') {
-    h += `<div class="gn-top"><button data-act="me">👤 Mon profil</button><button data-act="refresh">🔄 Actualiser</button></div><div class="ch-sub" style="margin-top:2px">🌍 Classement général</div><div class="ch-note" style="text-align:left">Moyenne des % de gain de chaque session terminée</div>`;
+    h += `<div class="gn-top"><button data-act="me">👤 Mon profil</button><button data-act="refresh">🔄 Actualiser</button></div><div class="gn-top"><button data-act="m-pct" style="${genMode === 'pct' ? 'border-color:#d4a24c' : ''}">📊 Moyenne %</button><button data-act="m-net" style="${genMode === 'net' ? 'border-color:#d4a24c' : ''}">💶 Gains</button><button data-act="m-loss" style="${genMode === 'loss' ? 'border-color:#d4a24c' : ''}">📉 Pertes</button></div><div class="ch-sub" style="margin-top:2px">${{ pct: '📊 Classement — moyenne des %', net: '💶 Classement — argent gagné (net)', loss: '📉 Classement — argent perdu' }[genMode]}</div><div class="ch-note" style="text-align:left">${{ pct: 'Moyenne des % de gain de chaque session terminée', net: 'Somme de tout ce que chacun a gagné moins perdu, sur toutes ses sessions (utile surtout à plusieurs)', loss: 'Total des sous perdus sur toutes les sessions (comptées depuis cette mise à jour)' }[genMode]}</div>`;
     if (!genBoard) h += '<div class="feed-empty">Chargement…</div>';
     else if (!genBoard.board.length) h += '<div class="feed-empty">Personne n’a encore terminé de session. Le classement apparaîtra à la fin de la première !</div>';
-    else h += genBoard.board.map((r, i) => `<div class="gn-row${r.name === S.myName ? ' me' : ''}" data-n="${esc(r.name)}"><span class="rk">${i < 3 ? ['🥇', '🥈', '🥉'][i] : '#' + (i + 1)}</span><span class="n">${nm(r.name)}</span><span class="v"><span class="${r.avg >= 0 ? 'text-green' : 'text-red'}">${fmtPctG(r.avg)}</span><small>${r.n} session${r.n > 1 ? 's' : ''} · 🏅 ${r.badges}</small></span></div>`).join('');
+    else {
+      const rows = genBoard.board.slice();
+      if (genMode === 'net') rows.sort((a, b) => b.tp - a.tp); else if (genMode === 'loss') rows.sort((a, b) => b.tl - a.tl);
+      h += rows.map((r, i) => {
+        const big = genMode === 'pct' ? `<span class="${r.avg >= 0 ? 'text-green' : 'text-red'}">${fmtPctG(r.avg)}</span>`
+          : genMode === 'net' ? `<span class="${r.tp >= 0 ? 'text-green' : 'text-red'}">${r.tp >= 0 ? '+' : '−'}${eur(Math.abs(r.tp) / 100)}</span>`
+          : `<span class="text-red">−${eur(r.tl / 100)}</span>`;
+        const sm = genMode === 'pct' ? `${r.n} session${r.n > 1 ? 's' : ''} · 🏅 ${r.badges}` : genMode === 'net' ? `gagné ${eur(r.tg / 100)} · perdu ${eur(r.tl / 100)}` : `${r.n} session${r.n > 1 ? 's' : ''}`;
+        return `<div class="gn-row${r.name === S.myName ? ' me' : ''}" data-n="${esc(r.name)}"><span class="rk">${i < 3 ? ['🥇', '🥈', '🥉'][i] : '#' + (i + 1)}</span><span class="n">${nm(r.name)}</span><span class="v">${big}<small>${sm}</small></span></div>`;
+      }).join('');
+    }
   } else {
     const p = genProf && genProf.name.toLowerCase() === genView.toLowerCase() ? genProf : null;
     h += `<div class="gn-top"><button data-act="back">← Classement</button></div>`;
@@ -3337,8 +3353,17 @@ function genRender() {
     else {
       const got = p.badges.filter(x => x.got).length, mx = Math.max(10, ...p.last.map(Math.abs));
       h += `<div style="font-size:18px;font-weight:900;margin:2px 0 2px">${nm(p.name)}</div><div class="ch-note" style="text-align:left">Membre depuis le ${new Date(p.since).toLocaleDateString('fr-FR')}</div>`;
-      h += `<div class="ch-tiles"><div class="ch-tile"><b>${p.n}</b><span>Sessions</span></div><div class="ch-tile"><b class="${p.avg >= 0 ? 'text-green' : 'text-red'}">${p.n ? fmtPctG(p.avg) : '—'}</b><span>Moyenne</span></div><div class="ch-tile"><b>${p.c1}</b><span>Victoires 🏆</span></div><div class="ch-tile"><b class="text-green">${p.best == null ? '—' : fmtPctG(p.best)}</b><span>Meilleure</span></div><div class="ch-tile"><b class="text-red">${p.worst == null ? '—' : fmtPctG(p.worst)}</b><span>Pire</span></div><div class="ch-tile"><b>${p.bm ? xf(p.bm) : '—'}</b><span>Record mult.</span></div><div class="ch-tile"><b>${fmtN(p.g)}</b><span>Parties</span></div><div class="ch-tile"><b class="${p.tp >= 0 ? 'text-green' : 'text-red'}">${p.tp >= 0 ? '+' : '−'}${fmtN(Math.abs(p.tp))}</b><span>Gain total 🪙</span></div><div class="ch-tile"><b>${fmtN(p.msg)}</b><span>Messages</span></div></div>`;
-      if (p.last.length) h += `<div class="ch-sub">Dernières sessions</div><div class="pf-bars">${p.last.map(v => `<i title="${fmtPctG(v)}" style="height:${Math.max(4, Math.abs(v) / mx * 100) * .5}%;background:${v >= 0 ? '#4ade80' : '#f87171'}"></i>`).join('')}</div>`;
+      h += `<div class="ch-tiles"><div class="ch-tile"><b>${p.n}</b><span>Sessions</span></div><div class="ch-tile"><b class="${p.avg >= 0 ? 'text-green' : 'text-red'}">${p.n ? fmtPctG(p.avg) : '—'}</b><span>Moyenne</span></div><div class="ch-tile"><b>${p.c1}</b><span>Victoires 🏆</span></div><div class="ch-tile"><b class="text-green">${p.best == null ? '—' : fmtPctG(p.best)}</b><span>Meilleure</span></div><div class="ch-tile"><b class="text-red">${p.worst == null ? '—' : fmtPctG(p.worst)}</b><span>Pire</span></div><div class="ch-tile"><b>${p.bm ? xf(p.bm) : '—'}</b><span>Record mult.</span></div><div class="ch-tile"><b>${fmtN(p.g)}</b><span>Parties</span></div><div class="ch-tile"><b class="${p.tp >= 0 ? 'text-green' : 'text-red'}">${p.tp >= 0 ? '+' : '−'}${eur(Math.abs(p.tp) / 100)}</b><span>Gain net 💶</span></div><div class="ch-tile"><b>${fmtN(p.msg)}</b><span>Messages</span></div></div>`;
+      const ls = (p.ls && p.ls.length) ? p.ls : p.last.map(v => [0, v, 0, 0, 0]);
+      if (ls.length) {
+        const mxs = Math.max(10, ...ls.map(r => Math.abs(r[1])));
+        h += `<div class="ch-sub">Dernières sessions <span style="font-weight:600;color:#9a90ad">(touche une barre)</span></div><div class="pf-wrap">${ls.map((r, i) => {
+          const v = r[1], hh = Math.max(3, Math.abs(v) / mxs * 90), c = v >= 0 ? '#4ade80' : '#f87171', lab = `<em style="color:${c}">${v >= 0 ? '+' : '−'}${Math.abs(Math.round(v))}%</em>`;
+          return `<div class="pf-col${i === genSel ? ' on' : ''}" data-s="${i}"><div class="h">${v >= 0 ? lab + `<i style="height:${hh}%;background:${c}"></i>` : ''}</div><div class="l">${v < 0 ? `<i style="height:${hh}%;background:${c}"></i>` + lab : ''}</div></div>`;
+        }).join('')}</div>`;
+        const r = ls[genSel];
+        if (r) h += `<div class="pf-det"><b>${r[0] ? new Date(r[0]).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'Session'}</b> · <b class="${r[1] >= 0 ? 'text-green' : 'text-red'}">${fmtPctG(r[1])}</b>${r[0] ? `<br>${r[2] >= 0 ? 'Gagné' : 'Perdu'} : <b class="${r[2] >= 0 ? 'text-green' : 'text-red'}">${eur(Math.abs(r[2]) / 100)}</b> · ${r[3]} partie${r[3] > 1 ? 's' : ''}${r[4] ? ' · 🏆 1er de la room' : ''}` : ''}</div>`;
+      }
       h += `<div class="ch-sub">Badges ${got}/${p.badges.length}</div><div class="bd-grid">${p.badges.map(x => `<div class="bd${x.got ? '' : ' lock'}" title="${esc(x.d)}"><span class="e">${x.got ? x.e : '🔒'}</span><div><b>${esc(x.n)}</b><span>${esc(x.d)}</span></div></div>`).join('')}</div>`;
     }
   }
@@ -3346,8 +3371,9 @@ function genRender() {
 }
 $('genBody').addEventListener('click', e => {
   const a = e.target.closest('[data-act]');
-  if (a) { const t = a.dataset.act; if (t === 'back') { genView = 'board'; genOpen(); } else if (t === 'refresh') genOpen(); else if (t === 'me') { genView = S.myName; genProf = null; genOpen(); } return; }
-  const r = e.target.closest('.gn-row'); if (r) { genView = r.dataset.n; genProf = null; $('genBody').scrollTop = 0; genOpen(); }
+  if (a) { const t = a.dataset.act; if (t === 'm-pct' || t === 'm-net' || t === 'm-loss') { genMode = t.slice(2); genRender(); } else if (t === 'back') { genView = 'board'; genOpen(); } else if (t === 'refresh') genOpen(); else if (t === 'me') { genView = S.myName; genProf = null; genOpen(); } return; }
+  const c = e.target.closest('.pf-col'); if (c) { genSel = genSel === +c.dataset.s ? -1 : +c.dataset.s; genRender(); return; }
+  const r = e.target.closest('.gn-row'); if (r) { genView = r.dataset.n; genProf = null; genSel = -1; $('genBody').scrollTop = 0; genOpen(); }
 });
 socket.on('gen-data', d => { genBoard = d; if (chOpen && sideTab === 'gen') genRender(); });
 socket.on('prof-data', d => { genProf = d; if (chOpen && sideTab === 'gen') genRender(); });
