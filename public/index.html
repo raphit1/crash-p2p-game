@@ -95,7 +95,7 @@ ul{padding-left:20px;text-align:left}
 .ice-toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 /* ---- Classement commun en direct ---- */
 .rankList{max-height:230px;overflow-y:auto}
-.rank-row{display:grid;grid-template-columns:40px 1fr auto auto;gap:8px;align-items:center;padding:7px 10px;border-radius:8px;font-size:13px;background:#0d0814;margin-bottom:5px;text-align:left}
+.rank-row{display:grid;grid-template-columns:40px 1fr auto auto auto;gap:8px;align-items:center;padding:7px 10px;border-radius:8px;font-size:13px;background:#0d0814;margin-bottom:5px;text-align:left}
 .rank-row.me{background:linear-gradient(90deg,rgba(212,162,76,.3),#0d0814);border:1px solid rgba(212,162,76,.6)}
 .rankMe{color:#f6dc9a;font-weight:700;margin-left:6px}
 
@@ -1190,14 +1190,16 @@ function sync(room) {
   renderStopBar(room);
 }
 
-// Classement commun : trié sur la fortune totale (solde + mises en jeu) pour qu'il ne saute pas à chaque mise
+// Classement commun : trié sur le % de gain vs argent de départ (fortune = solde + mises en jeu, pour qu'il ne saute pas à chaque mise)
 function renderRank(room) {
   const eq = p => p.balance + p.slots.reduce((a, x) => a + x.bet + x.next, 0) + (p.iceState && p.iceState.active ? p.iceState.bet : 0) + (p.jm && p.jm.active ? p.jm.bet : 0) + (p.cr && p.cr.active ? p.cr.bet : 0) + (p.ar && p.ar.active ? p.ar.bet : 0) + (p.mn && p.mn.active ? p.mn.bet : 0) + (p.pk && p.pk.active ? p.pk.bet : 0) + extraEq(p); // mises en cours sur tous les jeux : le classement ne saute pas à chaque pari
-  const rows = [...room.players].sort((a, b) => eq(b) - eq(a));
+  const pct = p => { const st = p.initialBalance || 1000; return (eq(p) - st) / st * 100; };
+  const fmtPct = v => { const a = Math.abs(v); const t = a >= 100000 ? new Intl.NumberFormat('fr-FR', { notation: 'compact', maximumFractionDigits: 1 }).format(v) : v.toLocaleString('fr-FR', { maximumFractionDigits: a >= 100 ? 0 : 1 }); return (v >= 0 ? '+' : '') + t + ' %'; };
+  const rows = [...room.players].sort((a, b) => pct(b) - pct(a));
   const mine = rows.findIndex(p => p.id === socket.id);
   const html = rows.map((p, i) => {
     const pr = eq(p) - (p.initialBalance || 1000);
-    return `<div class="rank-row${p.id === socket.id ? ' me' : ''}"><b>${i < 3 ? ['🥇', '🥈', '🥉'][i] : '#' + (i + 1)}</b><span>${nm(p.name)}${p.connected === false ? ' 💤' : ''}</span><b>${eq(p)} 🪙</b><span class="${pr >= 0 ? 'text-green' : 'text-red'}">${pr >= 0 ? '+' : ''}${pr}</span></div>`;
+    return `<div class="rank-row${p.id === socket.id ? ' me' : ''}"><b>${i < 3 ? ['🥇', '🥈', '🥉'][i] : '#' + (i + 1)}</b><span>${nm(p.name)}${p.connected === false ? ' 💤' : ''}</span><b>${eq(p)} 🪙</b><span class="${pr >= 0 ? 'text-green' : 'text-red'}">${pr >= 0 ? '+' : ''}${pr}</span><b class="${pr >= 0 ? 'text-green' : 'text-red'}">${fmtPct(pct(p))}</b></div>`;
   }).join('');
   document.querySelectorAll('.rankList').forEach(e => setH(e, html));
   document.querySelectorAll('.rankMe').forEach(e => e.textContent = mine >= 0 ? `Tu es #${mine + 1} sur ${rows.length}` : '');
