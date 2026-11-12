@@ -15,6 +15,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { promisify } = require('util');
 const scrypt = promisify(crypto.scrypt);
+const { BADGES } = require('./badges');
 
 const DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const FILE = path.join(DIR, 'accounts.json');
@@ -133,4 +134,39 @@ async function resume(token) {
 
 function logout(token) { if (db.sessions[sha(String(token || ''))]) { delete db.sessions[sha(token)]; save(); } }
 
-module.exports = { register, login, resume, logout, key, flush };
+/* ------------------------------------------------------------------ */
+/*  Profil joueur + classement général                                 */
+/*  Stocké dans db.users[clé].prof : ~250 octets par joueur (compteurs + 12 derniers %), */
+/*  écrit UNE fois par fin de session → très peu de place et de commandes Upstash.       */
+/* ------------------------------------------------------------------ */
+const clampPct = x => Math.max(-100, Math.min(1e6, Number(x) || 0));
+const newProf = () => ({ n: 0, sp: 0, best: null, worst: null, c1: 0, g: 0, w: 0, tp: 0, bm: 0, msg: 0, gp: [], bd: [], last: [] });
+async function recordSession(k, sess, allGames) {
+    await ready; const u = db.users[k]; if (!u || !storageOk) return [];
+    const p = u.prof = Object.assign(newProf(), u.prof || {});
+    const pct = clampPct(sess.pct);
+    p.n++; p.sp = Math.round((p.sp + pct) * 100) / 100;
+    p.best = p.best == null ? pct : Math.max(p.best, pct); p.worst = p.worst == null ? pct : Math.min(p.worst, pct);
+    if (sess.champ) p.c1++;
+    p.g += sess.g | 0; p.w += sess.w | 0; p.tp += Math.round(sess.profit) || 0; p.msg += sess.msgs | 0;
+    p.bm = Math.max(p.bm, Math.min(1e9, sess.bm || 0));
+    (sess.gp || []).forEach(g => { if (!p.gp.includes(g)) p.gp.push(g); });
+    p.last.push(Math.round(pct * 10) / 10); if (p.last.length > 12) p.last.shift();
+    const fresh = BADGES.filter(b => !p.bd.includes(b.id) && b.test(p, Object.assign({}, sess, { pct }), allGames || []));
+    fresh.forEach(b => p.bd.push(b.id));
+    save();
+    return fresh.map(b => ({ id: b.id, e: b.e, n: b.n, d: b.d }));
+}
+function profileOf(name) {
+    const u = db.users[key(name)]; if (!u) return null;
+    const p = Object.assign(newProf(), u.prof || {});
+    return { name: u.name, since: u.created, n: p.n, avg: p.n ? p.sp / p.n : 0, best: p.best, worst: p.worst, c1: p.c1, g: p.g, w: p.w, tp: p.tp, bm: p.bm, msg: p.msg, last: p.last,
+        badges: BADGES.map(b => ({ id: b.id, e: b.e, n: b.n, d: b.d, got: p.bd.includes(b.id) })) };
+}
+function leaderboard(limit = 50) {
+    return Object.values(db.users).filter(u => u.prof && u.prof.n > 0)
+        .map(u => ({ name: u.name, avg: u.prof.sp / u.prof.n, n: u.prof.n, best: u.prof.best, tp: u.prof.tp, badges: (u.prof.bd || []).length }))
+        .sort((a, b) => b.avg - a.avg).slice(0, limit);
+}
+
+module.exports = { register, login, resume, logout, key, flush, recordSession, profileOf, leaderboard };
