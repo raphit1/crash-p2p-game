@@ -210,6 +210,7 @@ function equityOf(p) {
         + (p.ar && p.ar.active ? p.ar.bet : 0) + (p.mn && p.mn.active ? p.mn.bet : 0) + (p.pkQ || []).reduce((a, b) => a + b.unit, 0)
         + (p.rl ? p.rl.total : 0) + bjPending(p.bj);
 }
+const pubBets = p => (p.betLog || []).slice(0, 60).map(b => ({ id: b.id, game: b.game, icon: b.icon, name: b.name, bet: b.bet, mult: b.mult, win: b.win, net: b.net, status: b.status, ts: b.ts, queued: !!b.queued }));
 function sampleEquity(room) {
     const now = Date.now();
     room.players.forEach(p => {
@@ -377,6 +378,12 @@ const dismissEnded = account => accountRooms(account).filter(r => r.status === '
 
 const accountRooms = account => Object.values(rooms).filter(r => r.players.some(p => p.account === account));
 
+// « Continuer » : la nouvelle room regroupe les joueurs qui ont cliqué (mêmes pseudos, même mise de départ)
+function rematchInfo(room) {
+    const nr = room.nextCode && rooms[room.nextCode];
+    return nr && nr.status === 'waiting' ? { code: nr.code, names: nr.players.map(p => p.name) } : { code: null, names: [] };
+}
+
 // Rattache le compte à sa room (non terminée de préférence) avec la nouvelle socket.
 function resumeRoom(socket, name) {
     const k = A.key(name), list = accountRooms(k);
@@ -388,6 +395,7 @@ function resumeRoom(socket, name) {
     socket.join(room.code);
     if (room.status === 'ended') { // session terminée : on réaffiche juste les résultats (pas le jeu)
         socket.emit('game-session-ended', room.result);
+        socket.emit('rematch-info', rematchInfo(room));
         return true;
     }
     socket.emit('resumed', { room: publicRoom(room), started: room.status !== 'waiting' });
@@ -442,6 +450,30 @@ io.on('connection', (socket) => {
             else return socket.emit('error-message', 'La session est en cours : tu ne peux pas quitter, ton solde reste en jeu jusqu\'à la fin.');
         }
         socket.emit('left-room');
+    });
+    socket.on('rematch', ({ roomCode } = {}) => {
+        const name = socket.data.user, room = rooms[String(roomCode || '').trim().toUpperCase().replace(/^CRASH-/, '')];
+        if (!name || !room || room.status !== 'ended') return;
+        const k = A.key(name), old = room.players.find(p => p.account === k);
+        if (!old) return;
+        let nr = room.nextCode && rooms[room.nextCode];
+        if (nr && nr.status !== 'waiting') return socket.emit('error-message', 'La nouvelle partie a déjà commencé : crée une room ou rejoins-la avec son code.');
+        if (accountRooms(k).some(r => r.status !== 'ended')) return resumeRoom(socket, name); // déjà dans une room en cours
+        if (!nr) {
+            const code = generateRoomCode();
+            nr = rooms[code] = {
+                code, duration: room.duration, timeRemaining: room.duration, status: 'waiting', selectedGame: null, players: [],
+                multiplier: 1.00, crashPoint: 0, currentHash: '', currentSecret: '', loopStarted: false,
+                timers: { session: null, count: null, play: null, next: null }, history: [], feed: []
+            };
+            room.nextCode = code;
+        }
+        if (!nr.players.some(p => p.account === k)) nr.players.push(newPlayer(socket, name, nr.players.length === 0, old.stake));
+        socket.leave(room.code); socket.join(nr.code);
+        removePlayer(room, old);
+        if (rooms[room.code]) io.to(room.code).emit('rematch-info', rematchInfo(room)); // ceux qui regardent encore les résultats voient qui est parti sur la nouvelle room
+        socket.emit('rematch-go');
+        broadcast(nr);
     });
     socket.on('auth-logout', () => { socket.data.admin = false; A.logout(socket.data.token); socket.data.user = null; socket.data.token = null; });
 
@@ -549,7 +581,7 @@ io.on('connection', (socket) => {
                 name: p.name, vip: !!ADMIN_USER && String(p.name).toLowerCase() === ADMIN_USER,
                 initial: p.initialBalance, eq: equityOf(p), connected: p.connected !== false,
                 pts: (p.eqHist || []).slice(-400),
-                bets: (p.betLog || []).slice(0, 60).map(b => ({ id: b.id, game: b.game, icon: b.icon, name: b.name, bet: b.bet, mult: b.mult, win: b.win, net: b.net, status: b.status, ts: b.ts, queued: !!b.queued }))
+                bets: pubBets(p)
             }))
         });
     });
@@ -1368,7 +1400,9 @@ function endSession(room) {
         stats: p.stats
     })).sort((a, b) => b.netCents - a.netCents || b.finalBalance - a.finalBalance);
     room.endedAt = Date.now();
+    room.players.forEach(p => { const h = p.eqHist = p.eqHist || []; const last = h[h.length - 1]; if (last && Date.now() - last[0] < 700) last[1] = p.balance; else h.push([Date.now(), p.balance]); }); // dernier point de la courbe = solde final
     room.result = {
+        charts: { t: Date.now(), players: room.players.map(p => ({ name: p.name, vip: !!ADMIN_USER && String(p.name).toLowerCase() === ADMIN_USER, initial: p.initialBalance, eq: p.balance, connected: true, pts: (p.eqHist || []).slice(-400), bets: pubBets(p), stats: p.stats })) },
         leaderboard,
         pot: settled.potCents / 100,
         transfers: G.settleTransfers(leaderboard).map(t => ({ from: t.from, to: t.to, amount: t.cents / 100 }))
