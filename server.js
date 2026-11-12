@@ -588,7 +588,12 @@ io.on('connection', (socket) => {
     socket.on('prof-get', ({ name } = {}) => {
         if (!socket.data.user) return;
         const pr = A.profileOf(String(name || socket.data.user));
-        if (pr) socket.emit('prof-data', pr);
+        if (pr) socket.emit('prof-data', Object.assign(pr, { canReset: !!ADMIN_USER && String(socket.data.user).toLowerCase() === ADMIN_USER && A.key(pr.name) === ADMIN_USER }));
+    });
+    // Remise à zéro des stats du compte admin (réservé à ADMIN_USER, sur son propre profil)
+    socket.on('prof-reset', async () => {
+        if (!socket.data.user || !ADMIN_USER || String(socket.data.user).toLowerCase() !== ADMIN_USER) return;
+        if (await A.resetProfile(socket.data.user)) { socket.emit('prof-data', Object.assign(A.profileOf(socket.data.user), { canReset: true })); socket.emit('prof-reset-ok'); }
     });
     socket.on('gen-get', () => { if (socket.data.user) socket.emit('gen-data', { board: A.leaderboard(50), me: socket.data.user }); });
 
@@ -1576,7 +1581,7 @@ function endSession(room) {
         const ini = p.initialBalance || 1, pts = p.eqHist || [];
         const minPct = pts.reduce((m, q) => Math.min(m, (q[1] - ini) / ini * 100), 0);
         A.recordSession(p.account, {
-            pct: (p.balance - ini) / ini * 100, final: p.balance, initial: ini, profit: p.balance - ini, minPct,
+            pct: (p.balance - ini) / ini * 100, final: p.balance, initial: ini, profit: settled.rows[room.players.indexOf(p)].netCents, minPct,
             champ: room.players.length >= 2 && p.balance === bestBal && room.players.filter(x => x.balance === bestBal).length === 1,
             g: p.stats.gamesPlayed, w: p.stats.wins, bm: p.bestMult || 0, gp: [...(p.gamesSeen || [])], msgs: p.msgs || 0
         }, Object.keys(G.GAME_ICONS)).then(list => { if (list.length) io.to(p.id).emit('badges-new', list); }).catch(e => console.error('profil :', e.message));
