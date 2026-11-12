@@ -203,11 +203,30 @@ function publicRoom(room, full = false) {
     };
 }
 
+/* Fortune totale d'un joueur (solde + mises en jeu) et courbe dans le temps : alimente le panneau « Graphiques » */
+function equityOf(p) {
+    return p.balance + p.slots.reduce((a, x) => a + (x.cashed ? 0 : x.bet) + x.next, 0)
+        + (p.iceState && p.iceState.active ? p.iceState.bet : 0) + (p.jm && p.jm.active ? p.jm.bet : 0) + (p.cr && p.cr.active ? p.cr.bet : 0)
+        + (p.ar && p.ar.active ? p.ar.bet : 0) + (p.mn && p.mn.active ? p.mn.bet : 0) + (p.pkQ || []).reduce((a, b) => a + b.unit, 0)
+        + (p.rl ? p.rl.total : 0) + bjPending(p.bj);
+}
+function sampleEquity(room) {
+    const now = Date.now();
+    room.players.forEach(p => {
+        const h = p.eqHist = p.eqHist || [], e = equityOf(p), last = h[h.length - 1];
+        if (last && last[1] === e && now - last[0] < 15000) return;
+        if (last && now - last[0] < 700) { last[1] = e; return; } // trop rapproché : on met à jour le dernier point
+        h.push([now, e]);
+        if (h.length > 500) { const keep = [h[0]]; for (let i = 1; i < h.length - 1; i += 2) keep.push(h[i]); keep.push(h[h.length - 1]); p.eqHist = keep; }
+    });
+}
+
 // Les changements sont regroupés : au plus un "update-room" toutes les 60 ms par room (petit serveur = moins de CPU et de bande passante)
 function broadcast(room) {
     if (room._bt) return;
     room._bt = setTimeout(() => {
         room._bt = null;
+        sampleEquity(room);
         io.to(room.code).emit('update-room', publicRoom(room));
         checkAutoStop(room);
     }, 60);
@@ -224,15 +243,17 @@ function broadcast(room) {
 function feedAdd(room, entry) {
     if (!room.feed) room.feed = [];
     room.feed.unshift(entry);
-    if (room.feed.length > 40) room.feed.length = 40;
-    io.to(room.code).emit('bet-feed', room.feed.slice(0, 30));
+    if (room.feed.length > 80) room.feed.length = 80;
+    const pl = room.players.find(p => p.name === entry.name); // journal personnel (même objet : il suit les mises à jour de la ligne)
+    if (pl) { (pl.betLog = pl.betLog || []).unshift(entry); if (pl.betLog.length > 150) pl.betLog.length = 150; }
+    io.to(room.code).emit('bet-feed', room.feed.slice(0, 60));
 }
 function feedUpdate(room, id, patch) { // met à jour une ligne existante (ex. poulet qui avance, crash en vol)
     if (!room.feed) return;
     const it = room.feed.find(x => x.id === id);
     if (!it) return;
     Object.assign(it, patch);
-    io.to(room.code).emit('bet-feed', room.feed.slice(0, 30));
+    io.to(room.code).emit('bet-feed', room.feed.slice(0, 60));
 }
 const feedId = () => crypto.randomBytes(6).toString('hex');
 const crashRoom = room => room.code + ':crash';
@@ -318,6 +339,8 @@ function settlePending(room, player) { // règle les parties en cours d'un joueu
             player.slots.forEach(sl => {
                 if (sl.bet > 0 && !sl.cashed && sl.feedId) feedUpdate(room, sl.feedId, { status: 'lost', win: 0, net: -sl.bet });
                 sl.feedId = null;
+                if (sl.next > 0 && sl.nextFeedId) feedUpdate(room, sl.nextFeedId, { status: 'void', net: 0, queued: false });
+                sl.nextFeedId = null;
             });
 }
 
@@ -368,7 +391,7 @@ function resumeRoom(socket, name) {
         return true;
     }
     socket.emit('resumed', { room: publicRoom(room), started: room.status !== 'waiting' });
-    socket.emit('bet-feed', (room.feed || []).slice(0, 30));
+    socket.emit('bet-feed', (room.feed || []).slice(0, 60));
     broadcast(room);
     return true;
 }
@@ -475,7 +498,7 @@ io.on('connection', (socket) => {
 
         socket.emit('joined-success', publicRoom(room));
         // le nouveau joueur reçoit tout de suite le flux des paris en cours/récents du panneau latéral
-        socket.emit('bet-feed', (room.feed || []).slice(0, 30));
+        socket.emit('bet-feed', (room.feed || []).slice(0, 60));
         // si l'hôte a déjà ouvert le jeu, on envoie directement le nouveau joueur dessus
         if (room.status !== 'waiting') {
             socket.emit('navigate-to-game', { gameName: room.selectedGame, room: publicRoom(room) });
@@ -515,6 +538,22 @@ io.on('connection', (socket) => {
         else if (room.crashIdle) { room.crashIdle = false; room.runRound(); }
     });
 
+    // Panneau « Graphiques » : courbe de fortune + paris de chaque joueur de la room
+    socket.on('hist-get', ({ roomCode } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        if (!room || !player) return;
+        sampleEquity(room);
+        socket.emit('hist-data', {
+            t: Date.now(),
+            players: room.players.map(p => ({
+                name: p.name, vip: !!ADMIN_USER && String(p.name).toLowerCase() === ADMIN_USER,
+                initial: p.initialBalance, eq: equityOf(p), connected: p.connected !== false,
+                pts: (p.eqHist || []).slice(-400),
+                bets: (p.betLog || []).slice(0, 60).map(b => ({ id: b.id, game: b.game, icon: b.icon, name: b.name, bet: b.bet, mult: b.mult, win: b.win, net: b.net, status: b.status, ts: b.ts, queued: !!b.queued }))
+            }))
+        });
+    });
+
     socket.on('crash-leave', ({ roomCode } = {}) => {
         const { room, player } = findPlayer(socket, roomCode);
         if (!room || !player) return;
@@ -526,7 +565,11 @@ io.on('connection', (socket) => {
                 if (sl.feedId) feedUpdate(room, sl.feedId, { status: 'void', net: 0 });
                 sl.feedId = null;
             }
-            if (sl.next > 0) { player.balance += sl.next; sl.next = 0; sl.nextAuto = 0; }
+            if (sl.next > 0) {
+                player.balance += sl.next; sl.next = 0; sl.nextAuto = 0;
+                if (sl.nextFeedId) feedUpdate(room, sl.nextFeedId, { status: 'void', net: 0, queued: false });
+                sl.nextFeedId = null;
+            }
         });
         broadcast(room);
     });
@@ -555,13 +598,16 @@ io.on('connection', (socket) => {
             if (sl.bet > 0) return; // déjà misé : annuler avant de changer
             sl.bet = amount; sl.auto = auto; sl.cashed = false; sl.win = 0;
             // ligne "en vol" dans le panneau latéral : elle montera avec l'avion et sera réglée au crash ou au cash-out
-            if (!hasPending(room, player.name, 'crash')) {
+            if (!sl.feedId) {
                 sl.feedId = feedId();
                 feedAdd(room, stamp({ id: sl.feedId, game: 'crash', icon: GAME_ICONS.crash, name: player.name, bet: amount, mult: null, win: 0, net: -amount, status: 'pending' }));
             }
         } else if (room.status === 'playing' || room.status === 'crashed') {
             if (sl.next > 0) return;
             sl.next = amount; sl.nextAuto = auto;
+            // mise « pour la manche suivante » : elle apparaît aussi dans l'historique (⏳ manche suivante)
+            sl.nextFeedId = feedId();
+            feedAdd(room, stamp({ id: sl.nextFeedId, game: 'crash', icon: GAME_ICONS.crash, name: player.name, bet: amount, mult: null, win: 0, net: -amount, status: 'pending', queued: true }));
         } else return;
 
         player.balance -= amount;
@@ -577,7 +623,11 @@ io.on('connection', (socket) => {
             if (sl.feedId) feedUpdate(room, sl.feedId, { status: 'void', net: 0 }); // ligne retirée du flux (bascule ci-dessous)
             sl.feedId = null;
         }
-        else if ((room.status === 'playing' || room.status === 'crashed') && sl.next > 0) { player.balance += sl.next; sl.next = 0; sl.nextAuto = 0; }
+        else if ((room.status === 'playing' || room.status === 'crashed') && sl.next > 0) {
+            player.balance += sl.next; sl.next = 0; sl.nextAuto = 0;
+            if (sl.nextFeedId) feedUpdate(room, sl.nextFeedId, { status: 'void', net: 0, queued: false });
+            sl.nextFeedId = null;
+        }
         broadcast(room);
     });
 
@@ -1283,6 +1333,9 @@ function endSession(room) {
     // on rembourse les mises en cours pour que la fin de session soit équitable
     room.players.forEach(p => p.slots.forEach(sl => {
         if (sl.bet > 0 && !sl.cashed) p.balance += sl.bet;
+        if (sl.bet > 0 && !sl.cashed && sl.feedId) feedUpdate(room, sl.feedId, { status: 'void', net: 0, queued: false });
+        if (sl.next > 0 && sl.nextFeedId) feedUpdate(room, sl.nextFeedId, { status: 'void', net: 0, queued: false });
+        sl.feedId = null; sl.nextFeedId = null;
         sl.bet = 0;
         p.balance += sl.next;
         sl.next = 0;
@@ -1342,6 +1395,8 @@ function startCrashLoop(room) {
         room.players.forEach(p => p.slots.forEach(sl => {
             sl.bet = sl.next; sl.auto = sl.next > 0 ? sl.nextAuto : 0;
             sl.next = 0; sl.nextAuto = 0; sl.cashed = false; sl.win = 0;
+            sl.feedId = sl.nextFeedId || null; sl.nextFeedId = null; // la ligne « manche suivante » devient la ligne « en vol »
+            if (sl.feedId) { const it = room.feed && room.feed.find(x => x.id === sl.feedId); if (it) it.queued = false; }
         }));
 
         let countdown = 5;
