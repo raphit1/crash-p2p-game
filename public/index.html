@@ -199,6 +199,7 @@ ul{padding-left:20px;text-align:left}
 .adm-ctl input{width:120px;text-align:center;font-weight:700}
 .adm-q{margin:0;padding:9px 12px;font-size:14px;width:auto;border-radius:8px;background:#312e81;box-shadow:none;min-width:44px}
 .adm-q.ok{background:#15803d}.adm-q.dbl{background:#7c3aed}
+.daria-name{color:#ffc9dc;font-weight:900;letter-spacing:.3px;text-shadow:0 0 6px rgba(255,182,213,.65),0 0 14px rgba(255,160,200,.35)}
 .adm-name{color:#ff2a3f!important;font-weight:900;letter-spacing:.3px;text-shadow:0 0 2px #000,0 0 6px #ff1030,0 0 14px #e0001a,0 0 26px rgba(120,0,15,.9);animation:admGlow 2.2s ease-in-out infinite alternate}
 @keyframes admGlow{from{text-shadow:0 0 2px #000,0 0 5px #ff1030,0 0 10px #c0001a,0 0 18px rgba(90,0,10,.8)}to{text-shadow:0 0 2px #000,0 0 9px #ff3a52,0 0 20px #ff0022,0 0 34px rgba(140,0,20,1)}}
 .adm-r{position:relative;display:inline-block}.adm-r i{position:absolute;left:-5px;top:-.6em;font-size:.75em;font-style:normal;transform:rotate(-22deg);text-shadow:none;filter:drop-shadow(0 0 4px #ffb800);pointer-events:none;animation:none}
@@ -870,7 +871,7 @@ const socket = io({ transports: ['websocket', 'polling'] }); // websocket direct
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // Pseudo du créateur : rouge néon + couronne sur la 1re lettre, visible par TOUT LE MONDE (seul le panneau admin est privé)
-const nm = n => { const e = esc(n); if (!n || !((S.isAdmin && n === S.myName) || (S.vip && S.vip.has(n)))) return e; return `<span class="adm-name"><span class="adm-r">${esc(n[0])}<i>👑</i></span>${esc(n.slice(1))}</span>`; };
+const nm = n => { if (n && String(n).trim().toLowerCase() === 'dario') return '<span class="daria-name">daria</span> 👀'; const e = esc(n); if (!n || !((S.isAdmin && n === S.myName) || (S.vip && S.vip.has(n)))) return e; return `<span class="adm-name"><span class="adm-r">${esc(n[0])}<i>👑</i></span>${esc(n.slice(1))}</span>`; };
 const show = (id, on = true) => $(id).classList.toggle('hidden', !on);
 
 /* ---------- État ---------- */
@@ -1389,7 +1390,7 @@ function authSubmit(mode) {
 function logout() { socket.emit('auth-logout'); setTok(null); location.reload(); }
 socket.on('auth-ok', d => {
   S.myName = d.name; setTok(d.token);
-  S.admCodeMode = !!d.adminCode; $('whoami').textContent = d.name; $('authPass').value = ''; if (S.isAdmin) $('whoami').innerHTML = nm(d.name);
+  S.admCodeMode = !!d.adminCode; $('whoami').innerHTML = nm(d.name); $('authPass').value = ''; if (S.isAdmin) $('whoami').innerHTML = nm(d.name);
   if (!S.code) { show('loginCard', false); show('roomCards'); }
 });
 socket.on('auth-error', m => alert(m));
