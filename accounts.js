@@ -140,7 +140,7 @@ function logout(token) { if (db.sessions[sha(String(token || ''))]) { delete db.
 /*  écrit UNE fois par fin de session → très peu de place et de commandes Upstash.       */
 /* ------------------------------------------------------------------ */
 const clampPct = x => Math.max(-100, Math.min(1e6, Number(x) || 0));
-const newProf = () => ({ n: 0, sp: 0, best: null, worst: null, c1: 0, g: 0, w: 0, tp: 0, bm: 0, msg: 0, gp: [], bd: [], last: [] });
+const newProf = () => ({ n: 0, sp: 0, best: null, worst: null, c1: 0, g: 0, w: 0, tp: 0, tg: 0, tl: 0, bm: 0, msg: 0, gp: [], bd: [], last: [], ls: [] });
 async function recordSession(k, sess, allGames) {
     await ready; const u = db.users[k]; if (!u || !storageOk) return [];
     const p = u.prof = Object.assign(newProf(), u.prof || {});
@@ -148,10 +148,11 @@ async function recordSession(k, sess, allGames) {
     p.n++; p.sp = Math.round((p.sp + pct) * 100) / 100;
     p.best = p.best == null ? pct : Math.max(p.best, pct); p.worst = p.worst == null ? pct : Math.min(p.worst, pct);
     if (sess.champ) p.c1++;
-    p.g += sess.g | 0; p.w += sess.w | 0; p.tp += Math.round(sess.profit) || 0; p.msg += sess.msgs | 0;
+    p.g += sess.g | 0; p.w += sess.w | 0; p.tp += Math.round(sess.profit) || 0; { const pf = Math.round(sess.profit) || 0; if (pf > 0) p.tg = (p.tg || 0) + pf; else p.tl = (p.tl || 0) - pf; } p.msg += sess.msgs | 0;
     p.bm = Math.max(p.bm, Math.min(1e9, sess.bm || 0));
     (sess.gp || []).forEach(g => { if (!p.gp.includes(g)) p.gp.push(g); });
     p.last.push(Math.round(pct * 10) / 10); if (p.last.length > 12) p.last.shift();
+    p.ls.push([Date.now(), Math.round(pct * 10) / 10, Math.round(sess.profit) || 0, sess.g | 0, sess.champ ? 1 : 0]); if (p.ls.length > 12) p.ls.shift();
     const fresh = BADGES.filter(b => !p.bd.includes(b.id) && b.test(p, Object.assign({}, sess, { pct }), allGames || []));
     fresh.forEach(b => p.bd.push(b.id));
     save();
@@ -160,12 +161,12 @@ async function recordSession(k, sess, allGames) {
 function profileOf(name) {
     const u = db.users[key(name)]; if (!u) return null;
     const p = Object.assign(newProf(), u.prof || {});
-    return { name: u.name, since: u.created, n: p.n, avg: p.n ? p.sp / p.n : 0, best: p.best, worst: p.worst, c1: p.c1, g: p.g, w: p.w, tp: p.tp, bm: p.bm, msg: p.msg, last: p.last,
+    return { name: u.name, since: u.created, n: p.n, avg: p.n ? p.sp / p.n : 0, best: p.best, worst: p.worst, c1: p.c1, g: p.g, w: p.w, tp: p.tp, tg: p.tg, tl: p.tl, bm: p.bm, msg: p.msg, last: p.last, ls: p.ls,
         badges: BADGES.map(b => ({ id: b.id, e: b.e, n: b.n, d: b.d, got: p.bd.includes(b.id) })) };
 }
 function leaderboard(limit = 50) {
     return Object.values(db.users).filter(u => u.prof && u.prof.n > 0)
-        .map(u => ({ name: u.name, avg: u.prof.sp / u.prof.n, n: u.prof.n, best: u.prof.best, tp: u.prof.tp, badges: (u.prof.bd || []).length }))
+        .map(u => ({ name: u.name, avg: u.prof.sp / u.prof.n, n: u.prof.n, best: u.prof.best, tp: u.prof.tp, tg: u.prof.tg || 0, tl: u.prof.tl || 0, badges: (u.prof.bd || []).length }))
         .sort((a, b) => b.avg - a.avg).slice(0, limit);
 }
 
