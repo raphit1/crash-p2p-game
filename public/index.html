@@ -296,7 +296,7 @@ ul{padding-left:20px;text-align:left}
 .feed-chev{color:#d4a24c;font-size:12px;transition:transform .25s}
 #feedPanel.collapsed .feed-chev{transform:rotate(-90deg)}
 .feed-stats{font-size:10px;color:#9a90ad;padding:6px 12px 0;display:flex;justify-content:space-between}
-#feedList{max-height:min(46vh,380px);overflow-y:auto;padding:6px 8px 10px;scrollbar-width:thin;scrollbar-color:#3b2a52 transparent}
+#feedList{max-height:min(52vh,460px);overflow-y:auto;padding:6px 8px 10px;scrollbar-width:thin;scrollbar-color:#3b2a52 transparent}
 #feedList::-webkit-scrollbar{width:5px}#feedList::-webkit-scrollbar-thumb{background:#3b2a52;border-radius:99px}
 #feedPanel.collapsed #feedList,#feedPanel.collapsed .feed-stats{display:none}
 .feed-row{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:9px;margin-top:5px;background:rgba(255,255,255,.035);border-left:3px solid #4a3f5c;animation:feedIn .3s ease both}
@@ -312,6 +312,26 @@ ul{padding-left:20px;text-align:left}
 .feed-mult{font-size:10px;color:#cdbf9f;font-weight:700}
 .feed-empty{font-size:11px;color:#7d7494;text-align:center;padding:14px 6px}
 @media (max-width:1120px){#feedPanel{top:auto;bottom:10px;left:50%;right:auto;transform:translateX(-50%);width:min(420px,calc(100vw - 20px))}}
+/* ---- Panneau gauche : graphiques des joueurs ---- */
+#chartTab{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:940;width:38px;height:54px;border:1px solid rgba(212,162,76,.5);border-left:none;border-radius:0 14px 14px 0;background:linear-gradient(165deg,rgba(40,24,58,.96),rgba(18,11,28,.96));color:#f0dcae;font-size:20px;cursor:pointer;padding:0;margin:0;box-shadow:6px 6px 22px rgba(0,0,0,.55);transition:left .3s cubic-bezier(.3,1,.4,1),background .2s;display:flex;align-items:center;justify-content:center}
+#chartTab:hover{background:linear-gradient(165deg,rgba(70,40,95,.98),rgba(30,18,46,.98))}
+#chartTab.open{left:min(372px,calc(100vw - 38px))}
+#chartPanel{position:fixed;left:0;top:64px;bottom:12px;width:min(372px,calc(100vw - 38px));z-index:935;transform:translateX(-104%);transition:transform .3s cubic-bezier(.3,1,.4,1);display:flex;flex-direction:column;background:linear-gradient(165deg,rgba(30,18,42,.97),rgba(14,9,22,.98));border:1px solid rgba(212,162,76,.35);border-left:none;border-radius:0 16px 16px 0;box-shadow:12px 0 44px rgba(0,0,0,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+#chartPanel.open{transform:none}
+.ch-head{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid rgba(212,162,76,.18);font-size:14px;font-weight:900;color:#f0dcae;letter-spacing:.4px}
+.ch-head .ch-back{width:auto;margin:0;padding:4px 10px;font-size:12px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#f0dcae;cursor:pointer}
+#chartBody{flex:1;overflow-y:auto;padding:10px 12px 14px;scrollbar-width:thin;scrollbar-color:#3b2a52 transparent}
+.ch-svg{width:100%;height:auto;display:block;background:rgba(0,0,0,.25);border-radius:12px;border:1px solid rgba(255,255,255,.06)}
+.ch-note{font-size:10px;color:#8b819f;text-align:center;margin:4px 0 8px}
+.ch-pl{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:10px;margin-top:6px;background:rgba(255,255,255,.04);cursor:pointer;border:1px solid transparent;transition:background .15s,border-color .15s;font-size:13px}
+.ch-pl:hover{background:rgba(255,255,255,.09);border-color:rgba(212,162,76,.45)}
+.ch-pl i{width:11px;height:11px;border-radius:50%;flex:none;font-style:normal}
+.ch-pl .n{flex:1;min-width:0;font-weight:800;color:#efe6ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch-pl .v{text-align:right;line-height:1.2;font-weight:800}.ch-pl .v small{display:block;font-size:10px;color:#9a90ad;font-weight:600}
+.ch-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}
+.ch-tile{background:rgba(255,255,255,.05);border-radius:10px;padding:7px 6px;text-align:center}
+.ch-tile b{display:block;font-size:14px;color:#fff}.ch-tile span{font-size:9.5px;color:#9a90ad;text-transform:uppercase;letter-spacing:.4px}
+.ch-sub{font-size:11px;font-weight:900;color:#d4a24c;letter-spacing:.6px;margin:12px 0 2px;text-transform:uppercase}
 </style>
 </head>
 <body>
@@ -631,6 +651,7 @@ ul{padding-left:20px;text-align:left}
             <button id="pkStartBtn" onclick="pkStart()">Lâcher les billes 🔴</button>
             <div class="history-bar" id="pkHist" style="margin-top: 10px;"></div>
             <div id="pkProof" style="font-size:11px;color:#7c8aa5;word-break:break-all;margin-top:8px"></div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
         </div>
         <div id="mn-screen" class="hidden">
             <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
@@ -662,6 +683,7 @@ ul{padding-left:20px;text-align:left}
             <button id="mnStartBtn" onclick="mnStart()">Lancer la partie 💣</button>
             <button id="mnCashBtn" class="btn-cashout hidden" onclick="mnCash()">ENCAISSER</button>
             <div id="mnProof" style="font-size:11px;color:#7c8aa5;word-break:break-all;margin-top:8px"></div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
         </div>
         <div id="cr-screen" class="hidden">
             <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
@@ -853,6 +875,8 @@ ul{padding-left:20px;text-align:left}
     <button id="admGear" onclick="admToggle()" aria-label="zone secrète">⚙️</button>
 <div id="admPanel"><div id="admLock"><div style="margin-bottom:6px">🔒 Zone secrète</div><input type="password" id="admCode" placeholder="Code" autocomplete="off" onkeydown="if(event.key==='Enter')admUnlock()"><div id="admErr" style="color:#f87171;margin-top:4px"></div></div><div id="admBody" style="display:none"></div></div>
 <div id="roomChip" onclick="copyRoomCode()" title="Clique pour copier le code">🔑 Code de la room <b id="roomChipCode">----</b></div>
+<button id="chartTab" class="hidden" onclick="chartToggle()" aria-label="Graphiques des joueurs" title="Graphiques des joueurs">📈</button>
+<div id="chartPanel" aria-hidden="true"><div class="ch-head"><button class="ch-back hidden" id="chBack" onclick="chartBack()">← Retour</button><span id="chTitle">📈 Graphiques</span></div><div id="chartBody"><div class="feed-empty">Chargement…</div></div></div>
 <div id="feedPanel" class="hidden">
         <div class="feed-head" onclick="toggleFeed()">
             <span class="feed-title"><span class="live-dot"></span>📡 Paris en direct</span>
@@ -1192,7 +1216,7 @@ function sync(room) {
 
 // Classement commun : trié sur le % de gain vs argent de départ (fortune = solde + mises en jeu, pour qu'il ne saute pas à chaque mise)
 function renderRank(room) {
-  const eq = p => p.balance + p.slots.reduce((a, x) => a + x.bet + x.next, 0) + (p.iceState && p.iceState.active ? p.iceState.bet : 0) + (p.jm && p.jm.active ? p.jm.bet : 0) + (p.cr && p.cr.active ? p.cr.bet : 0) + (p.ar && p.ar.active ? p.ar.bet : 0) + (p.mn && p.mn.active ? p.mn.bet : 0) + (p.pk && p.pk.active ? p.pk.bet : 0) + extraEq(p); // mises en cours sur tous les jeux : le classement ne saute pas à chaque pari
+  const eq = p => p.balance + p.slots.reduce((a, x) => a + (x.cashed ? 0 : x.bet) + x.next, 0) + (p.iceState && p.iceState.active ? p.iceState.bet : 0) + (p.jm && p.jm.active ? p.jm.bet : 0) + (p.cr && p.cr.active ? p.cr.bet : 0) + (p.ar && p.ar.active ? p.ar.bet : 0) + (p.mn && p.mn.active ? p.mn.bet : 0) + (p.pk && p.pk.active ? p.pk.bet : 0) + extraEq(p); // mises en cours sur tous les jeux : le classement ne saute pas à chaque pari
   const pct = p => { const st = p.initialBalance || 1000; return (eq(p) - st) / st * 100; };
   const fmtPct = v => { const a = Math.abs(v); const t = a >= 100000 ? new Intl.NumberFormat('fr-FR', { notation: 'compact', maximumFractionDigits: 1 }).format(v) : v.toLocaleString('fr-FR', { maximumFractionDigits: a >= 100 ? 0 : 1 }); return (v >= 0 ? '+' : '') + t + ' %'; };
   const rows = [...room.players].sort((a, b) => pct(b) - pct(a));
@@ -2774,7 +2798,7 @@ function renderStopBar(room) {
 function voteStop() { socket.emit('vote-stop', { roomCode: S.code, vote: !S.iVoted }); }
 socket.on('stop-notice', d => { S.stopMsg = d.message; $('stopMsg').textContent = d.message; clearTimeout(S.stopMsgT); S.stopMsgT = setTimeout(() => { S.stopMsg = ''; }, 3200); });
 
-Object.assign(window, { pkStart, admToggle, admUnlock, mnStart, mnCash, copyRoomCode, voteStop, setStake, onStakeInput, leaveRoom, authSubmit, logout, createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash, arStart, arThrow, rlSpin, rlClear, rlRepeat, bjDeal, bjHit, bjStand, bjDouble, bjSplit, bjInsurance, rlUndo, toggleFeed });
+Object.assign(window, { pkStart, admToggle, admUnlock, mnStart, mnCash, copyRoomCode, voteStop, setStake, onStakeInput, leaveRoom, authSubmit, logout, createRoom, joinRoom, launchGame, switchGame, returnToHub, openHistoryModal, closeHistoryModal, toggleMusic, startIcefieldGame, cashoutIcefield, onColsChange, startJm, crStart, crGo, crCash, arStart, arThrow, rlSpin, rlClear, rlRepeat, bjDeal, bjHit, bjStand, bjDouble, bjSplit, bjInsurance, rlUndo, toggleFeed, chartToggle, chartBack });
 
 /* ============================================================
    PANNEAU LATÉRAL « 📡 PARIS EN DIRECT » (feed) — flux temps réel
@@ -2802,7 +2826,7 @@ function fmtN(v) { return Number(v).toLocaleString('fr-FR'); }
 function feedRowHtml(r) {
   const cls = (r.status === 'won' || r.status === 'win') ? 'win' : r.status === 'push' ? 'push' : r.status === 'pending' ? 'pending' : 'loss';
   let netTxt, netCls;
-  if (r.status === 'pending') { netTxt = '⏳ en cours'; netCls = 'pend'; }
+  if (r.status === 'pending') { netTxt = r.queued ? '⏳ manche suivante' : '⏳ en cours'; netCls = 'pend'; }
   else if (r.status === 'void') { netTxt = 'annulé'; netCls = 'zero'; }
   else if (r.net > 0) { netTxt = '+' + fmtN(r.net) + ' 🪙'; netCls = 'pos'; }
   else if (r.net < 0) { netTxt = '−' + fmtN(-r.net) + ' 🪙'; netCls = 'neg'; }
@@ -2821,7 +2845,7 @@ function feedRender() {
   if (!list) return;
   if (!feedRows.length) { list.innerHTML = '<div class="feed-empty">Aucun pari pour l\u0027instant…</div>'; }
   else {
-    const vis = feedRows.slice(0, 14);
+    const vis = feedRows.slice(0, 40);
     const top = list.scrollTop;
     list.innerHTML = vis.map(feedRowHtml).join('');
     if (top > 4) list.scrollTop = top; // ne pas remonter si l'utilisateur a scrollé
@@ -2832,7 +2856,85 @@ function feedRender() {
   $('feedCount').textContent = `${feedRows.length} pari${feedRows.length > 1 ? 's' : ''}${pend ? ' · ' + pend + ' ⏳' : ''} · ${wins} gagnant${wins > 1 ? 's' : ''}`;
   $('feedVol').textContent = 'volume : ' + fmtN(vol) + ' 🪙';
 }
-socket.on('bet-feed', rows => { feedRows = Array.isArray(rows) ? rows : []; $('feedPanel').classList.remove('hidden'); feedRender(); });
+socket.on('bet-feed', rows => { feedRows = Array.isArray(rows) ? rows : []; $('feedPanel').classList.remove('hidden'); $('chartTab').classList.remove('hidden'); feedRender(); });
+/* ============================================================
+   PANNEAU GAUCHE « 📈 Graphiques » : courbe de fortune de chaque joueur (en %
+   par rapport à l'argent de départ), clic sur un joueur = son graphique + ses paris.
+   Le serveur garde la courbe ('hist-get' -> 'hist-data') ; rafraîchi toutes les 3 s tant que le panneau est ouvert.
+   ============================================================ */
+const CH_COLORS = ['#5cc8ff', '#ffb347', '#7cffb2', '#ff6fae', '#c4a1ff', '#ffe14a', '#ff7a5c', '#4ade80', '#38bdf8', '#f472b6'];
+let chOpen = false, chData = null, chSel = null, chTimer = 0;
+const pctOf = (eq, ini) => ini ? (eq - ini) / ini * 100 : 0;
+function fmtPctG(v) { const a = Math.abs(v); const t = a >= 100000 ? new Intl.NumberFormat('fr-FR', { notation: 'compact', maximumFractionDigits: 1 }).format(v) : v.toLocaleString('fr-FR', { maximumFractionDigits: a >= 100 ? 0 : 1 }); return (v >= 0 ? '+' : '') + t + ' %'; }
+function chColor(pl, i) { if (pl.vip) return '#ff2a3f'; if (String(pl.name).trim().toLowerCase() === 'dario') return '#ffc9dc'; return CH_COLORS[i % CH_COLORS.length]; }
+function chSeries(pl, now) { const pts = (pl.pts || []).map(q => [q[0], pctOf(q[1], pl.initial)]); if (!pts.length) pts.push([now - 1000, 0]); pts.push([now, pctOf(pl.eq, pl.initial)]); return pts; }
+function chSvg(series, single) {
+  const W = 340, H = 200, L = 46, R = 12, T = 12, B = 24;
+  let t0 = Infinity, t1 = -Infinity, ymin = 0, ymax = 0;
+  series.forEach(s => s.pts.forEach(([t, y]) => { t0 = Math.min(t0, t); t1 = Math.max(t1, t); ymin = Math.min(ymin, y); ymax = Math.max(ymax, y); }));
+  if (!(t1 > t0)) t1 = t0 + 1000;
+  const log = Math.max(Math.abs(ymin), Math.abs(ymax)) > 3000;
+  const f = y => log ? Math.sign(y) * Math.log10(1 + Math.abs(y)) : y;
+  let lo = f(ymin), hi = f(ymax); if (hi - lo < 1e-9) { hi += 1; lo -= 1; }
+  const pad = (hi - lo) * .08; lo -= pad; hi += pad;
+  const X = t => L + (t - t0) / (t1 - t0) * (W - L - R), Y = y => T + (1 - (f(y) - lo) / (hi - lo)) * (H - T - B);
+  let g = '';
+  for (let i = 0; i <= 4; i++) {
+    const v = lo + (hi - lo) * i / 4, yy = T + (1 - i / 4) * (H - T - B);
+    const real = log ? Math.sign(v) * (Math.pow(10, Math.abs(v)) - 1) : v;
+    g += `<line x1="${L}" x2="${W - R}" y1="${yy.toFixed(1)}" y2="${yy.toFixed(1)}" stroke="#ffffff" stroke-opacity=".07"/><text x="${L - 5}" y="${(yy + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="#9a90ad">${esc(fmtPctG(Math.round(real * 10) / 10).replace(' %', '%'))}</text>`;
+  }
+  const y0 = Y(0); g += `<line x1="${L}" x2="${W - R}" y1="${y0.toFixed(1)}" y2="${y0.toFixed(1)}" stroke="#d4a24c" stroke-opacity=".55" stroke-dasharray="4 4"/>`;
+  const dur = Math.max(1, Math.round((t1 - t0) / 1000)), dtxt = dur < 90 ? dur + ' s' : dur < 5400 ? Math.round(dur / 60) + ' min' : (dur / 3600).toFixed(1) + ' h';
+  g += `<text x="${L}" y="${H - 7}" font-size="9" fill="#9a90ad">il y a ${dtxt}</text><text x="${W - R}" y="${H - 7}" font-size="9" fill="#9a90ad" text-anchor="end">maintenant</text>`;
+  series.forEach(s => {
+    const d = s.pts.map(([t, y], i) => (i ? 'L' : 'M') + X(t).toFixed(1) + ' ' + Y(y).toFixed(1)).join(' ');
+    if (single) {
+      const last = s.pts[s.pts.length - 1], up = last[1] >= 0, col = up ? '#4ade80' : '#f87171';
+      g += `<path d="${d} L${X(last[0]).toFixed(1)} ${y0.toFixed(1)} L${X(s.pts[0][0]).toFixed(1)} ${y0.toFixed(1)}Z" fill="${col}" fill-opacity=".14"/><path d="${d}" fill="none" stroke="${col}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${X(last[0]).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="3.6" fill="${col}"/>`;
+    } else {
+      const last = s.pts[s.pts.length - 1];
+      g += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${X(last[0]).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="3.2" fill="${s.color}"/>`;
+    }
+  });
+  return `<svg class="ch-svg" viewBox="0 0 ${W} ${H}" role="img">${g}</svg>${log ? '<div class="ch-note">échelle logarithmique (écarts énormes)</div>' : ''}`;
+}
+function chRender() {
+  const body = $('chartBody'); if (!body) return;
+  if (!chData || !chData.players.length) { body.innerHTML = '<div class="feed-empty">Pas encore de données…</div>'; return; }
+  const now = chData.t, top = body.scrollTop, pls = chData.players;
+  const sel = chSel ? pls.find(p => p.name === chSel) : null;
+  if (chSel && !sel) chSel = null;
+  $('chBack').classList.toggle('hidden', !sel);
+  let h;
+  if (!sel) {
+    $('chTitle').textContent = '📈 Graphiques des joueurs';
+    const ser = pls.map((p, i) => ({ name: p.name, color: chColor(p, i), pts: chSeries(p, now) }));
+    h = chSvg(ser, false) + '<div class="ch-sub">Joueurs — clique pour voir le détail</div>';
+    h += pls.map((p, i) => ({ p, i, pc: pctOf(p.eq, p.initial) })).sort((a, b) => b.pc - a.pc).map(({ p, i, pc }) =>
+      `<div class="ch-pl" data-n="${esc(p.name)}"><i style="background:${chColor(p, i)};box-shadow:0 0 8px ${chColor(p, i)}"></i><span class="n">${nm(p.name)}${p.connected ? '' : ' 💤'}</span><span class="v"><span class="${pc >= 0 ? 'text-green' : 'text-red'}">${fmtPctG(pc)}</span><small>${fmtN(p.eq)} 🪙</small></span></div>`).join('');
+  } else {
+    const i = pls.indexOf(sel), pc = pctOf(sel.eq, sel.initial), ser = chSeries(sel, now);
+    const ys = ser.map(q => q[1]), best = Math.max(...ys), worst = Math.min(...ys);
+    $('chTitle').innerHTML = nm(sel.name);
+    h = chSvg([{ name: sel.name, color: chColor(sel, i), pts: ser }], true);
+    h += `<div class="ch-tiles"><div class="ch-tile"><b>${fmtN(sel.eq)} 🪙</b><span>Fortune</span></div><div class="ch-tile"><b class="${pc >= 0 ? 'text-green' : 'text-red'}">${fmtPctG(pc)}</b><span>Évolution</span></div><div class="ch-tile"><b>${fmtN(sel.initial)} 🪙</b><span>Départ</span></div><div class="ch-tile"><b class="text-green">${fmtPctG(best)}</b><span>Pic</span></div><div class="ch-tile"><b class="text-red">${fmtPctG(worst)}</b><span>Plus bas</span></div><div class="ch-tile"><b>${sel.bets.length}</b><span>Paris</span></div></div>`;
+    h += '<div class="ch-sub">Ses paris (récents en premier)</div>' + (sel.bets.length ? sel.bets.map(feedRowHtml).join('') : '<div class="feed-empty">Aucun pari pour l\u0027instant…</div>');
+  }
+  body.innerHTML = h; body.scrollTop = top;
+}
+function chFetch() { if (S.code) socket.emit('hist-get', { roomCode: S.code }); }
+function chartToggle() {
+  chOpen = !chOpen;
+  $('chartPanel').classList.toggle('open', chOpen); $('chartTab').classList.toggle('open', chOpen);
+  $('chartPanel').setAttribute('aria-hidden', chOpen ? 'false' : 'true'); $('chartTab').textContent = chOpen ? '✕' : '📈';
+  clearInterval(chTimer);
+  if (chOpen) { chFetch(); chTimer = setInterval(chFetch, 3000); }
+}
+function chartBack() { chSel = null; chRender(); }
+$('chartBody').addEventListener('click', e => { const r = e.target.closest('.ch-pl'); if (r) { chSel = r.dataset.n; $('chartBody').scrollTop = 0; chRender(); } });
+socket.on('hist-data', d => { chData = d; if (chOpen) chRender(); });
+
 setInterval(() => { if (!$('feedPanel').classList.contains('hidden')) feedRender(); }, 5000); // rafraîchit les « il y a Xs »
 })();
 </script>
