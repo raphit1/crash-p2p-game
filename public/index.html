@@ -3354,6 +3354,7 @@ function genRender() {
       const got = p.badges.filter(x => x.got).length, mx = Math.max(10, ...p.last.map(Math.abs));
       h += `<div style="font-size:18px;font-weight:900;margin:2px 0 2px">${nm(p.name)}</div><div class="ch-note" style="text-align:left">Membre depuis le ${new Date(p.since).toLocaleDateString('fr-FR')}</div>`;
       h += `<div class="ch-tiles"><div class="ch-tile"><b>${p.n}</b><span>Sessions</span></div><div class="ch-tile"><b class="${p.avg >= 0 ? 'text-green' : 'text-red'}">${p.n ? fmtPctG(p.avg) : '—'}</b><span>Moyenne</span></div><div class="ch-tile"><b>${p.c1}</b><span>Victoires 🏆</span></div><div class="ch-tile"><b class="text-green">${p.best == null ? '—' : fmtPctG(p.best)}</b><span>Meilleure</span></div><div class="ch-tile"><b class="text-red">${p.worst == null ? '—' : fmtPctG(p.worst)}</b><span>Pire</span></div><div class="ch-tile"><b>${p.bm ? xf(p.bm) : '—'}</b><span>Record mult.</span></div><div class="ch-tile"><b>${fmtN(p.g)}</b><span>Parties</span></div><div class="ch-tile"><b class="${p.tp >= 0 ? 'text-green' : 'text-red'}">${p.tp >= 0 ? '+' : '−'}${eur(Math.abs(p.tp) / 100)}</b><span>Gain net 💶</span></div><div class="ch-tile"><b>${fmtN(p.msg)}</b><span>Messages</span></div></div>`;
+      if (p.canReset) h += `<div class="gn-top"><button data-act="reset" style="border-color:#f87171;color:#f87171">🗑️ Remettre mes stats à zéro (admin)</button></div>`;
       const ls = (p.ls && p.ls.length) ? p.ls : p.last.map(v => [0, v, 0, 0, 0]);
       if (ls.length) {
         const mxs = Math.max(10, ...ls.map(r => Math.abs(r[1])));
@@ -3371,11 +3372,12 @@ function genRender() {
 }
 $('genBody').addEventListener('click', e => {
   const a = e.target.closest('[data-act]');
-  if (a) { const t = a.dataset.act; if (t === 'm-pct' || t === 'm-net' || t === 'm-loss') { genMode = t.slice(2); genRender(); } else if (t === 'back') { genView = 'board'; genOpen(); } else if (t === 'refresh') genOpen(); else if (t === 'me') { genView = S.myName; genProf = null; genOpen(); } return; }
+  if (a) { const t = a.dataset.act; if (t === 'm-pct' || t === 'm-net' || t === 'm-loss') { genMode = t.slice(2); genRender(); } else if (t === 'back') { genView = 'board'; genOpen(); } else if (t === 'reset') { if (confirm('Remettre à zéro tes stats, ton classement et tes badges ? Impossible d’annuler.')) socket.emit('prof-reset'); } else if (t === 'refresh') genOpen(); else if (t === 'me') { genView = S.myName; genProf = null; genOpen(); } return; }
   const c = e.target.closest('.pf-col'); if (c) { genSel = genSel === +c.dataset.s ? -1 : +c.dataset.s; genRender(); return; }
   const r = e.target.closest('.gn-row'); if (r) { genView = r.dataset.n; genProf = null; genSel = -1; $('genBody').scrollTop = 0; genOpen(); }
 });
 socket.on('gen-data', d => { genBoard = d; if (chOpen && sideTab === 'gen') genRender(); });
+socket.on('prof-reset-ok', () => { genSel = -1; socket.emit('gen-get'); });
 socket.on('prof-data', d => { genProf = d; if (chOpen && sideTab === 'gen') genRender(); });
 function badgeToast(list) {
   const t = $('bdToast'); t.innerHTML = '<b>🏅 Badge' + (list.length > 1 ? 's' : '') + ' débloqué' + (list.length > 1 ? 's' : '') + ' !</b>' + list.map(x => `<div style="font-size:15px;margin-top:3px">${x.e} <b style="display:inline;font-size:15px;color:#fff;text-transform:none">${esc(x.n)}</b><div style="font-size:11px;color:#cdbf9f">${esc(x.d)}</div></div>`).join('');
