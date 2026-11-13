@@ -18,7 +18,8 @@ const FR_PAL = [
   { ring: ['#240b48', '#d8c4ff', '#7a3be0', '#33106a', '#eadcff'], hi: '#f1e6ff', dk: '#14052b', gl: 'rgba(160,90,255,.8)', b: ['#e6d6ff', '#8a4de8'] },
   { ring: ['#6e4200', '#fff3b0', '#f5b301', '#9a5a00', '#ffe58a'], hi: '#fffbe0', dk: '#4a2a00', gl: 'rgba(255,200,40,.95)', b: ['#fff3b0', '#f0a800'] },
   { ring: ['#07021f', '#7a4bde', '#160850', '#a47cff', '#0a0330'], hi: '#c9a6ff', dk: '#030012', gl: 'rgba(140,80,255,.95)', b: ['#d6bcff', '#6a33d6'] },
-  { ring: ['#050000', '#ff2438', '#1a0003', '#b0001a', '#050000'], hi: '#ff4a5a', dk: '#000', gl: 'rgba(255,20,40,.95)', b: ['#ff7a86', '#c4001a'] }
+  { ring: ['#050000', '#ff2438', '#1a0003', '#b0001a', '#050000'], hi: '#ff4a5a', dk: '#000', gl: 'rgba(255,20,40,.95)', b: ['#ff7a86', '#c4001a'] },
+  { ring: ['#070a2e', '#8fefff', '#2a3aa0', '#ffd98a', '#0a0f3c'], hi: '#d9f8ff', dk: '#02031a', gl: 'rgba(110,210,255,.9)', b: ['#d9f8ff', '#5b6dff'] }
 ];
 const WP = {
   6: { fid: 'fw6', stops: ['#2a0a52', '#7a3be0', '#c9a8ff', '#f4ebff'], st: '#1b0638', rach: '#ffffff', bar: '#e8d8ff' },
@@ -83,7 +84,8 @@ function _defs() {
   [6, 7, 8].forEach(k => { g += `<g id="wg${k}">${wingMarkup(WP[k], 40 + k)}</g>`; });
   g += `<g id="wg9">${wingMarkup(WP[9], 49, [{ n: 12, a0: 36, a1: 122, L0: 152, L1: 80, w0: 20, w1: 14 }, { n: 11, a0: 46, a1: 134, L0: 118, L1: 62, w0: 17, w1: 12 }, { n: 17, a0: 30, a1: 140, L0: 70, L1: 32, w0: 12, w1: 8 }, { n: 10, a0: 44, a1: 140, L0: 42, L1: 22, w0: 8, w1: 6 }])}</g>`;
   g += `<g id="wg9b">${wingMarkup(WP[10], 59, [{ n: 9, a0: 8, a1: 82, L0: 160, L1: 116, w0: 12, w1: 10 }, { n: 8, a0: 20, a1: 92, L0: 130, L1: 88, w0: 10, w1: 9 }])}</g>`;
-  g += `<clipPath id="clipLow"><rect x="-250" y="0" width="500" height="300"/></clipPath><radialGradient id="aur9"><stop offset=".3" stop-color="#ff1428" stop-opacity=".6"/><stop offset=".65" stop-color="#a0000f" stop-opacity=".22"/><stop offset="1" stop-color="#600008" stop-opacity="0"/></radialGradient>`;
+  g += `<linearGradient id="flr9"><stop offset="0" stop-color="#ff1428" stop-opacity="0"/><stop offset=".5" stop-color="#ff7a85" stop-opacity=".95"/><stop offset="1" stop-color="#ff1428" stop-opacity="0"/></linearGradient><radialGradient id="aur9"><stop offset=".3" stop-color="#ff1428" stop-opacity=".6"/><stop offset=".65" stop-color="#a0000f" stop-opacity=".22"/><stop offset="1" stop-color="#600008" stop-opacity="0"/></radialGradient>`;
+  g += astralDefs() + (typeof XTRA_DEFS === 'string' ? XTRA_DEFS : '');
   const d = document.createElement('div'); d.id = 'cdr-defs'; d.setAttribute('aria-hidden', 'true'); d.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
   d.innerHTML = `<svg width="0" height="0"><defs>${g}</defs></svg>`; document.body.appendChild(d);
 }
@@ -127,6 +129,14 @@ function ringFront(k, big) {
     [0, 90, 180, 270].forEach(a => { const [x, y] = pol(a + 45, 52.6); s += `<g transform="translate(${x} ${y})"><circle r="5.2" fill="#07021f" stroke="#c9a6ff" stroke-width=".7"/><path d="${STAR4}" fill="url(#gmP)" transform="scale(.95)"/><path class="tw" d="${STAR4}" fill="#fff" transform="scale(.5)"/></g>`; });
     if (big) s += `<use href="#crescent" x="-11" y="-80" width="22" height="22"/><path class="tw" d="${STAR4}" transform="translate(13 -74) scale(.8)" fill="#fff"/><path class="tw" style="animation-delay:.9s" d="${STAR4}" transform="translate(-16 -70) scale(.6)" fill="#e9d5ff"/>`;
   }
+  if (k >= 11 && typeof XTRA_RING !== 'undefined' && XTRA_RING[k]) s += XTRA_RING[k](big);
+  if (k === 10) {
+    const R = _rnd(1001);
+    s += `<circle r="52.6" fill="none" stroke="#d9f8ff" stroke-opacity=".45" stroke-width=".7" stroke-dasharray="1 3.2"/><circle r="58.4" fill="none" stroke="#ffd98a" stroke-opacity=".85" stroke-width=".9"/>`;
+    for (let i = 0; i < 20; i++) { const [x, y] = pol(R() * 360, 49.8 + R() * 5.6); s += `<circle class="tw" cx="${x}" cy="${y}" r="${f1(.4 + R() * .7)}" fill="#fff" style="animation-delay:${f1(R() * 3)}s"/>`; }
+    [45, 135, 225, 315].forEach(a => s += gemAt(p, a, 52.6, 3.6, 'gmD'));
+    if (!big) s += `<circle r="3.6" fill="url(#pl4)" stroke="#fff" stroke-opacity=".5" stroke-width=".5">${RM ? '' : '<animateMotion path="M61 0A61 61 0 1 1 -61 0A61 61 0 1 1 61 0" dur="7s" repeatCount="indefinite"/>'}</circle>`;
+  }
   if (k === 9) {
     for (let i = 0; i < 16; i++) { const a0 = i * 22.5 + 1.3, a1 = a0 + 19.9, [x0, y0] = pol(a0, 47.6), [x1, y1] = pol(a1, 47.6), [x2, y2] = pol(a1, 57.4), [x3, y3] = pol(a0, 57.4); s += `<path d="M${x0} ${y0}A47.6 47.6 0 0 1 ${x1} ${y1}L${x2} ${y2}A57.4 57.4 0 0 0 ${x3} ${y3}Z" fill="#070001" stroke="#ff2038" stroke-width=".55"/>`; }
     s += `<circle r="52.6" fill="none" stroke="#ff1a2e" stroke-width="1.2" stroke-dasharray="7 3 1.5 3" class="lava"/><circle class="spin" style="animation-duration:3.6s" r="49.4" fill="none" stroke="#ff6070" stroke-width="1.7" stroke-dasharray="44 266" stroke-linecap="round"/><circle class="spin rev" style="animation-duration:6s" r="56" fill="none" stroke="#ff6070" stroke-width="1.2" stroke-dasharray="20 332" stroke-linecap="round"/>`;
@@ -135,14 +145,99 @@ function ringFront(k, big) {
   }
   return s;
 }
-function dyson() { // « sphère de Dyson » : anneaux qui tournent en 3D (projetés), satellites, anneau de Saturne
-  const rings = [[66, 0, 'Y', 14, 0, 1], [72, 60, 'Y', 18, -6, 0], [78, 120, 'Y', 22, -11, 1], [84, 30, 'X', 26, -4, 0]];
+/* « Sphère de Dyson » v2 : anneaux en vraie 3D, sans aucune coupure.
+   Chaque anneau = 2 demi-cercles (droite / gauche) dont la largeur varie en cos(t) (valeurs négatives = l'anneau passe derrière).
+   La moitié « devant » passe au-dessus de l'avatar, l'autre « derrière » ; elles s'échangent quand l'anneau est de face (invisible). */
+const D9_RINGS = [[66, 0, 14, 0], [72, 60, 18, -6], [78, 120, 22, -11], [84, 30, 26, -4]];
+const _cosv = n => Array.from({ length: n + 1 }, (_, k) => f1(Math.cos(k * 2 * Math.PI / n))).join(';');
+function _ringPath(R, i, d) {
+  return `<path d="${d}" fill="none" stroke="#ff1a2e" stroke-width="5.8" stroke-linecap="butt"/><path d="${d}" fill="none" stroke="#050000" stroke-width="3.6"/><path d="${d}" fill="none" stroke="#ff5a6a" stroke-width="6.6" stroke-dasharray="1 9" opacity=".55"/><path class="dsh" style="animation-duration:${6 + i}s" d="${d}" fill="none" stroke="#ff8a96" stroke-width="1" stroke-dasharray="${10 + i * 2} 6 2 6" opacity=".9"/>`;
+}
+function ring3(R, rot, per, dl, i, front) {
+  const A = `M0 ${-R}A${R} ${R} 0 0 1 0 ${R}`, B = `M0 ${R}A${R} ${R} 0 0 1 0 ${-R}`;
+  const sc = RM ? '' : `<animateTransform attributeName="transform" type="scale" values="${_cosv(16).split(';').map(v => v + ' 1').join(';')}" dur="${per}s" begin="${dl}s" repeatCount="indefinite"/>`;
+  const op = (a, b) => RM ? '' : `<animate attributeName="opacity" values="${a};${b}" keyTimes="0;.5" calcMode="discrete" dur="${per}s" begin="${dl}s" repeatCount="indefinite"/>`;
+  const a1 = front ? [1, 0] : [0, 1], b1 = front ? [0, 1] : [1, 0];
+  return `<g transform="rotate(${rot})"${front ? '' : ' opacity=".42"'}><g>${sc}<g>${op(a1[0], a1[1])}${_ringPath(R, i, A)}</g><g>${op(b1[0], b1[1])}${_ringPath(R, i, B)}</g></g></g>`;
+}
+function saturn(front) { // anneau de Saturne incliné : moitié haute derrière l'avatar, moitié basse devant (les deux se raccordent aux pointes)
+  const d = front ? 'M98 0A98 27 0 0 1 -98 0' : 'M-98 0A98 27 0 0 1 98 0', d2 = front ? 'M105 0A105 30 0 0 1 -105 0' : 'M-105 0A105 30 0 0 1 105 0';
+  return `<g transform="rotate(-14)"${front ? '' : ' opacity=".6"'}><path d="${d}" fill="none" stroke="#ff1a2e" stroke-width="3.4"/><path d="${d}" fill="none" stroke="#050000" stroke-width="1.8"/><path class="dsh" style="animation-duration:5s" d="${d}" fill="none" stroke="#ff6070" stroke-width="1" stroke-dasharray="14 6 2 6"/><path d="${d2}" fill="none" stroke="#ff2038" stroke-width=".7" stroke-dasharray="1 5" opacity=".8"/></g>`;
+}
+function dysonBack() {
   let s = `<g class="spin" style="animation-duration:46s"><circle r="61" fill="none" stroke="#ff1a2e" stroke-width="7.4" opacity=".9"/><circle r="61" fill="none" stroke="#050000" stroke-width="5.6" stroke-dasharray="26 4"/><circle r="61" fill="none" stroke="#ff2a3d" stroke-width=".9" stroke-dasharray="3 5"/></g>`;
-  rings.forEach(([R, rot, ax, per, dl, sat], i) => {
-    s += `<g transform="rotate(${rot})"><g class="r${ax}" style="animation-duration:${per}s;animation-delay:${dl}s"><circle r="${R}" fill="none" stroke="#ff1a2e" stroke-width="5.8"/><circle r="${R}" fill="none" stroke="#050000" stroke-width="3.8"/><circle r="${R}" fill="none" stroke="#ff4a5a" stroke-width="7" stroke-dasharray="1 9" opacity=".6"/><circle class="dsh" style="animation-duration:${6 + i}s" r="${R}" fill="none" stroke="#ff3347" stroke-width="1.2" stroke-dasharray="${12 + i * 2} 5 3 5"/>${sat ? `<g class="spin" style="animation-duration:${5 + i * 1.5}s"><path d="M${R} -5L${R + 3.4} 0L${R} 5L${R - 3.4} 0Z" fill="#ff5666" stroke="#050000" stroke-width=".8"/></g>` : ''}</g></g>`;
-  });
-  s += `<g transform="rotate(-14)"><ellipse rx="98" ry="27" fill="none" stroke="#ff1a2e" stroke-width="3.4"/><ellipse rx="98" ry="27" fill="none" stroke="#050000" stroke-width="1.8"/><ellipse class="dsh" style="animation-duration:5s" rx="98" ry="27" fill="none" stroke="#ff6070" stroke-width="1" stroke-dasharray="14 6 2 6"/><ellipse rx="105" ry="30" fill="none" stroke="#ff2038" stroke-width=".7" stroke-dasharray="1 5" opacity=".8"/></g>`;
-  return s;
+  s += `<g class="spin rev" style="animation-duration:120s"><circle r="70" fill="none" stroke="#ff8090" stroke-opacity=".5" stroke-width="3" stroke-dasharray=".7 5.1"/><circle r="91" fill="none" stroke="#ff2a3d" stroke-opacity=".55" stroke-width=".8" stroke-dasharray="12 4 2 4"/></g>`;
+  s += `<ellipse rx="176" ry="2.4" fill="url(#flr9)" class="pulse" opacity=".8"/><ellipse rx="96" ry="1.2" fill="url(#flr9)" opacity=".9"/>`;
+  D9_RINGS.forEach(([R, rot, per, dl], i) => { s += ring3(R, rot, per, dl, i, false); });
+  return s + saturn(false);
+}
+function dysonFront() {
+  let s = ''; D9_RINGS.forEach(([R, rot, per, dl], i) => { s += ring3(R, rot, per, dl, i, true); });
+  return s + saturn(true) + `<circle class="spin" style="animation-duration:7s" r="45.4" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1" stroke-dasharray="26 260" stroke-linecap="round"/>`;
+}
+/* =====================================================================
+   ASTRAL (rang 10) — thème stellaire : galaxie en rotation, planètes sur des orbites inclinées
+   (elles passent DEVANT puis DERRIÈRE l'avatar), lune, comètes, anneau d'astrolabe, constellation.
+   Une planète = animateMotion sur une ellipse ; la 1ʳᵉ moitié du trajet (côté bas) est dessinée devant, la 2ᵉ derrière.
+   ===================================================================== */
+function astralDefs() {
+  const sh = '<circle r="1" fill="url(#plsh)"/>';
+  return `<radialGradient id="plsh" cx=".32" cy=".3" r=".85"><stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000014" stop-opacity=".72"/></radialGradient>
+<linearGradient id="plb1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f9e2b0"/><stop offset=".22" stop-color="#d9954a"/><stop offset=".42" stop-color="#f6cf8e"/><stop offset=".62" stop-color="#b8743a"/><stop offset=".82" stop-color="#e9b878"/><stop offset="1" stop-color="#8a5226"/></linearGradient>
+<radialGradient id="pl2" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#8fe0ff"/><stop offset=".6" stop-color="#2f7fe8"/><stop offset="1" stop-color="#0b2d86"/></radialGradient>
+<radialGradient id="pl3" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#ffb08a"/><stop offset=".55" stop-color="#e2562a"/><stop offset="1" stop-color="#6a1608"/></radialGradient>
+<radialGradient id="pl4" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#9fe3ff"/><stop offset="1" stop-color="#3a86c8"/></radialGradient>
+<radialGradient id="pl5" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff"/><stop offset=".4" stop-color="#ffe07a"/><stop offset="1" stop-color="#ff9a1a" stop-opacity="0"/></radialGradient>
+<radialGradient id="aur10" cx=".5" cy=".5" r=".5"><stop offset=".15" stop-color="#6c7bff" stop-opacity=".55"/><stop offset=".5" stop-color="#8a2be2" stop-opacity=".25"/><stop offset="1" stop-color="#2a0a6a" stop-opacity="0"/></radialGradient>
+<radialGradient id="aur10b" cx=".5" cy=".5" r=".5"><stop offset=".1" stop-color="#2ee6d6" stop-opacity=".4"/><stop offset=".6" stop-color="#2e6be6" stop-opacity=".15"/><stop offset="1" stop-color="#2e6be6" stop-opacity="0"/></radialGradient>
+<linearGradient id="ctl10" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9fe8ff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".95"/></linearGradient>
+<linearGradient id="flr10"><stop offset="0" stop-color="#6fe3ff" stop-opacity="0"/><stop offset=".5" stop-color="#d9f8ff" stop-opacity=".95"/><stop offset="1" stop-color="#6fe3ff" stop-opacity="0"/></linearGradient>
+<g id="pg1"><ellipse rx="15.5" ry="4.2" transform="rotate(-18)" fill="none" stroke="#c9a46a" stroke-width="1.7" stroke-opacity=".85"/><ellipse rx="12.5" ry="3.3" transform="rotate(-18)" fill="none" stroke="#e8cf9c" stroke-width=".7" stroke-opacity=".7"/><circle r="9" fill="url(#plb1)"/><circle r="9" fill="url(#plsh)"/><path transform="rotate(-18)" d="M-15.5 0A15.5 4.2 0 0 0 15.5 0" fill="none" stroke="#e1bd7e" stroke-width="1.7"/><path transform="rotate(-18)" d="M-12.5 0A12.5 3.3 0 0 0 12.5 0" fill="none" stroke="#f6e2b6" stroke-width=".7"/></g>
+<g id="pg2"><circle r="9" fill="#5fd0ff" opacity=".16"/><circle r="7" fill="url(#pl2)"/><ellipse cx="-2.2" cy="-1" rx="3" ry="2" fill="#44c46f" opacity=".92"/><ellipse cx="3" cy="2.6" rx="2.3" ry="1.5" fill="#44c46f" opacity=".9"/><ellipse cx="-1" cy="4" rx="1.6" ry=".9" fill="#7be08f" opacity=".8"/><path d="M-5 -3Q0 -5 5 -2M-5 1Q-1 -.5 4 .6" fill="none" stroke="#fff" stroke-width=".7" opacity=".6"/><circle r="7" fill="url(#plsh)"/><circle r="7.6" fill="none" stroke="#a8e8ff" stroke-width=".8" opacity=".65"/></g>
+<g id="pg3"><circle r="5" fill="url(#pl3)"/><circle cx="-1.3" cy="-.8" r="1" fill="#6a1608" opacity=".4"/><circle cx="1.4" cy="1.5" r=".8" fill="#6a1608" opacity=".4"/><circle r="5" fill="url(#plsh)"/></g>
+<g id="pg4"><circle r="6.6" fill="url(#pl4)"/><path d="M-5 -1.5Q0 -3.5 5 -.5M-4 2Q0 .6 4.5 2.4" fill="none" stroke="#fff" stroke-width=".8" opacity=".7"/><circle r="6.6" fill="url(#plsh)"/><circle r="7.2" fill="none" stroke="#d4f5ff" stroke-width=".6" opacity=".6"/></g>
+<g id="pg5"><circle r="9" fill="url(#pl5)"/><circle r="3.2" fill="#fff"/><path d="M0 -9V9M-9 0H9" stroke="#fff" stroke-width=".6" opacity=".7"/></g>`;
+}
+const AS_ORB = [ // tilt, a, b, période, retard, planète, échelle
+  [-18, 124, 36, 26, 0, 'pg1', 1.9], [22, 98, 28, 17, -6, 'pg2', 1.7], [-52, 140, 42, 38, -15, 'pg4', 1.6], [60, 84, 24, 11, -3, 'pg3', 1.8], [8, 164, 18, 55, -20, 'pg5', 1.3]
+];
+function _orbit(o, i, front) {
+  const [tilt, a, b, per, dl, pg, sc] = o, d = front ? `M${a} 0A${a} ${b} 0 0 1 ${-a} 0` : `M${-a} 0A${a} ${b} 0 0 1 ${a} 0`, full = `M${a} 0A${a} ${b} 0 1 1 ${-a} 0A${a} ${b} 0 1 1 ${a} 0`;
+  const mo = RM ? '' : `<animateMotion path="${full}" dur="${per}s" begin="${dl}s" repeatCount="indefinite"/>`;
+  const op = RM ? '' : `<animate attributeName="opacity" values="${front ? '1;0' : '0;1'}" keyTimes="0;.5" calcMode="discrete" dur="${per}s" begin="${dl}s" repeatCount="indefinite"/>`;
+  const moon = pg === 'pg2' ? `<circle r="2.3" fill="#e6e6ee" stroke="#8a8a99" stroke-width=".4">${RM ? '' : '<animateMotion path="M11 0A11 11 0 1 1 -11 0A11 11 0 1 1 11 0" dur="3.2s" repeatCount="indefinite"/>'}</circle>` : '';
+  const planet = `<g transform="scale(${front ? sc : f1(sc * .8)})"><use href="#${pg}"/>${moon}</g>`;
+  return `<g transform="rotate(${tilt})"${front ? '' : ' opacity=".62"'}><path d="${d}" fill="none" stroke="#9fe8ff" stroke-opacity="${front ? .5 : .28}" stroke-width=".7" stroke-dasharray="1.5 3.5"/><g>${mo}<g>${op}${planet}</g></g></g>`;
+}
+function astral() {
+  const R = _rnd(1010);
+  // galaxie : deux bras spiralés de poussières d'étoiles, qui tournent lentement derrière l'avatar
+  let gal = '';
+  for (let arm = 0; arm < 3; arm++) for (let i = 0; i < 46; i++) {
+    const r = 52 + i * 2.15 + R() * 4, ang = arm * 120 + i * 6.4 + R() * 9, [x, y] = pol(ang, r), c = ['#bff4ff', '#a69bff', '#ffffff', '#7ff0e0'][(i + arm) % 4];
+    gal += `<circle cx="${x}" cy="${f1(y * .72)}" r="${f1(.5 + R() * (i < 20 ? 1.4 : .9))}" fill="${c}" opacity="${f1(.35 + R() * .65 * (1 - i / 70))}"/>`;
+  }
+  let b = `<circle r="170" fill="url(#aur10)" class="pulse" opacity=".95"/><ellipse rx="150" ry="54" fill="url(#aur10b)" transform="rotate(-18)" opacity=".8"/><g class="spin" style="animation-duration:160s">${gal}</g>`;
+  // étoiles fixes qui scintillent
+  for (let i = 0; i < 30; i++) { const [x, y] = pol(R() * 360, 66 + R() * 92); b += `<circle class="tw" cx="${x}" cy="${f1(y * .86)}" r="${f1(.4 + R() * 1)}" fill="#fff" style="animation-delay:${f1(R() * 3)}s;animation-duration:${f1(1.6 + R() * 2)}s"/>`; }
+  for (let i = 0; i < 5; i++) { const [x, y] = pol(i * 72 + 20 + R() * 20, 98 + R() * 36); b += `<path class="tw" d="${STAR4}" transform="translate(${x} ${f1(y * .86)}) scale(${f1(.7 + R() * .7)})" fill="${i % 2 ? '#bff4ff' : '#fff6c9'}" style="animation-delay:${f1(R() * 2.4)}s"/>`; }
+  // anneau d'astrolabe (losanges dorés) + constellation reliée
+  let ast = '', cn = '', pts = [];
+  for (let i = 0; i < 12; i++) { const [x, y] = pol(i * 30, 68); ast += `<path d="M${x} ${f1(y - 2.4)}L${f1(+x + 1.6)} ${y}L${x} ${f1(+y + 2.4)}L${f1(x - 1.6)} ${y}Z" fill="#ffd98a" opacity=".85" transform="rotate(${i * 30 + 90} ${x} ${y})"/>`; }
+  for (let i = 0; i < 9; i++) { const [x, y] = pol(i * 40 + R() * 22, 80 + R() * 10); pts.push([x, y]); }
+  cn = `<polyline points="${pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="#bff4ff" stroke-opacity=".45" stroke-width=".6"/>` + pts.map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="${i % 3 ? 1.1 : 1.8}" fill="#fff"/>`).join('');
+  b += `<g class="spin rev" style="animation-duration:110s"><circle r="68" fill="none" stroke="#ffd98a" stroke-opacity=".5" stroke-width=".8"/>${ast}</g><g class="spin" style="animation-duration:150s">${cn}</g>`;
+  b += `<ellipse rx="170" ry="2" fill="url(#flr10)" class="pulse" opacity=".7"/>`;
+  AS_ORB.forEach((o, i) => { b += _orbit(o, i, false); });
+  // comètes : traversent la scène de temps en temps
+  const comet = (path, dur, dl, ts) => RM ? '' : `<g><animateMotion path="${path}" rotate="auto" dur="${dur}s" begin="${dl}s" keyPoints="0;1;1" keyTimes="0;.28;1" calcMode="linear" repeatCount="indefinite"/><g opacity="0"><animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;.03;.24;.29;1" dur="${dur}s" begin="${dl}s" repeatCount="indefinite"/><line x1="0" y1="0" x2="${-ts}" y2="0" stroke="url(#ctl10)" stroke-width="2.2" stroke-linecap="round"/><circle r="2.4" fill="#fff"/><circle r="5" fill="#bff4ff" opacity=".35"/></g></g>`;
+  b += comet('M-176 -118L176 22', 13, 2, 52) + comet('M170 -130L-170 60', 17, 9, 44);
+  // lueur douce au centre
+  let f = '';
+  AS_ORB.forEach((o, i) => { f += _orbit(o, i, true); });
+  f += `<circle class="spin" style="animation-duration:6s" r="49.6" fill="none" stroke="#d9f8ff" stroke-opacity=".9" stroke-width="1.8" stroke-dasharray="40 272" stroke-linecap="round"/><circle class="spin rev" style="animation-duration:9s" r="55.6" fill="none" stroke="#ffd98a" stroke-opacity=".8" stroke-width="1.2" stroke-dasharray="18 330" stroke-linecap="round"/>`;
+  f += `<g transform="translate(0 -62)"><ellipse rx="22" ry="1.1" fill="url(#flr10)" class="pulse"/><path class="tw" d="${STAR4}" transform="scale(1.9)" fill="#fff"/><path class="tw" style="animation-delay:.8s" d="${STAR4}" transform="rotate(45) scale(1.1)" fill="#bff4ff"/></g>`;
+  return { b, f };
 }
 function flames(k) { // k = 5 (feu rouge) — langues de flammes autour de l'anneau
   let s = ''; const R = _rnd(55), N = 22;
@@ -187,9 +282,11 @@ function _layers(fr, big) {
     if (fr === 7) { back = `<circle r="104" fill="url(#aur7)" class="pulse"/>` + rays() + wingUse(7, 1) + wingUse(7, 0); front += embers('#ffe28a', 12, 7); }
     if (fr === 9) {
       let rays9 = '<g class="spin rev" style="animation-duration:90s">'; for (let i = 0; i < 28; i++) rays9 += `<path d="M-1.4 -72L0 -${i % 2 ? 118 : 130}L1.4 -72Z" fill="#ff1a2e" opacity=".28" transform="rotate(${f1(i * 360 / 28)})"/>`; rays9 += '</g>';
-      back = `<circle r="140" fill="url(#aur9)" class="pulse" opacity=".45"/>` + rays9 + wingUse(10, 1, 'wg9b', 7) + wingUse(10, 0, 'wg9b', 7) + wingUse(9, 1, 'wg9', 5.2) + wingUse(9, 0, 'wg9', 5.2) + `<circle r="94" fill="#000" opacity=".62"/>` + dyson() + `<circle class="wave" r="60" fill="none" stroke="#ff2a3d" stroke-width="1.6"/><circle class="wave" style="animation-delay:-1.7s" r="60" fill="none" stroke="#ff2a3d" stroke-width="1"/>`;
-      front += `<g clip-path="url(#clipLow)">${dyson()}</g>` + embers('#ff4d5e', 16, 9) + embers('#ffffff', 6, 19);
+      back = `<circle r="140" fill="url(#aur9)" class="pulse" opacity=".45"/>` + rays9 + wingUse(10, 1, 'wg9b', 7) + wingUse(10, 0, 'wg9b', 7) + wingUse(9, 1, 'wg9', 5.2) + wingUse(9, 0, 'wg9', 5.2) + `<circle r="94" fill="#000" opacity=".62"/>` + dysonBack() + `<circle class="wave" r="60" fill="none" stroke="#ff2a3d" stroke-width="1.6"/><circle class="wave" style="animation-delay:-1.7s" r="60" fill="none" stroke="#ff2a3d" stroke-width="1"/>`;
+      front += dysonFront() + embers('#ff4d5e', 16, 9) + embers('#ffffff', 6, 19);
     }
+    if (fr >= 11 && typeof XTRA !== 'undefined' && XTRA[fr]) { const c = XTRA[fr](); back = c.b; front += c.f; }
+    if (fr === 10) { const c = astral(); back = c.b; front += c.f + embers('#bff4ff', 12, 10) + embers('#ffe9b0', 6, 20); }
     if (fr === 8) { const c = cosmos(); back = c.b + wingUse(8, 1) + wingUse(8, 0); front += c.f; }
   }
   return _avc[key] = { back: smil(back), front: smil(front) };
@@ -204,9 +301,9 @@ function avHTML(name, cos, size, withTitle) {
   const letter = esc(String(name || '?').trim().charAt(0).toUpperCase());
   const hue = [...String(name || '')].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7);
   const img = cos.av ? `<img src="/avatar/${encodeURIComponent(String(name).toLowerCase())}?v=${cos.av}" alt="" onerror="this.remove()">` : '';
-  const x9 = big && fr === 9, vb = x9 ? '-200 -140 400 280' : big ? '-135 -110 270 220' : '-64 -64 128 128';
+  const x9 = big && fr === 9, x10 = big && fr >= 10, vb = x9 ? '-200 -160 400 320' : x10 ? '-210 -170 420 340' : big ? '-135 -110 270 220' : '-64 -64 128 128';
   const back = big && L.back ? `<svg class="bk" viewBox="${vb}">${L.back}</svg>` : '';
-  const out = `<span class="av fr fr-${fr}${big ? ' big' : ''}${x9 ? ' x9' : ''}" style="--s:${s}px;--fc:${T.c};--gl:${P.gl}" title="${esc(T.n)} · Niv. ${cos.lv | 0}">${back}<i class="avi" style="--h:${hue}">${letter}${img}</i><svg class="ft" viewBox="${vb}">${L.front}</svg><em class="avl" style="background:linear-gradient(145deg,${P.b[0]},${P.b[1]})">${cos.lv | 0}</em></span>`;
+  const out = `<span class="av fr fr-${fr}${big ? ' big' : ''}${x9 ? ' x9' : ''}${x10 ? ' x10 xc' : ''}" style="--s:${s}px;--fc:${T.c};--gl:${P.gl}" title="${esc(T.n)} · Niv. ${cos.lv | 0}">${back}<i class="avi" style="--h:${hue}">${letter}${img}</i><svg class="ft" viewBox="${vb}">${L.front}</svg><em class="avl" style="background:linear-gradient(145deg,${P.b[0]},${P.b[1]})">${cos.lv | 0}</em></span>`;
   if (!withTitle) return out;
   const ti = TIERS[Math.max(0, Math.min(TIERS.length - 1, cos.ti | 0))];
   return `<span class="avw">${out}<span class="avt" style="--fc:${ti.c}">${esc(ti.t)}</span></span>`;

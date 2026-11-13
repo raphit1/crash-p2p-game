@@ -495,3 +495,5 @@ socket.on('mn-result', d => {
   }
   mnPaint();
 });
+
+

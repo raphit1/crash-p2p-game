@@ -420,3 +420,4 @@ socket.on('resumed', d => {
 socket.on('no-room', () => { if (S.code && S.phase !== 'ended') { alert('Cette room n\'existe plus (le serveur a redémarré ou la session est terminée).'); location.reload(); } });
 socket.on('disconnect', () => { $('gameStatusText').textContent = '⚠️ Connexion perdue... reconnexion automatique'; });
 socket.on('connect', () => { const t = getTok(); if (t) socket.emit('auth-token', { token: t }); S.wasConnected = true; });
+

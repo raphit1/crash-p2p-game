@@ -157,3 +157,4 @@ document.addEventListener('visibilitychange', () => document.hidden ? Snd.suspen
 const startAudio = () => { Snd.unlock(); Snd.startMusic(); };
 const toggleMusic = () => { const i = Snd.toggle() ? '🎵' : '🔇'; document.querySelectorAll('.musicBtn').forEach(b => b.textContent = i); };
 let lastShown = 1;
+
