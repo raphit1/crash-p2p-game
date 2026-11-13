@@ -4,6 +4,9 @@ const path = require('path');
 const { Server } = require('socket.io');
 const crypto = require('crypto');
 const A = require('./accounts');
+const Q = require('./quests');
+const SLOT = require('./slot');
+const XPL = require('./xp');
 // Constantes et formules de probabilité PARTAGÉES avec le client (une seule source de vérité).
 // Servi au navigateur via GET /shared-constants.js (voir plus bas) : le client l'expose en window.GAMES.
 const G = require('./shared-constants');
@@ -16,6 +19,11 @@ const io = new Server(server, { perMessageDeflate: false });
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 // Petite page ultra légère pour qu'un service de surveillance (UptimeRobot…) "réveille" le serveur toutes les 5 min et l'empêche de s'endormir sur Render gratuit
+// Photo de profil (petite image JPEG ; ?v=… sert juste à rafraîchir le cache du navigateur)
+app.get('/avatar/:name', async (req, res) => {
+    try { const b = await A.avatarGet(req.params.name); if (!b) return res.status(404).end(); res.set({ 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400' }).send(b); }
+    catch (e) { res.status(404).end(); }
+});
 app.get('/health', (req, res) => res.type('text/plain').send('ok'));
 // Le client charge les mêmes constantes que le serveur (window.GAMES) : zéro duplication.
 app.get('/shared-constants.js', (req, res) => res.type('application/javascript').sendFile(path.join(__dirname, 'shared-constants.js')));
@@ -194,10 +202,12 @@ function publicRoom(room, full = false) {
             ar: p.ar ? { active: p.ar.active, bet: p.ar.bet, mode: p.ar.mode } : null,
             pk: { active: !!(p.pkQ && p.pkQ.length), bet: (p.pkQ || []).reduce((a, b) => a + b.unit, 0) },
             hl: p.hl ? { active: p.hl.active, bet: p.hl.bet, steps: p.hl.steps } : null,
+            sl: p.sl ? { active: p.sl.active, pending: p.sl.pending } : null,
             mn: p.mn ? { active: p.mn.active, bet: p.mn.bet, mines: p.mn.mines, picks: p.mn.picks.slice() } : null,
             rl: p.rl ? { active: p.rl.active, total: p.rl.total, bets: p.rl.bets.map(b => ({ kind: b.kind, sel: b.sel, amount: b.amount })) } : null,
             bj: p.bj ? bjPublic(p.bj, p.balance) : null,
             vip: !!ADMIN_USER && String(p.name).toLowerCase() === ADMIN_USER, // couronne publique du créateur (le panneau, lui, reste privé)
+            cos: A.cosOf(p.account),
             stats: p.stats
         })),
         history: full ? room.history : undefined // l'historique n'est envoyé qu'aux joueurs de la table Crash
@@ -209,7 +219,7 @@ function equityOf(p) {
     return p.balance + p.slots.reduce((a, x) => a + (x.cashed ? 0 : x.bet) + x.next, 0)
         + (p.iceState && p.iceState.active ? p.iceState.bet : 0) + (p.jm && p.jm.active ? p.jm.bet : 0) + (p.cr && p.cr.active ? p.cr.bet : 0)
         + (p.ar && p.ar.active ? p.ar.bet : 0) + (p.mn && p.mn.active ? p.mn.bet : 0) + (p.hl && p.hl.active ? p.hl.bet : 0) + (p.pkQ || []).reduce((a, b) => a + b.unit, 0)
-        + (p.rl ? p.rl.total : 0) + bjPending(p.bj);
+        + (p.rl ? p.rl.total : 0) + bjPending(p.bj) + (p.sl && p.sl.active ? p.sl.pending : 0);
 }
 const pubBets = p => (p.betLog || []).slice(0, 60).map(b => ({ id: b.id, game: b.game, icon: b.icon, name: b.name, bet: b.bet, mult: b.mult, win: b.win, net: b.net, status: b.status, ts: b.ts, queued: !!b.queued }));
 function sampleEquity(room) {
@@ -247,12 +257,34 @@ function noteMult(room, it) { // meilleur multiplicateur gagné (badges)
     const pl = room.players.find(p => p.name === it.name);
     if (pl) pl.bestMult = Math.max(pl.bestMult || 0, Math.min(1e9, it.mult));
 }
+/* Quêtes + XP : tout tour réglé passe par le flux « Paris en direct » → un seul point d'entrée pour toutes les quêtes */
+const qTimers = new Map();
+function qState(u) { const xp = XPL.levelInfo(u.xp || 0); return Object.assign(Q.view(u), { xp }); }
+function qPush(account, socketId) { // renvoie l'état des quêtes au joueur (au plus toutes les 3 s)
+    if (qTimers.has(account)) return;
+    qTimers.set(account, setTimeout(() => {
+        qTimers.delete(account);
+        const u = A.userRec(account); if (u) io.to(socketId).emit('q-state', qState(u));
+    }, 3000));
+}
+function qEvent(pl, ev) {
+    const u = pl && pl.account && A.userRec(pl.account); if (!u) return;
+    const done = Q.event(u, ev);
+    if (done.length) io.to(pl.id).emit('q-done', done);
+    A.saveSoon(); qPush(pl.account, pl.id);
+}
+function questRound(room, it) {
+    if (it._qd || (it.status !== 'won' && it.status !== 'lost')) return;
+    it._qd = true;
+    const pl = room.players.find(p => p.name === it.name);
+    qEvent(pl, { t: 'round', g: it.game, bet: it.bet || 0, net: it.net != null ? it.net : (it.win || 0) - (it.bet || 0), mult: it.mult || 0, status: it.status });
+}
 function feedAdd(room, entry) {
     if (!room.feed) room.feed = [];
     room.feed.unshift(entry);
     if (room.feed.length > 80) room.feed.length = 80;
     const pl = room.players.find(p => p.name === entry.name); // journal personnel (même objet : il suit les mises à jour de la ligne)
-    if (pl) { (pl.betLog = pl.betLog || []).unshift(entry); if (pl.betLog.length > 150) pl.betLog.length = 150; (pl.gamesSeen = pl.gamesSeen || new Set()).add(entry.game); noteMult(room, entry); }
+    if (pl) { (pl.betLog = pl.betLog || []).unshift(entry); if (pl.betLog.length > 150) pl.betLog.length = 150; (pl.gamesSeen = pl.gamesSeen || new Set()).add(entry.game); noteMult(room, entry); questRound(room, entry); }
     io.to(room.code).emit('bet-feed', room.feed.slice(0, 60));
 }
 function feedUpdate(room, id, patch) { // met à jour une ligne existante (ex. poulet qui avance, crash en vol)
@@ -260,7 +292,7 @@ function feedUpdate(room, id, patch) { // met à jour une ligne existante (ex. p
     const it = room.feed.find(x => x.id === id);
     if (!it) return;
     Object.assign(it, patch);
-    noteMult(room, it);
+    noteMult(room, it); questRound(room, it);
     io.to(room.code).emit('bet-feed', room.feed.slice(0, 60));
 }
 const feedId = () => crypto.randomBytes(6).toString('hex');
@@ -313,7 +345,24 @@ function bjPublic(bj, balance = 0) {
 /* ------------------------------------------------------------------ */
 const LEAVE_GRACE = 90 * 1000; // délai avant qu'un joueur déconnecté soit réellement retiré
 
-function settlePending(room, player) { // règle les parties en cours d'un joueur qui part pour de bon
+/* ---------------- Machine à sous « La Nuit du Loup » : fin de tour (encaissement), partagée par tous les cas ---------------- */
+const slHash = s => crypto.createHash('sha256').update(s).digest('hex');
+const slU = (seed, label) => parseInt(crypto.createHmac('sha256', seed).update(label).digest('hex').slice(0, 13), 16) / 4503599627370496;
+function slSeedOf(player) { if (!player.slp) { const seed = crypto.randomBytes(16).toString('hex'); player.slp = { seed, hash: slHash(seed), n: 0 }; } return player.slp; }
+// how = 'collect' (on encaisse le gain en attente) ou 'lost' (gain perdu au double ou rien). Révèle la graine du tour puis en engage une nouvelle.
+function slFinish(room, player, how) {
+    const s = player.sl; if (!s || !s.active) return;
+    s.active = false;
+    const win = how === 'lost' ? 0 : s.pending; s.pending = 0;
+    player.balance += win; player.stats.gamesPlayed++; if (win > s.cost) player.stats.wins++; player.stats.totalProfit += win - s.cost;
+    if (s.feedId) feedUpdate(room, s.feedId, { status: win > s.cost ? 'won' : 'lost', win, net: win - s.cost, mult: win > 0 ? Math.round(win / s.cost * 100) / 100 : null });
+    const sp = slSeedOf(player), proof = { seed: sp.seed, hash: sp.hash, n: sp.n };
+    const seed = crypto.randomBytes(16).toString('hex'); player.slp = { seed, hash: slHash(seed), n: sp.n + 1 };
+    io.to(player.id).emit('sl-end', { win, how, proof, nextHash: player.slp.hash });
+    broadcast(room);
+}
+function settlePending(room, player) {
+            if (player.sl && player.sl.active) slFinish(room, player, 'collect'); // un gain de machine à sous en attente est encaissé // règle les parties en cours d'un joueur qui part pour de bon
             pkSettle(room, player);
             // les lignes "en cours" du panneau latéral se règlent proprement à la déconnexion (pas de ligne bloquée en pending)
             if (player.cr && player.cr.active) {
@@ -595,6 +644,46 @@ io.on('connection', (socket) => {
         if (!socket.data.user || !ADMIN_USER || String(socket.data.user).toLowerCase() !== ADMIN_USER) return;
         if (await A.resetProfile(socket.data.user)) { socket.emit('prof-data', Object.assign(A.profileOf(socket.data.user), { canReset: true })); socket.emit('prof-reset-ok'); }
     });
+    /* ---------------- Mon profil : infos, apparence, mot de passe, photo, quêtes ---------------- */
+    const meUser = () => (socket.data.user ? A.userRec(A.key(socket.data.user)) : null);
+    const meData = () => {
+        const u = meUser(); if (!u) return null;
+        const info = XPL.levelInfo(u.xp || 0);
+        return { name: u.name, since: u.created, info, top: XPL.tierFor(info.level), cos: A.cosOf(A.key(u.name)), cf: u.cf == null ? null : u.cf, ct: u.ct == null ? null : u.ct,
+            tiers: XPL.TIERS, prof: A.profileOf(u.name), admin: !!socket.data.admin };
+    };
+    const meRefresh = () => { const d = meData(); if (d) socket.emit('me-data', d); accountRooms(A.key(socket.data.user)).forEach(r => broadcast(r)); };
+    socket.on('me-get', () => { const d = meData(); if (d) socket.emit('me-data', d); });
+    socket.on('me-cos', ({ fr, ti } = {}) => { if (socket.data.user && A.setCos(A.key(socket.data.user), fr, ti)) meRefresh(); });
+    socket.on('me-pass', async ({ oldPass, newPass } = {}) => {
+        if (!socket.data.user) return;
+        try { const r = await A.changePassword(socket.data.user, oldPass, newPass, socket.data.token); socket.emit('me-pass-res', r.error ? { error: r.error } : { ok: true }); }
+        catch (e) { console.error(e); socket.emit('me-pass-res', { error: 'Erreur serveur.' }); }
+    });
+    socket.on('me-avatar', async ({ data } = {}) => {
+        if (!socket.data.user) return;
+        const m = /^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/.exec(String(data || ''));
+        if (!m || m[1].length > 40000) return socket.emit('me-avatar-res', { error: 'Image invalide ou trop lourde.' });
+        const buf = Buffer.from(m[1], 'base64');
+        if (buf.length < 100 || buf[0] !== 0xFF || buf[1] !== 0xD8 || buf[2] !== 0xFF) return socket.emit('me-avatar-res', { error: 'Image invalide.' });
+        try { await A.avatarSet(socket.data.user, buf); socket.emit('me-avatar-res', { ok: true }); meRefresh(); }
+        catch (e) { console.error(e); socket.emit('me-avatar-res', { error: 'Enregistrement impossible, réessaie.' }); }
+    });
+    socket.on('me-avatar-del', async () => { if (!socket.data.user) return; await A.avatarDel(socket.data.user); meRefresh(); });
+    socket.on('me-logout-all', () => { if (!socket.data.user) return; A.logoutAll(socket.data.user); socket.emit('me-logout-all-ok'); });
+    socket.on('me-delete', async ({ pass } = {}) => {
+        if (!socket.data.user) return;
+        try {
+            const r = await A.deleteAccount(socket.data.user, pass);
+            if (r.error) return socket.emit('me-delete-res', { error: r.error });
+            const k = A.key(socket.data.user); accountRooms(k).forEach(room => { const pl = room.players.find(x => x.account === k); if (pl) removePlayer(room, pl); });
+            socket.data.user = null; socket.data.token = null; socket.data.admin = false; socket.emit('me-delete-res', { ok: true });
+        } catch (e) { console.error(e); socket.emit('me-delete-res', { error: 'Erreur serveur.' }); }
+    });
+    socket.on('q-get', () => { const u = meUser(); if (u) socket.emit('q-state', qState(u)); });
+    const qClaimed = (u, xp) => { const before = XPL.levelInfo(u.xp - xp).level; A.save(); socket.emit('xp-gain', { gain: xp, why: 'Quête', from: before, info: XPL.levelInfo(u.xp) }); socket.emit('q-state', qState(u)); accountRooms(A.key(socket.data.user)).forEach(r => broadcast(r)); };
+    socket.on('q-claim', ({ id } = {}) => { const u = meUser(); if (!u) return; const xp = Q.claim(u, String(id || '')); if (xp) qClaimed(u, xp); });
+    socket.on('q-claim-all', () => { const u = meUser(); if (!u) return; const r = Q.claimAll(u); if (r.xp) qClaimed(u, r.xp); });
     socket.on('gen-get', () => { if (socket.data.user) socket.emit('gen-data', { board: A.leaderboard(50), me: socket.data.user }); });
 
     // Chat de la room : 200 caractères max, 80 derniers messages gardés (un joueur qui arrive reçoit l'historique)
@@ -604,8 +693,8 @@ io.on('connection', (socket) => {
         text = String(text == null ? '' : text).replace(/\s+/g, ' ').trim().slice(0, 200);
         const now = Date.now();
         if (!text || (player._chatTs && now - player._chatTs < 250)) return;
-        player._chatTs = now; player.msgs = (player.msgs || 0) + 1;
-        const msg = { id: feedId(), name: player.name, text, ts: now };
+        player._chatTs = now; player.msgs = (player.msgs || 0) + 1; qEvent(player, { t: 'msg' });
+        const msg = { id: feedId(), name: player.name, text, ts: now, cos: A.cosOf(player.account) };
         (room.chat = room.chat || []).push(msg); if (room.chat.length > 80) room.chat.shift();
         io.to(room.code).emit('chat-msg', msg);
     });
@@ -913,6 +1002,43 @@ io.on('connection', (socket) => {
         if (hl.feedId) feedUpdate(room, hl.feedId, { status: 'lost', mult: null, win: 0, net: -hl.bet });
         return { winnings: 0, sm: 0 };
     }
+    /* ---------------- Machine à sous : LA NUIT DU LOUP (RTP ≈ 98 %, voir slot.js) ----------------
+       Chaque tour a sa graine, ENGAGÉE d'avance (hash affiché avant de jouer) et révélée à la fin du tour (encaissement ou perte au double).
+       Toutes les valeurs aléatoires du tour = HMAC-SHA256(graine, "slot:n:i") ÷ 2^52, i = 0, 1, 2… dans l'ordre du moteur. */
+    const slState = player => { const s = player.sl; return { hash: slSeedOf(player).hash, active: !!(s && s.active), pending: s && s.active ? s.pending : 0, unit: s ? s.unit : 0, g: s ? s.g : 0, buy: SLOT.BUY.slice(1).map(b => ({ n: b.name, price: b.price })), jp: SLOT.JP }; };
+    socket.on('sl-hash', ({ roomCode } = {}) => { const { room, player } = findPlayer(socket, roomCode); if (room && player) socket.emit('sl-hash', slState(player)); });
+    socket.on('sl-spin', ({ roomCode, amount, buy } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode);
+        if (!room || !player || !player.inGame || room.status === 'ended') return;
+        if (player.sl && player.sl.active) slFinish(room, player, 'collect'); // un nouveau tour encaisse d'abord le gain précédent
+        amount = Math.floor(Number(amount));
+        { const a2 = stakeOf(socket, player, amount); if (a2 === null) return; }
+        buy = [1, 2, 3].includes(+buy) ? +buy : 0;
+        const cost = buy ? amount * SLOT.BUY[buy].price : amount;
+        if (player.balance < cost) return socket.emit('error-message', 'Solde insuffisant pour ce bonus !');
+        const sp = slSeedOf(player); let i = 0;
+        const res = SLOT.spin(() => slU(sp.seed, 'slot:' + sp.n + ':' + (i++)), buy ? { buy } : {});
+        const payout = res.total > 0 ? weightedRound(res.total * amount) : 0;
+        player.balance -= cost;
+        const fid = feedId();
+        player.sl = { active: true, unit: amount, cost, pending: payout, g: 0, feedId: fid };
+        feedAdd(room, stamp({ id: fid, game: 'sl', icon: GAME_ICONS.sl, name: player.name, bet: cost, mult: null, win: 0, net: -cost, status: 'pending' }));
+        socket.emit('sl-result', { n: sp.n, hash: sp.hash, unit: amount, cost, buy, grid: res.grid, wins: res.wins, base: res.base, lanterns: res.lanterns, topup: res.topup, bonus: res.bonus, mult: res.total, payout });
+        if (payout <= 0) slFinish(room, player, 'lost'); else broadcast(room);
+    });
+    socket.on('sl-collect', ({ roomCode } = {}) => { const { room, player } = findPlayer(socket, roomCode); if (room && player && player.sl && player.sl.active) slFinish(room, player, 'collect'); });
+    // Double ou rien : rouge ou noir (carte tirée avec la même graine), gain ×2, jusqu'à 5 fois d'affilée (gain en attente ≤ 100× la mise)
+    socket.on('sl-gamble', ({ roomCode, color } = {}) => {
+        const { room, player } = findPlayer(socket, roomCode); const s = player && player.sl;
+        if (!room || !s || !s.active || s.pending <= 0 || room.status === 'ended') return;
+        if (color !== 'red' && color !== 'black') return;
+        if (s.g >= 5) return socket.emit('error-message', 'Maximum 5 doublements d’affilée : encaisse !');
+        if (s.pending > s.unit * 100) return socket.emit('error-message', 'Gain trop élevé pour doubler (maximum 100× la mise).');
+        const sp = slSeedOf(player), suit = Math.floor(slU(sp.seed, 'slot:' + sp.n + ':g' + s.g) * 4), rank = Math.floor(slU(sp.seed, 'slot:' + sp.n + ':r' + s.g) * 13);
+        const drawn = suit < 2 ? 'red' : 'black', ok = drawn === color; // suit : 0 ♥, 1 ♦ (rouges) · 2 ♠, 3 ♣ (noires)
+        if (ok) { s.pending *= 2; s.g++; socket.emit('sl-gamble-res', { ok: true, suit, rank, pending: s.pending, g: s.g, more: s.g < 5 && s.pending <= s.unit * 100 }); broadcast(room); }
+        else { socket.emit('sl-gamble-res', { ok: false, suit, rank, pending: 0, g: s.g }); slFinish(room, player, 'lost'); }
+    });
     socket.on('hl-state', ({ roomCode } = {}) => { // reprise après rafraîchissement
         const { room, player } = findPlayer(socket, roomCode);
         if (room && player && player.hl && player.hl.active) socket.emit('hl-started', Object.assign({ hash: sha256(player.hl.seed), resume: true, bet: player.hl.bet }, hlPayload(player.hl)));
@@ -1481,7 +1607,7 @@ function processCashOut(player, sl, multiplier, room, idx) {
 const sessionLive = room => room.status !== 'waiting' && room.status !== 'ended' && !!room.timers.session;
 // un joueur a de l'argent « dehors » (mise en cours dans un jeu) : il peut encore gagner, il n'est donc pas à zéro
 const hasStake = p => p.slots.some(sl => (sl.bet > 0 && !sl.cashed) || sl.next > 0)
-    || !!(p.iceState && p.iceState.active) || !!(p.jm && p.jm.active) || !!(p.cr && p.cr.active) || !!(p.ar && p.ar.active) || !!(p.mn && p.mn.active) || !!(p.hl && p.hl.active) || !!(p.pkQ && p.pkQ.length)
+    || !!(p.iceState && p.iceState.active) || !!(p.jm && p.jm.active) || !!(p.cr && p.cr.active) || !!(p.ar && p.ar.active) || !!(p.mn && p.mn.active) || !!(p.hl && p.hl.active) || !!(p.sl && p.sl.active) || !!(p.pkQ && p.pkQ.length)
     || !!(p.rl && (p.rl.active || p.rl.bets.length)) || bjPending(p.bj) > 0;
 const isBroke = p => p.balance <= 0 && !hasStake(p);
 // Arrêt automatique : tout le monde à zéro, OU tous à zéro sauf un (rien à jouer entre soi).
@@ -1525,6 +1651,7 @@ function endSession(room) {
     room.status = 'ended';
     room.stopVotes = null;
 
+    room.players.forEach(p => { if (p.sl && p.sl.active) slFinish(room, p, 'collect'); }); // gains de machine à sous en attente : encaissés
     // on rembourse les mises en cours pour que la fin de session soit équitable
     room.players.forEach(p => p.slots.forEach(sl => {
         if (sl.bet > 0 && !sl.cashed) p.balance += sl.bet;
@@ -1584,7 +1711,18 @@ function endSession(room) {
             pct: (p.balance - ini) / ini * 100, final: p.balance, initial: ini, profit: settled.rows[room.players.indexOf(p)].netCents, minPct,
             champ: room.players.length >= 2 && p.balance === bestBal && room.players.filter(x => x.balance === bestBal).length === 1,
             g: p.stats.gamesPlayed, w: p.stats.wins, bm: p.bestMult || 0, gp: [...(p.gamesSeen || [])], msgs: p.msgs || 0
-        }, Object.keys(G.GAME_ICONS)).then(list => { if (list.length) io.to(p.id).emit('badges-new', list); }).catch(e => console.error('profil :', e.message));
+        }, Object.keys(G.GAME_ICONS)).then(list => {
+            if (list.length) io.to(p.id).emit('badges-new', list);
+            // XP de fin de session : base + parties jouées + bonus positif / victoire + badges débloqués
+            const u = A.userRec(p.account); if (!u) return;
+            const pct = (p.balance - ini) / ini * 100, champ = room.players.length >= 2 && p.balance === bestBal && room.players.filter(x => x.balance === bestBal).length === 1;
+            const done = Q.event(u, { t: 'sess', pct, champ }); if (done.length) io.to(p.id).emit('q-done', done);
+            const before = XPL.levelInfo(u.xp || 0).level;
+            const gain = 20 + Math.min(40, Math.floor(p.stats.gamesPlayed / 3)) + (pct > 0 ? 15 : 0) + (champ ? 40 : 0) + list.length * 40;
+            Q.grantXp(u, gain); A.save();
+            io.to(p.id).emit('xp-gain', { gain, why: 'Session terminée', from: before, info: XPL.levelInfo(u.xp) });
+            qPush(p.account, p.id);
+        }).catch(e => console.error('profil :', e.message));
     });
 
     setTimeout(() => destroyRoom(room.code), ROOM_TTL_AFTER_END);
