@@ -555,8 +555,10 @@ socket.on('rl-result', d => {
    ============================================================ */
 const BJ_NAMES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']; // r : 0 = As … 12 = Roi
 const BJ_SUITS = ['♠', '♥', '♦', '♣']; // 0=pique, 1=cœur, 2=carreau, 3=trèfle
-const bjCardHtml = (c, cls = '') => c === null ? `<div class="bj-card bj-back ${cls}"></div>`
-  : `<div class="bj-card ${c.s === 1 || c.s === 2 ? 'red' : 'blk'} ${cls}">${BJ_NAMES[c.r]}${BJ_SUITS[c.s]}<i>${BJ_NAMES[c.r]}${BJ_SUITS[c.s]}</i></div>`;
+let bjNewN = 0; // ordre d'arrivée des nouvelles cartes : elles glissent l'une après l'autre depuis le sabot
+const bjDly = cls => / new\b|^new\b/.test(' ' + cls) ? ` style="animation-delay:${(bjNewN++ * 0.22).toFixed(2)}s"` : '';
+const bjCardHtml = (c, cls = '') => c === null ? `<div class="bj-card bj-back ${cls}"${bjDly(cls)}></div>`
+  : `<div class="bj-card ${c.s === 1 || c.s === 2 ? 'red' : 'blk'} ${cls}"${bjDly(cls)}>${BJ_NAMES[c.r]}${BJ_SUITS[c.s]}<i>${BJ_NAMES[c.r]}${BJ_SUITS[c.s]}</i></div>`;
 // total affiché : "7/17" pour une main souple (l'As vaut 1 ou 11), "BLACKJACK" pour un naturel
 const bjTotalText = h => h.bj ? 'BJ' : (h.soft && h.total < 21 ? `${h.total - 10}/${h.total}` : String(h.total));
 const BJ_TAG = { blackjack: 'Blackjack !', win: 'Gagné', push: 'Égalité', lose: 'Perdu', bust: 'Sauté' };
@@ -570,7 +572,7 @@ function bjBusyOn() { S.bjBusy = true; clearTimeout(S.bjBusyT); S.bjBusyT = setT
 function bjPaint(st) {
   const phase = st ? st.phase : 'idle';
   const playing = phase === 'player' || phase === 'insurance';
-  const prev = S.bjPrev;
+  const prev = S.bjPrev; bjNewN = 0;
   // --- croupier
   if (!st || !st.dealer.cards.length) { setH($('bjDealer'), ''); $('bjDealerScore').innerHTML = ''; prev.d = 0; }
   else {
@@ -658,3 +660,4 @@ socket.on('bj-result', d => {
   else if (b.dataset.f === 'max') amt.value = S.balance;
   else amt.value = Math.max(1, Math.floor((parseFloat(amt.value) || 0) * b.dataset.f));
 }));
+

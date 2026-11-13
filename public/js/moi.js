@@ -10,7 +10,9 @@ const TIERS = [
   { id: 'diamant', n: 'Diamant', t: 'Flambeur Étincelant', c: '#7fc8ff' }, { id: 'maitre', n: 'Maître', t: 'Maître des Mises', c: '#ff7a2f' },
   { id: 'grandmaitre', n: 'Grand Maître', t: 'Seigneur du Hasard', c: '#c78bff' }, { id: 'legende', n: 'Légende', t: 'Légende du Casino', c: '#ffcf33' },
   { id: 'mythique', n: 'Mythique', t: 'Dieu du Jackpot', c: '#a66bff' },
-  { id: 'secret', n: 'SECRET', t: '???', c: '#ff1a2e' }
+  { id: 'secret', n: 'SECRET', t: '???', c: '#ff1a2e' },
+  { id: 'astral', n: 'ASTRAL', t: 'Souverain des Étoiles', c: '#6fe3ff' },
+  { id: 'kitsune', n: 'KITSUNE', t: 'Esprit aux Neuf Queues', c: '#ff9fcb' }
 ];
 /* ---------- Toasts (quêtes, XP, niveaux) ---------- */
 (() => { const d = document.createElement('div'); d.id = 'toasts'; document.body.appendChild(d); })();
@@ -98,8 +100,8 @@ function apRender() {
   let h = `<div class="ch-note" style="text-align:left;margin-bottom:8px">Plus tu montes de niveau, plus tu débloques de rangs. Choisis le cadre et le titre que les autres voient.</div><div class="ap-grid">`;
   h += TIERS.map((T, k) => {
     const lock = k > d.top, lv = d.tiers[k].lv;
-    if (k === 9 && lock) return `<div class="ap-c lock sec"><div class="ap-av"><div class="sec-q">?</div></div><b>SECRET ???</b><small>???</small><em>🔒 ???</em></div>`;
-    return `<div class="ap-c${lock ? ' lock' : ''}${curF === k ? ' selF' : ''}${curT === k ? ' selT' : ''}"><div class="ap-av">${avHTML(d.name, { lv: lock ? lv : d.cos.lv, fr: k, ti: k, av: d.cos.av }, k === 9 ? 52 : k >= 6 ? 60 : 76)}</div><b style="color:${T.c}">${esc(T.n)}</b><small>${esc(T.t)}</small>
+    if (k >= 9 && lock) return `<div class="ap-c lock sec${k > 9 ? ' s' + k : ''}"><div class="ap-av"><div class="sec-q">?</div></div><b>${k > 9 ? T.n.replace(/./g, '?') : 'SECRET ???'}</b><small>???</small><em>🔒 ???</em></div>`;
+    return `<div class="ap-c${lock ? ' lock' : ''}${curF === k ? ' selF' : ''}${curT === k ? ' selT' : ''}"><div class="ap-av">${avHTML(d.name, { lv: lock ? lv : d.cos.lv, fr: k, ti: k, av: d.cos.av }, k >= 9 ? 52 : k >= 6 ? 60 : 76)}</div><b style="color:${T.c}">${esc(T.n)}</b><small>${esc(T.t)}</small>
       ${lock ? `<em>🔒 Niveau ${lv}</em>` : `<div class="ap-b"><button data-a="fr" data-k="${k}" class="${curF === k ? 'on' : ''}">${curF === k ? '✔ ' : ''}Cadre</button><button data-a="ti" data-k="${k}" class="${curT === k ? 'on' : ''}">${curT === k ? '✔ ' : ''}Titre</button></div>`}</div>`;
   }).join('') + '</div>';
   return h;

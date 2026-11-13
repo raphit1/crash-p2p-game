@@ -327,3 +327,4 @@ socket.on('pk-started', d => {
 socket.on('pk-result', d => { // dernière bille d'un lancer arrivée : la graine est révélée
   $('pkProof').textContent = `Graine révélée : ${d.seed} — SHA-256(graine) = hash du lancer ; bille j, rangée i : bit = 1er chiffre hexa de HMAC-SHA256(graine, "plinko:j:i") modulo 2 (1 = droite). Cases : ${d.slots.join(', ')}.`;
 });
+

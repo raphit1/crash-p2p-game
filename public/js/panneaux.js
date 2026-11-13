@@ -164,3 +164,5 @@ document.querySelectorAll("#sideTabs .sb[data-t]").forEach(x => x.addEventListen
 document.querySelectorAll('.ch-tabs button[data-t]').forEach(x => x.addEventListener('click', () => sideSet(x.dataset.t)));
 document.querySelector('.ch-x').addEventListener('click', () => sideToggle(sideTab));
 sideSet('charts');
+
+
