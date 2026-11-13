@@ -1033,10 +1033,9 @@ io.on('connection', (socket) => {
         if (!room || !s || !s.active || s.pending <= 0 || room.status === 'ended') return;
         if (color !== 'red' && color !== 'black') return;
         if (s.g >= 5) return socket.emit('error-message', 'Maximum 5 doublements d’affilée : encaisse !');
-        if (s.pending > s.unit * 100) return socket.emit('error-message', 'Gain trop élevé pour doubler (maximum 100× la mise).');
         const sp = slSeedOf(player), suit = Math.floor(slU(sp.seed, 'slot:' + sp.n + ':g' + s.g) * 4), rank = Math.floor(slU(sp.seed, 'slot:' + sp.n + ':r' + s.g) * 13);
         const drawn = suit < 2 ? 'red' : 'black', ok = drawn === color; // suit : 0 ♥, 1 ♦ (rouges) · 2 ♠, 3 ♣ (noires)
-        if (ok) { s.pending *= 2; s.g++; socket.emit('sl-gamble-res', { ok: true, suit, rank, pending: s.pending, g: s.g, more: s.g < 5 && s.pending <= s.unit * 100 }); broadcast(room); }
+        if (ok) { s.pending *= 2; s.g++; socket.emit('sl-gamble-res', { ok: true, suit, rank, pending: s.pending, g: s.g, more: s.g < 5 }); broadcast(room); }
         else { socket.emit('sl-gamble-res', { ok: false, suit, rank, pending: 0, g: s.g }); slFinish(room, player, 'lost'); }
     });
     socket.on('hl-state', ({ roomCode } = {}) => { // reprise après rafraîchissement
