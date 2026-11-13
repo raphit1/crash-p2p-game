@@ -424,46 +424,35 @@ body.side-open #stopBar{display:none}
 /* ============================================================
    Avatars avec cadres de rang · Mon profil · Quêtes · Toasts
    ============================================================ */
-.av{position:relative;display:inline-block;flex:none;width:var(--s);height:var(--s);vertical-align:middle;--t:max(2px,calc(var(--s)*.07))}
+/* ===== Cadres de rang (SVG détaillés) — voir js/cadres.js ===== */
+.av{position:relative;display:inline-block;flex:none;width:var(--s);height:var(--s);vertical-align:middle;--gl:rgba(255,255,255,.3)}
+.av svg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;overflow:visible}
+.av .bk{z-index:0;width:calc(var(--s)*2.7);height:calc(var(--s)*2.2);filter:drop-shadow(0 0 calc(var(--s)*.07) var(--gl))}
+.av .ft{z-index:3;width:calc(var(--s)*1.28);height:calc(var(--s)*1.28)}
+.av.big .ft{overflow:hidden;width:calc(var(--s)*2.7);height:calc(var(--s)*2.2)}
+.av:not(.big) .ft{filter:drop-shadow(0 0 calc(var(--s)*.05) var(--gl))}
 .av .avi{position:absolute;inset:0;border-radius:50%;overflow:hidden;display:grid;place-items:center;font-style:normal;font-weight:900;font-size:calc(var(--s)*.46);color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5);background:linear-gradient(145deg,hsl(var(--h),55%,38%),hsl(calc(var(--h) + 40),60%,22%));z-index:1}
 .av .avi img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.av::before{content:"";position:absolute;inset:calc(var(--t)*-1.6);border-radius:50%;z-index:2;pointer-events:none;padding:var(--t);background:conic-gradient(var(--fc),#fff6,var(--fc),#0006,var(--fc));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
-.av .avl{position:absolute;right:calc(var(--s)*-.1);bottom:calc(var(--s)*-.08);z-index:5;min-width:calc(var(--s)*.34);height:calc(var(--s)*.34);padding:0 3px;border-radius:99px;display:grid;place-items:center;font-style:normal;font-weight:900;font-size:max(8px,calc(var(--s)*.2));color:#1a1020;background:var(--fc);border:1.5px solid #14091e;box-shadow:0 1px 4px rgba(0,0,0,.5)}
-/* 0 Bronze · 1 Argent · 2 Or */
-.fr-0::before{background:conic-gradient(#8a4f1d,#e0a266,#8a4f1d,#c27a3a,#8a4f1d)}
-.fr-1::before{background:conic-gradient(#8c97a4,#fff,#8c97a4,#d7dee8,#8c97a4)}
-.fr-2::before{background:conic-gradient(#b8860b,#fff2a6,#b8860b,#ffd34d,#b8860b)}.fr-2{filter:drop-shadow(0 0 5px rgba(255,205,70,.55))}
-/* 3 Platine : reflet qui tourne */
-.fr-3::before{background:conic-gradient(#3fc6c0,#fff,#3fc6c0,#bff7f3,#3fc6c0);animation:frSpin 5s linear infinite}.fr-3{filter:drop-shadow(0 0 7px rgba(127,231,224,.65))}
-/* 4 Diamant : prisme + étincelles */
-.fr-4::before{background:conic-gradient(#4aa8ff,#d5f0ff,#9b8cff,#fff,#4aa8ff,#7be0ff,#4aa8ff);animation:frSpin 3.5s linear infinite}.fr-4{filter:drop-shadow(0 0 9px rgba(110,190,255,.8))}
-.av .sp{position:absolute;z-index:6;font-style:normal;font-size:calc(var(--s)*.22);color:#fff;text-shadow:0 0 6px #7fc8ff;animation:twinkle 1.6s ease-in-out infinite}.av .s1{top:-6%;right:2%}.av .s2{bottom:6%;left:-6%;animation-delay:.7s}
-/* 5 Maître : flammes */
-.fr-5::before{background:conic-gradient(#ff3b00,#ffd15a,#ff3b00,#ff8a00,#ff3b00);animation:frSpin 2.4s linear infinite}
-.fr-5{filter:drop-shadow(0 0 8px rgba(255,110,20,.85)) drop-shadow(0 -3px 10px rgba(255,60,0,.6));animation:fireGlow 1s ease-in-out infinite alternate}
-.av .fx{position:absolute;z-index:6;font-style:normal;font-size:calc(var(--s)*.3);line-height:1;animation:flame 1.1s ease-in-out infinite;transform-origin:50% 100%}
-.av .f1{top:calc(var(--s)*-.2);left:12%}.av .f2{top:calc(var(--s)*-.26);left:42%;animation-delay:.35s;font-size:calc(var(--s)*.38)}.av .f3{top:calc(var(--s)*-.2);right:8%;animation-delay:.7s}
-/* 6 Grand Maître : ailes violettes */
-.fr-6::before{background:conic-gradient(#8a3cff,#f0d8ff,#8a3cff,#c78bff,#8a3cff);animation:frSpin 4s linear infinite}.fr-6{filter:drop-shadow(0 0 10px rgba(170,90,255,.8))}
-.av .wg{position:absolute;z-index:0;top:50%;width:calc(var(--s)*.95);height:calc(var(--s)*.8);margin-top:calc(var(--s)*-.5);pointer-events:none;
-  background:linear-gradient(180deg,#fff 0%,var(--fc) 45%,rgba(0,0,0,.35) 100%);
-  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 80'%3E%3Cpath d='M0 40C10 20 30 6 60 2C56 12 54 18 50 22C70 14 88 14 100 16C90 24 80 30 68 34C84 34 96 38 100 44C88 50 76 52 64 52C78 56 88 62 92 70C76 68 60 62 48 58C54 66 56 72 54 78C36 70 14 58 0 40Z'/%3E%3C/svg%3E") center/100% 100% no-repeat;
-  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 80'%3E%3Cpath d='M0 40C10 20 30 6 60 2C56 12 54 18 50 22C70 14 88 14 100 16C90 24 80 30 68 34C84 34 96 38 100 44C88 50 76 52 64 52C78 56 88 62 92 70C76 68 60 62 48 58C54 66 56 72 54 78C36 70 14 58 0 40Z'/%3E%3C/svg%3E") center/100% 100% no-repeat;animation:wing 2.4s ease-in-out infinite}
-.av .wL{right:calc(50% + var(--s)*.3);transform:scaleX(-1);transform-origin:50% 50%}.av .wR{left:calc(50% + var(--s)*.3);transform-origin:0 50%}
-.av .wL{animation-name:wingL}
-/* 7 Légende : ailes dorées + feu + aura · 8 Mythique : arc-en-ciel */
-.fr-7::before{background:conic-gradient(#ffb300,#fff7c2,#ffb300,#ff7a00,#ffe36b,#ffb300);animation:frSpin 3s linear infinite}
-.fr-7{filter:drop-shadow(0 0 12px rgba(255,200,40,.95)) drop-shadow(0 0 22px rgba(255,120,0,.55));animation:fireGlow .9s ease-in-out infinite alternate}
-.fr-8::before{background:conic-gradient(#ff4fd8,#ffd84f,#4fffb0,#4fb4ff,#a64fff,#ff4fd8);animation:frSpin 2s linear infinite}
-.fr-8{animation:rainbow 4s linear infinite}
-@keyframes frSpin{to{transform:rotate(360deg)}}
-@keyframes twinkle{0%,100%{opacity:.2;transform:scale(.6)}50%{opacity:1;transform:scale(1.15)}}
-@keyframes flame{0%,100%{transform:translateY(0) scale(1,1);opacity:.95}50%{transform:translateY(-12%) scale(1.15,1.3);opacity:1}}
-@keyframes fireGlow{from{filter:drop-shadow(0 0 7px rgba(255,100,20,.7)) drop-shadow(0 -2px 8px rgba(255,60,0,.4))}to{filter:drop-shadow(0 0 13px rgba(255,150,30,1)) drop-shadow(0 -5px 14px rgba(255,80,0,.8))}}
-@keyframes wing{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(7deg)}}
-@keyframes wingL{0%,100%{transform:scaleX(-1) rotate(-4deg)}50%{transform:scaleX(-1) rotate(7deg)}}
-@keyframes rainbow{to{filter:hue-rotate(360deg) drop-shadow(0 0 12px rgba(255,255,255,.7))}}
+.av .avi::after{content:"";position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 calc(var(--s)*.14) rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.12);background:radial-gradient(circle at 30% 22%,rgba(255,255,255,.16),transparent 45%)}
+.av .avl{position:absolute;right:calc(var(--s)*-.08);bottom:calc(var(--s)*-.06);z-index:5;min-width:calc(var(--s)*.34);height:calc(var(--s)*.34);padding:0 3px;border-radius:99px;display:grid;place-items:center;font-style:normal;font-weight:900;font-size:max(8px,calc(var(--s)*.2));color:#1a1020;border:1.5px solid #14091e;box-shadow:0 1px 4px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.6)}
+.av .spin{transform-box:view-box;transform-origin:50% 50%;animation:cSpin 20s linear infinite}
+.av .spin.rev{animation-direction:reverse}
+.av .tw{transform-box:fill-box;transform-origin:center;animation:cTw 2.4s ease-in-out infinite}
+.av .fl{transform-box:fill-box;transform-origin:50% 100%;animation:cFl .9s ease-in-out infinite alternate}
+.av .em{animation:cRise 2.6s ease-out infinite;opacity:0}
+.av .pulse{animation:cPulse 4s ease-in-out infinite;transform-box:view-box;transform-origin:50% 50%}
+.av .lava{animation:cLava 2.2s ease-in-out infinite alternate}
+.av .cmt{animation:cComet 8s linear infinite;opacity:0}
+.fr-8 .avi{box-shadow:0 0 0 1px #0a0330}
+@keyframes cSpin{to{transform:rotate(360deg)}}
+@keyframes cTw{0%,100%{opacity:.25;transform:scale(.55)}50%{opacity:1;transform:scale(1.15)}}
+@keyframes cFl{0%{transform:scale(1,.82) skewX(-4deg)}50%{transform:scale(.94,1.04) skewX(3deg)}100%{transform:scale(1.04,.9) skewX(-2deg)}}
+@keyframes cRise{0%{transform:translate(0,0);opacity:0}15%{opacity:1}100%{transform:translate(var(--dx,6px),-46px);opacity:0}}
+@keyframes cPulse{0%,100%{opacity:.65}50%{opacity:1}}
+@keyframes cLava{from{opacity:.55;stroke-dashoffset:0}to{opacity:1;stroke-dashoffset:-24}}
+@keyframes cComet{0%{transform:translate(-120px,-96px);opacity:0}2%{opacity:1}16%{transform:translate(112px,76px);opacity:1}18%,100%{transform:translate(112px,76px);opacity:0}}
 .avw{display:inline-flex;flex-direction:column;align-items:center;gap:4px}
+
 .avt{font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--fc);text-shadow:0 0 8px color-mix(in srgb,var(--fc) 60%,transparent)}
 .lvtag{display:block;font-size:10px;font-weight:700;color:#9a90ad}
 .pl-li{display:flex;align-items:center;gap:10px;list-style:none;margin:6px 0}.pl-li span{flex:0 1 auto}
@@ -477,7 +466,7 @@ body.me-open{overflow:hidden}
 .me-bar{display:flex;align-items:center;gap:12px;margin-bottom:6px}.me-bar span{font-weight:900;color:#f6dc9a;font-size:17px}
 .me-x{width:auto;margin:0;padding:8px 14px;background:#2b2036;border:1px solid rgba(212,162,76,.4);box-shadow:none;border-radius:12px;font-size:13px}
 .me-hero{display:flex;align-items:center;gap:22px;padding:26px 18px 16px;border-radius:20px;background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid rgba(212,162,76,.25);margin-top:14px}
-.me-av{flex:none;padding:16px 88px 16px 94px}.me-id{flex:1;min-width:0;text-align:left}
+.me-av{flex:none;padding:38px 112px 30px}.me-id{flex:1;min-width:0;text-align:left}
 .me-name{font-size:24px;font-weight:900;color:#fff}.me-title{font-weight:800;font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--fc);text-shadow:0 0 10px color-mix(in srgb,var(--fc) 55%,transparent);margin-top:2px}
 .me-rank{font-size:12px;font-weight:700;margin-top:2px;opacity:.9}
 .xpbar{height:12px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:12px}.xpbar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#f59e0b,#fde68a);box-shadow:0 0 10px rgba(245,158,11,.6)}
@@ -502,7 +491,7 @@ body.me-open{overflow:hidden}
 .ap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .ap-c{display:flex;flex-direction:column;align-items:center;gap:3px;padding:16px 8px 12px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid transparent;text-align:center}
 .ap-c.selF{border-color:rgba(212,162,76,.7)}.ap-c.lock{opacity:.5;filter:grayscale(.6)}.ap-c.lock .av,.ap-c.lock .avw{filter:none}
-.ap-av{padding:14px 30px 6px}.ap-c small{font-size:11px;color:#9a90ad}.ap-c em{font-style:normal;font-size:12px;color:#fca5a5;margin-top:4px}
+.ap-av{padding:22px 4px 8px}.ap-c small{font-size:11px;color:#9a90ad}.ap-c em{font-style:normal;font-size:12px;color:#fca5a5;margin-top:4px}
 .ap-b{display:flex;gap:5px;margin-top:6px}.ap-b button{width:auto;margin:0;padding:6px 9px;font-size:12px;border-radius:9px;background:rgba(255,255,255,.08);box-shadow:none;border:1px solid transparent}.ap-b button.on{border-color:#fde68a;color:#fde68a}
 /* paramètres */
 .pa-sec{padding:14px;border-radius:14px;background:rgba(255,255,255,.05);margin-bottom:12px}.pa-sec h4{margin:0 0 10px;color:#f6dc9a;font-size:15px}.pa-sec small{display:block;color:#9a90ad;font-size:12px;margin:6px 0}
@@ -519,7 +508,7 @@ body.me-open{overflow:hidden}
 @keyframes tstIn{from{opacity:0;transform:translateY(-14px) scale(.96)}to{opacity:1;transform:none}}
 #meBtn b{position:absolute;top:-5px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:#f59e0b;color:#1a1020;font-size:11px;display:grid;place-items:center;padding:0 4px}
 @media (max-width:700px){
-  .me-hero{flex-direction:column;text-align:center;gap:6px}.me-id{text-align:center}.me-av{padding:12px 80px 18px}.me-id{width:100%}.me-tabs button{padding:10px 4px;font-size:12px}.me-name{font-size:21px}
+  .me-hero{flex-direction:column;text-align:center;gap:6px}.me-id{text-align:center}.me-av{padding:34px 0 24px;max-width:100%}.me-av .av{--s:92px!important}.me-id{width:100%}.me-tabs button{padding:10px 4px;font-size:12px}.me-name{font-size:21px}
   .ap-grid{grid-template-columns:repeat(2,1fr)}.qi{padding:9px 10px}
 }
 @media (prefers-reduced-motion:reduce){.av,.av::before,.av .fx,.av .wg,.av .sp{animation:none!important}}
@@ -594,3 +583,20 @@ body.me-open{overflow:hidden}
 @media (prefers-reduced-motion:reduce){.sc,.sl-moon{animation:none!important}}
 html.rm .sc,html.rm .sl-moon{animation:none!important}
 .app-bulb{animation:bulbSway 2.2s ease-in-out infinite;transform-origin:18px 80px}@keyframes bulbSway{50%{transform:rotate(6deg)}}
+
+/* ===== Effets autour du pseudo (rangs 5 à 8) ===== */
+.pn{position:relative;display:inline-block}
+.pn .pst{position:absolute;inset:-6px -4px;pointer-events:none}
+.pn .pst b{position:absolute;width:3px;height:3px;border-radius:50%;opacity:0;animation:pnUp 2.4s ease-out infinite}
+.pn .pst b:nth-child(1){left:8%;bottom:30%;animation-delay:0s}.pn .pst b:nth-child(2){left:38%;bottom:40%;animation-delay:.8s}.pn .pst b:nth-child(3){left:66%;bottom:30%;animation-delay:1.5s}.pn .pst b:nth-child(4){left:90%;bottom:40%;animation-delay:.4s}
+.pn-5{color:#ffe2bd;text-shadow:0 0 6px #ff7a1a,0 -2px 9px #ff4500;animation:pnFire 1.4s ease-in-out infinite alternate}.pn-5 .pst b{background:#ffb347;box-shadow:0 0 5px #ff6a00}
+.pn-6{color:#f1e6ff;text-shadow:0 0 8px #a35bff,0 0 16px rgba(140,70,255,.6)}.pn-6 .pst{display:none}
+.pn-7{background:linear-gradient(90deg,#b8790a,#fff3b0,#f5b301,#fff3b0,#b8790a);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:pnShim 3s linear infinite;filter:drop-shadow(0 0 4px rgba(255,200,50,.65))}
+.pn-7 .pst b{background:#ffe27a;box-shadow:0 0 5px #ffc83a}
+.pn-8{background:linear-gradient(90deg,#8b5cf6,#e9d5ff,#a855f7,#fff,#7c3aed,#c4a1ff,#8b5cf6);background-size:260% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:pnShim 4.5s linear infinite;filter:drop-shadow(0 0 5px rgba(150,90,255,.9))}
+.pn-8 .pst b{background:#fff;box-shadow:0 0 6px #b583ff,0 0 2px #fff}.pn-8 .pst b:nth-child(odd){background:#d9bcff}
+@keyframes pnUp{0%{transform:translateY(4px) scale(.6);opacity:0}25%{opacity:1}100%{transform:translateY(-14px) scale(1);opacity:0}}
+@keyframes pnFire{from{text-shadow:0 0 5px #ff7a1a,0 -1px 7px #ff4500}to{text-shadow:0 0 9px #ff9a3c,0 -4px 13px #ff3d00}}
+@keyframes pnShim{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.av *,.pn,.pn *{animation:none!important}}
+html.rm .av *,html.rm .pn,html.rm .pn *{animation:none!important}
