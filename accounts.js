@@ -16,6 +16,7 @@ const crypto = require('crypto');
 const { promisify } = require('util');
 const scrypt = promisify(crypto.scrypt);
 const { BADGES } = require('./badges');
+const XP = require('./xp');
 
 const DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const FILE = path.join(DIR, 'accounts.json');
@@ -47,7 +48,7 @@ const ready = (async () => {
     } catch (e) { storageOk = false; console.error('❌ Base de comptes injoignable :', e.message); }
 })();
 
-let saveTimer = null, saving = Promise.resolve();
+let saveTimer = null, saveDue = 0, saving = Promise.resolve();
 async function writeNow() {
     if (!storageOk) return;
     const json = JSON.stringify(db);
@@ -61,10 +62,13 @@ async function writeNow() {
         }
     } catch (e) { console.error('❌ Sauvegarde des comptes impossible :', e.message, '— nouvel essai dans 5 s'); setTimeout(save, 5000); }
 }
-function save() { // écritures groupées (200 ms)
-    if (saveTimer) return;
-    saveTimer = setTimeout(() => { saveTimer = null; saving = saving.then(writeNow); }, 200);
+function save(delay = 200) { // écritures groupées (200 ms ; la progression des quêtes passe par saveSoon : 20 s)
+    const due = Date.now() + delay;
+    if (saveTimer) { if (due >= saveDue) return; clearTimeout(saveTimer); }
+    saveDue = due;
+    saveTimer = setTimeout(() => { saveTimer = null; saving = saving.then(writeNow); }, delay);
 }
+const saveSoon = () => save(20000);
 async function flush() { if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; saving = saving.then(writeNow); } await saving; }
 // Render envoie SIGTERM avant un redéploiement : on termine l'écriture en cours avant de partir
 process.on('SIGTERM', () => { flush().finally(() => process.exit(0)); });
@@ -160,18 +164,86 @@ async function recordSession(k, sess, allGames) {
 }
 async function resetProfile(name) {
     await ready; const u = db.users[key(name)]; if (!u || !storageOk) return false;
-    delete u.prof; save(); return true;
+    delete u.prof; delete u.xp; delete u.q; delete u.lc; delete u.qc; delete u.cf; delete u.ct; save(); return true;
 }
 function profileOf(name) {
     const u = db.users[key(name)]; if (!u) return null;
     const p = Object.assign(newProf(), u.prof || {});
-    return { name: u.name, since: u.created, n: p.n, avg: p.n ? p.sp / p.n : 0, best: p.best, worst: p.worst, c1: p.c1, g: p.g, w: p.w, tp: p.nt, tg: p.ng, tl: p.nl, bm: p.bm, msg: p.msg, last: p.last, ls: p.ls,
+    return { name: u.name, cos: cosOf(key(u.name)), since: u.created, n: p.n, avg: p.n ? p.sp / p.n : 0, best: p.best, worst: p.worst, c1: p.c1, g: p.g, w: p.w, tp: p.nt, tg: p.ng, tl: p.nl, bm: p.bm, msg: p.msg, last: p.last, ls: p.ls,
         badges: BADGES.map(b => ({ id: b.id, e: b.e, n: b.n, d: b.d, got: p.bd.includes(b.id) })) };
 }
 function leaderboard(limit = 50) {
     return Object.values(db.users).filter(u => u.prof && u.prof.n > 0)
-        .map(u => ({ name: u.name, avg: u.prof.sp / u.prof.n, n: u.prof.n, best: u.prof.best, tp: u.prof.nt || 0, tg: u.prof.ng || 0, tl: u.prof.nl || 0, badges: (u.prof.bd || []).length }))
+        .map(u => ({ name: u.name, avg: u.prof.sp / u.prof.n, n: u.prof.n, best: u.prof.best, tp: u.prof.nt || 0, tg: u.prof.ng || 0, tl: u.prof.nl || 0, badges: (u.prof.bd || []).length, cos: cosOf(key(u.name)) }))
         .sort((a, b) => b.avg - a.avg).slice(0, limit);
 }
 
-module.exports = { register, login, resume, logout, key, flush, recordSession, profileOf, leaderboard, resetProfile };
+/* ------------------------------------------------------------------ */
+/*  Compte : fiche, apparence, mot de passe, photo                      */
+/* ------------------------------------------------------------------ */
+const userRec = k => db.users[k] || null;
+// apparence publique d'un joueur (niveau, cadre, titre, photo) — quelques octets, affichée partout
+function cosOf(k) {
+    const u = db.users[k]; if (!u) return { lv: 1, fr: 0, ti: 0, av: 0 };
+    const lv = XP.levelInfo(u.xp).level, top = XP.tierFor(lv);
+    return { lv, fr: u.cf == null ? top : Math.min(u.cf, top), ti: u.ct == null ? top : Math.min(u.ct, top), av: u.avv || 0 };
+}
+function setCos(k, fr, ti) {
+    const u = db.users[k]; if (!u) return false;
+    const top = XP.tierFor(XP.levelInfo(u.xp).level);
+    fr = Math.floor(Number(fr)); ti = Math.floor(Number(ti));
+    if (!(fr >= 0 && fr <= top && ti >= 0 && ti <= top)) return false;
+    u.cf = fr; u.ct = ti; save(); return true;
+}
+async function changePassword(name, oldPw, newPw, keepToken) {
+    await ready; if (!storageOk) return { error: 'Base de comptes indisponible, réessaie dans un instant.' };
+    const k = key(name), u = db.users[k], id = 'chg|' + k;
+    if (!u) return { error: 'Compte introuvable.' };
+    if (locked(id)) return { error: 'Trop d\'essais. Réessaie dans une minute.' };
+    newPw = String(newPw || '');
+    if (newPw.length < 6 || newPw.length > 100) return { error: 'Nouveau mot de passe : 6 caractères minimum.' };
+    if (!(await checkPassword(String(oldPw || ''), u.pass))) { fail(id); return { error: 'Ancien mot de passe incorrect.' }; }
+    fails.delete(id);
+    u.pass = await hashPassword(newPw);
+    Object.keys(db.sessions).forEach(h => { if (db.sessions[h].user === k && h !== sha(String(keepToken || ''))) delete db.sessions[h]; }); // les autres appareils sont déconnectés
+    save(); return { ok: true };
+}
+function logoutAll(name) { const k = key(name); Object.keys(db.sessions).forEach(h => { if (db.sessions[h].user === k) delete db.sessions[h]; }); save(); }
+async function deleteAccount(name, pw) {
+    await ready; if (!storageOk) return { error: 'Base de comptes indisponible, réessaie dans un instant.' };
+    const k = key(name), u = db.users[k], id = 'del|' + k;
+    if (!u) return { error: 'Compte introuvable.' };
+    if (locked(id)) return { error: 'Trop d\'essais. Réessaie dans une minute.' };
+    if (!(await checkPassword(String(pw || ''), u.pass))) { fail(id); return { error: 'Mot de passe incorrect.' }; }
+    await avatarDel(k).catch(() => {});
+    delete db.users[k]; Object.keys(db.sessions).forEach(h => { if (db.sessions[h].user === k) delete db.sessions[h]; });
+    save(); return { ok: true };
+}
+// Photo de profil : une petite image JPEG (~4 Ko) gardée À PART de la base des comptes (clé Upstash dédiée / fichier local)
+const AV_DIR = path.join(DIR, 'av'), avId = k => sha('av:' + k).slice(0, 32), avCache = new Map();
+async function avatarGet(name) {
+    const k = key(name), u = db.users[k]; if (!u || !u.avv) return null;
+    if (avCache.has(k)) return avCache.get(k);
+    let buf = null;
+    try {
+        if (REMOTE_URL && REMOTE_TOKEN) { const v = await remote(['GET', 'crash-p2p:av:' + avId(k)]); if (v) buf = Buffer.from(v, 'base64'); }
+        else buf = fs.readFileSync(path.join(AV_DIR, avId(k) + '.jpg'));
+    } catch (e) { /* pas de photo */ }
+    if (buf) avCache.set(k, buf);
+    return buf;
+}
+async function avatarSet(name, buf) {
+    await ready; const k = key(name), u = db.users[k]; if (!u || !storageOk) return false;
+    if (REMOTE_URL && REMOTE_TOKEN) await remote(['SET', 'crash-p2p:av:' + avId(k), buf.toString('base64')]);
+    else { fs.mkdirSync(AV_DIR, { recursive: true }); fs.writeFileSync(path.join(AV_DIR, avId(k) + '.jpg'), buf); }
+    avCache.set(k, buf); u.avv = Date.now(); save(); return true;
+}
+async function avatarDel(k) {
+    const u = db.users[k]; if (!u) return;
+    avCache.delete(k);
+    try { if (REMOTE_URL && REMOTE_TOKEN) await remote(['DEL', 'crash-p2p:av:' + avId(k)]); else fs.unlinkSync(path.join(AV_DIR, avId(k) + '.jpg')); } catch (e) { /* déjà absent */ }
+    delete u.avv; save();
+}
+
+module.exports = { register, login, resume, logout, key, flush, recordSession, profileOf, leaderboard, resetProfile,
+    userRec, save, saveSoon, cosOf, setCos, changePassword, logoutAll, deleteAccount, avatarGet, avatarSet, avatarDel: name => avatarDel(key(name)) };
