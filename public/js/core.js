@@ -147,6 +147,7 @@ const Snd = (() => {
     startMusic() { init(); if (timer) return; step = 0; nextT = ctx.currentTime + .1; timer = setInterval(schedule, 120); schedule(); level(); },
     stopMusic() { if (!timer) return; clearInterval(timer); timer = null; musicBus.gain.setTargetAtTime(0, ctx.currentTime, .6); },
     setVol(k, v) { v = Math.max(0, Math.min(1, +v || 0)); if (k === 'music') { mVol = v; if (ctx && timer) level(); } else { sVol = v; if (ctx && sfx) sfx.gain.setTargetAtTime(.9 * v, ctx.currentTime, .05); } },
+    ac: () => ctx, out: () => sfx, mus: () => musicBus, rv: () => verb, lvl: () => level(), noiseBuf: () => noiseBuf,
     toggle() { musicOn = !musicOn; if (ctx && timer) level(); return musicOn; },
     suspend() { if (ctx && ctx.state === 'running') ctx.suspend(); }, resume() { if (ctx && ctx.state === 'suspended') ctx.resume(); }
   };
