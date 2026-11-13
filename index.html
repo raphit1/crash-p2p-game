@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#150d22">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Crash P2P">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <title>Crash P2P - Aviator Pro Ultimate</title>
+    <link rel="stylesheet" href="/style.css?v=13">
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Crash P2P Arena</h1>
+
+        <!-- 1. AUTH SCREEN -->
+        <div id="auth-screen">
+            <div class="card" id="loginCard">
+                <h3>Connexion</h3>
+                <p style="font-size:13px;color:#94a3b8;margin:0 0 6px">Ton compte garde ta partie : tu peux rafraîchir la page sans rien perdre.</p>
+                <input type="text" id="authUser" placeholder="Pseudo" maxlength="20" autocomplete="username">
+                <input type="password" id="authPass" placeholder="Mot de passe (6 caractères min.)" maxlength="100" autocomplete="current-password" onkeydown="if(event.key==='Enter')authSubmit('login')">
+                <button onclick="authSubmit('login')">Se connecter</button>
+                <button onclick="authSubmit('register')" style="background:#2b2036;box-shadow:none;border:1px solid rgba(212,162,76,.35)">Créer un compte</button>
+            </div>
+            <div id="roomCards" class="hidden">
+            <p style="font-size:14px;color:#94a3b8;margin:0 0 8px">Connecté en tant que <b id="whoami" style="color:#f6dc9a"></b> · <a href="#" onclick="openMe();return false" style="color:#f6dc9a;font-weight:800">👤 Mon profil</a> · <a href="#" onclick="logout();return false" style="color:#38bdf8">Se déconnecter</a></p>
+            <div class="card">
+                <h3>💶 Ta mise d'entrée</h3>
+                <p style="font-size:13px;color:#94a3b8;margin:0 0 8px">Tu entres dans la room avec cette somme, que les autres joueurs voient. Elle est convertie en jetons, et à la fin le pot est redistribué selon la performance de chacun.</p>
+                <div class="quick-bet-row"><button class="quick-btn" onclick="setStake(5)">5 €</button><button class="quick-btn" onclick="setStake(10)">10 €</button><button class="quick-btn" onclick="setStake(20)">20 €</button><button class="quick-btn" onclick="setStake(50)">50 €</button></div>
+                <input type="number" id="stakeInput" value="10" min="0.1" step="0.1" inputmode="decimal" oninput="onStakeInput()" placeholder="Autre montant en €">
+                <p id="stakeInfo" style="font-size:13px;color:#22c55e;margin:4px 0 0"></p>
+            </div>
+            <div class="card">
+                <h3>Créer une Room</h3>
+                <label style="font-size: 14px; color: #94a3b8; display: block; margin-top: 8px;">Durée de la session :</label>
+                <select id="duration">
+                    <option value="1">1 minute (Test rapide)</option>
+                    <option value="3">3 minutes</option>
+                    <option value="5" selected>5 minutes</option>
+                    <option value="10">10 minutes</option>
+                    <option value="15">15 minutes</option>
+                </select>
+                <button onclick="createRoom()">Créer la partie</button>
+            </div>
+            <div class="card">
+                <h3>Rejoindre une Room</h3>
+                <input type="text" id="roomCodeInput" placeholder="Code à 4 caractères (ex: K7M2)" maxlength="10" autocapitalize="characters" onkeydown="if(event.key==='Enter')joinRoom()">
+                <button onclick="joinRoom()">Rejoindre</button>
+            </div>
+            </div>
+        </div>
+
+        <!-- 2. LOBBY PRINCIPAL -->
+        <div id="lobby" class="hidden card">
+            <h2>Salon d'attente</h2>
+            <p>Code de la room : <b id="displayCode" style="color: #38bdf8;"></b></p>
+            <p>Pot total : <b id="potTotal" style="color: #22c55e;">0 €</b></p>
+            <h4>Joueurs connectés :</h4>
+            <ul id="playersList"></ul>
+
+            <div id="adminControls" class="hidden" style="margin-top: 20px;">
+                <p style="color: #eab308; font-weight: bold;">Espace Admin : lancer la session de jeux</p>
+                <div class="game-thumbnail" onclick="launchGame()">
+                    🎮 Lancer la session de jeux
+                </div>
+            </div>
+
+            <div id="playerWaitingGame" class="hidden" style="margin-top: 20px; text-align: center; color: #94a3b8;">
+                <p>L'administrateur va bientôt lancer un jeu...</p>
+            </div>
+            <button onclick="leaveRoom()" style="margin-top:16px;background:#2b2036;box-shadow:none;border:1px solid rgba(212,162,76,.35)">Quitter la room</button>
+        </div>
+
+        <!-- 3. HUB CENTRAL DE SÉLECTION DES JEUX -->
+        <div id="game-hub" class="hidden card" style="text-align: center;">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <button class="musicBtn btn-history-more" onclick="toggleMusic()" title="Musique on/off">🎵</button>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h2>🎮 Centre des Jeux</h2>
+            <p style="color: #94a3b8;">Choisis ton jeu pour participer à la compétition commune !</p>
+            <div class="app-grid">
+                <div class="app-tile" role="button" tabindex="0" onclick="switchGame('Crash Out')" onkeydown="if(event.key==='Enter'||event.key===' ')switchGame('Crash Out')" title="Crash Out — style Aviator, RTP 98,5 %">
+                    <div class="app-icon"><svg viewBox="0 0 120 120"><defs><linearGradient id="gC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1147"/><stop offset=".55" stop-color="#7a2a6a"/><stop offset="1" stop-color="#ff8a3c"/></linearGradient><linearGradient id="gCt" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#ffb347" stop-opacity="0"/><stop offset="1" stop-color="#ffd27a"/></linearGradient><radialGradient id="gCs" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff3c4"/><stop offset="1" stop-color="#ffb347" stop-opacity="0"/></radialGradient></defs>
+<rect width="120" height="120" fill="url(#gC)"/><circle cx="22" cy="100" r="26" fill="url(#gCs)" opacity=".7"/>
+<g fill="#fff" opacity=".8"><circle cx="18" cy="16" r="1"/><circle cx="46" cy="10" r="1.2"/><circle cx="96" cy="22" r="1"/><circle cx="74" cy="8" r=".8"/><circle cx="108" cy="50" r=".9"/><circle cx="12" cy="44" r=".8"/></g>
+<path d="M8 104 C 34 102, 58 90, 78 62 S 96 34, 104 24" fill="none" stroke="url(#gCt)" stroke-width="5" stroke-linecap="round" opacity=".9"/>
+<path d="M8 104 L 104 104" stroke="#fff" stroke-opacity=".15"/>
+<g class="app-plane" transform="translate(88 34) rotate(-38)"><path d="M-22 -3 L-6 -3 L6 -14 L11 -14 L5 -3 L20 -3 C26 -3 27 3 20 3 L5 3 L11 14 L6 14 L-6 3 L-22 3 L-26 9 L-29 9 L-26 0 L-29 -9 L-26 -9 Z" fill="#fff"/><path d="M-6 -3 L6 -14 L11 -14 L5 -3 Z" fill="#ff4d6d"/><circle cx="12" cy="0" r="2" fill="#38bdf8"/></g>
+<g font-family="system-ui,sans-serif" font-weight="900"><rect x="10" y="10" width="42" height="19" rx="9" fill="#000" opacity=".35"/><text x="31" y="24" text-anchor="middle" font-size="14" fill="#7CFFB2">x12.4</text></g></svg></div><span class="app-name">Crash</span>
+                </div>
+                <div class="app-tile" role="button" tabindex="0" onclick="switchGame('Icefield')" onkeydown="if(event.key==='Enter'||event.key===' ')switchGame('Icefield')" title="Icefield — traversée du Yéti, RTP 98,5 %">
+                    <div class="app-icon"><svg viewBox="0 0 120 120"><defs><linearGradient id="gI" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe9ff"/><stop offset=".5" stop-color="#3ea8f0"/><stop offset="1" stop-color="#0b3d91"/></linearGradient><linearGradient id="gIt" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e8f8ff"/><stop offset="1" stop-color="#7cc7f5"/></linearGradient></defs>
+<rect width="120" height="120" fill="url(#gI)"/>
+<path d="M0 70 L24 38 L38 56 L58 24 L84 62 L98 46 L120 72 L120 120 L0 120Z" fill="#e9f7ff" opacity=".85"/><path d="M58 24 L50 40 L58 36 L64 44 Z" fill="#fff"/>
+<g stroke="#0b3d91" stroke-opacity=".35" stroke-width="1.2"><rect x="6" y="78" width="26" height="22" rx="5" fill="url(#gIt)"/><rect x="36" y="78" width="26" height="22" rx="5" fill="url(#gIt)"/><rect x="66" y="78" width="26" height="22" rx="5" fill="#0b2a63" stroke="#7cc7f5"/><rect x="96" y="78" width="20" height="22" rx="5" fill="url(#gIt)"/><rect x="6" y="104" width="26" height="14" rx="5" fill="url(#gIt)"/><rect x="36" y="104" width="26" height="14" rx="5" fill="url(#gIt)"/><rect x="66" y="104" width="26" height="14" rx="5" fill="url(#gIt)"/></g>
+<path d="M70 82 L76 90 L72 94 L80 99" fill="none" stroke="#7cc7f5" stroke-width="1.6"/>
+<g class="app-yeti"><ellipse cx="46" cy="62" rx="22" ry="21" fill="#fff"/><path d="M26 56 C 22 46, 30 40, 36 46 M66 56 C 70 46, 62 40, 56 46" fill="#fff"/><ellipse cx="46" cy="64" rx="14" ry="12" fill="#dff3ff"/><circle cx="39" cy="58" r="3.4" fill="#0b2a63"/><circle cx="53" cy="58" r="3.4" fill="#0b2a63"/><circle cx="40" cy="57" r="1" fill="#fff"/><circle cx="54" cy="57" r="1" fill="#fff"/><path d="M40 68 Q46 74 52 68" fill="#0b2a63"/><path d="M42 69 L44 72 L46 69 Z M46 69 L48 72 L50 69Z" fill="#fff"/></g></svg></div><span class="app-name">Icefield</span>
+                </div>
+                <div class="app-tile" role="button" tabindex="0" onclick="switchGame('Just mixed')" onkeydown="if(event.key==='Enter'||event.key===' ')switchGame('Just mixed')" title="Just Mixed — 3 gobelets, RTP 98,5 %">
+                    <div class="app-icon"><svg viewBox="0 0 120 120"><defs><radialGradient id="gJ" cx=".5" cy=".35" r=".9"><stop offset="0" stop-color="#22a869"/><stop offset="1" stop-color="#064e3b"/></radialGradient><linearGradient id="gJc" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b91c1c"/><stop offset=".45" stop-color="#ff5a4d"/><stop offset="1" stop-color="#8f1414"/></linearGradient></defs>
+<rect width="120" height="120" fill="url(#gJ)"/><ellipse cx="60" cy="96" rx="52" ry="10" fill="#000" opacity=".2"/>
+<g><ellipse cx="22" cy="92" rx="17" ry="4" fill="#000" opacity=".3"/><path d="M8 52 L36 52 L32 90 L12 90 Z" fill="url(#gJc)"/><ellipse cx="22" cy="52" rx="14" ry="4" fill="#ff8a7d"/><path d="M12 64 L32 64" stroke="#fff" stroke-opacity=".4" stroke-width="3"/></g>
+<g><ellipse cx="98" cy="92" rx="17" ry="4" fill="#000" opacity=".3"/><path d="M84 52 L112 52 L108 90 L88 90 Z" fill="url(#gJc)"/><ellipse cx="98" cy="52" rx="14" ry="4" fill="#ff8a7d"/><path d="M88 64 L108 64" stroke="#fff" stroke-opacity=".4" stroke-width="3"/></g>
+<g class="app-cup"><ellipse cx="60" cy="94" rx="17" ry="4" fill="#000" opacity=".3"/><circle cx="60" cy="86" r="7" fill="#ffd45c"/><circle cx="58" cy="84" r="2.4" fill="#fff" opacity=".7"/><g transform="translate(0 -26) rotate(-12 60 50)"><path d="M46 38 L74 38 L70 76 L50 76 Z" fill="url(#gJc)"/><ellipse cx="60" cy="38" rx="14" ry="4" fill="#ff8a7d"/><path d="M50 50 L70 50" stroke="#fff" stroke-opacity=".4" stroke-width="3"/></g></g>
+<g fill="#ffd45c" font-family="system-ui" font-weight="900" font-size="15" opacity=".95"><text x="58" y="20">?</text></g></svg></div><span class="app-name">Just Mixed</span>
+                </div>
+                <div class="app-tile" role="button" tabindex="0" onclick="switchGame('Chicken Road')" onkeydown="if(event.key==='Enter'||event.key===' ')switchGame('Chicken Road')" title="Chicken Road — 3 modes, RTP 98,5 %">
+                    <div class="app-icon"><svg viewBox="0 0 120 120"><defs><linearGradient id="gH" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5cbf5e"/><stop offset="1" stop-color="#2e7d32"/></linearGradient></defs>
+<rect width="120" height="120" fill="#3b3f4c"/><rect width="120" height="28" fill="url(#gH)"/><rect y="92" width="120" height="28" fill="url(#gH)"/>
+<g fill="#fff" opacity=".75"><rect x="8" y="58" width="18" height="4" rx="2"/><rect x="38" y="58" width="18" height="4" rx="2"/><rect x="68" y="58" width="18" height="4" rx="2"/><rect x="98" y="58" width="18" height="4" rx="2"/></g>
+<g fill="#ffe066"><rect x="0" y="27" width="120" height="3"/><rect x="0" y="90" width="120" height="3"/></g>
+<g transform="translate(14 38)"><rect width="44" height="20" rx="8" fill="#ff6a00"/><path d="M10 0 L16 -9 L32 -9 L38 0Z" fill="#ff8c3a"/><path d="M16 -7 L22 -7 L22 0 L14 0Z M25 -7 L31 -7 L35 0 L25 0Z" fill="#bfe9ff"/><circle cx="10" cy="21" r="6" fill="#111"/><circle cx="34" cy="21" r="6" fill="#111"/><circle cx="10" cy="21" r="2.4" fill="#bbb"/><circle cx="34" cy="21" r="2.4" fill="#bbb"/><rect x="40" y="8" width="6" height="5" rx="2" fill="#fff59d"/></g>
+<g class="app-chick" transform="translate(70 66)"><ellipse cx="14" cy="26" rx="14" ry="3" fill="#000" opacity=".25"/><ellipse cx="14" cy="14" rx="13" ry="12" fill="#fff"/><circle cx="21" cy="6" r="8" fill="#fff"/><path d="M19 -3 C 18 -9, 24 -9, 23 -3 C 26 -8, 30 -4, 26 0Z" fill="#e53935"/><path d="M27 7 L34 9 L27 11Z" fill="#ffb300"/><circle cx="23" cy="5" r="1.8" fill="#111"/><path d="M1 12 C -3 14, -2 20, 4 20Z" fill="#e9e9e9"/><path d="M10 25 L8 31 M18 25 L20 31" stroke="#ffb300" stroke-width="2.2" stroke-linecap="round"/></g></svg></div><span class="app-name">Chicken Road</span>
+                </div>
+                <div class="app-tile" role="button" tabindex="0" onclick="switchGame('Arrows X')" onkeydown="if(event.key==='Enter'||event.key===' ')switchGame('Arrows X')" title="Arrows X — fléchettes sur cible, RTP 98,5 %">
+                    <div class="app-icon"><svg viewBox="0 0 120 120"><defs><radialGradient id="gA" cx=".5" cy=".4" r=".85"><stop offset="0" stop-color="#7e2bc7"/><stop offset="1" stop-color="#241046"/></radialGradient></defs>
+<rect width="120" height="120" fill="url(#gA)"/><ellipse cx="54" cy="104" rx="40" ry="6" fill="#000" opacity=".3"/>
+<g transform="translate(54 56)"><circle r="40" fill="#f5f5f5"/><circle r="40" fill="none" stroke="#ffd45c" stroke-width="3"/><circle r="32" fill="#e53950"/><circle r="24" fill="#f5f5f5"/><circle r="17" fill="#e53950"/><circle r="10" fill="#f5f5f5"/><circle r="5" fill="#ffc400"/></g>
+<g class="app-arrow" transform="translate(58 58) rotate(-38)"><rect x="0" y="-2" width="58" height="4" rx="2" fill="#d7a76a"/><path d="M0 0 L-8 -4 L-8 4Z" fill="#cfd8dc"/><path d="M50 -2 L66 -12 L62 -2Z M50 2 L66 12 L62 2Z M42 -2 L56 -9 L54 -2Z M42 2 L56 9 L54 2Z" fill="#38bdf8"/></g>
+<g fill="#ffd45c" opacity=".9"><path d="M98 14 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z"/><circle cx="14" cy="20" r="1.6"/><circle cx="104" cy="96" r="1.4"/></g></svg></div><span class="app-name">Arrows X</span>
+                </div>
+                <div class="app-tile" role="button" tabindex="0" onclick="switchGame('Roulette')" onkeydown="if(event.key==='Enter'||event.key===' ')switchGame('Roulette')" title="Roulette européenne — roue réelle, edge 2,70 %">
+                    <div class="app-icon"><svg viewBox="0 0 120 120"><defs><radialGradient id="gR" cx=".5" cy=".4" r=".9"><stop offset="0" stop-color="#7a1020"/><stop offset="1" stop-color="#26050b"/></radialGradient><radialGradient id="gRh" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#ffe9a8"/><stop offset="1" stop-color="#b8862b"/></radialGradient></defs>
+<rect width="120" height="120" fill="url(#gR)"/><ellipse cx="60" cy="108" rx="40" ry="5" fill="#000" opacity=".3"/>
+<circle cx="60" cy="60" r="52" fill="url(#gRh)"/><circle cx="60" cy="60" r="47" fill="#2b1608"/>
+<g class="app-wheel"><path d="M60.0 16.0 A44 44 0 0 1 82.0 21.9 L69.0 44.4 A18 18 0 0 0 60.0 42.0Z" fill="#0f8a4a" stroke="#d4a24c" stroke-width=".8"/><path d="M82.0 21.9 A44 44 0 0 1 98.1 38.0 L75.6 51.0 A18 18 0 0 0 69.0 44.4Z" fill="#0b0b10" stroke="#d4a24c" stroke-width=".8"/><path d="M98.1 38.0 A44 44 0 0 1 104.0 60.0 L78.0 60.0 A18 18 0 0 0 75.6 51.0Z" fill="#d2152e" stroke="#d4a24c" stroke-width=".8"/><path d="M104.0 60.0 A44 44 0 0 1 98.1 82.0 L75.6 69.0 A18 18 0 0 0 78.0 60.0Z" fill="#0b0b10" stroke="#d4a24c" stroke-width=".8"/><path d="M98.1 82.0 A44 44 0 0 1 82.0 98.1 L69.0 75.6 A18 18 0 0 0 75.6 69.0Z" fill="#d2152e" stroke="#d4a24c" stroke-width=".8"/><path d="M82.0 98.1 A44 44 0 0 1 60.0 104.0 L60.0 78.0 A18 18 0 0 0 69.0 75.6Z" fill="#0b0b10" stroke="#d4a24c" stroke-width=".8"/><path d="M60.0 104.0 A44 44 0 0 1 38.0 98.1 L51.0 75.6 A18 18 0 0 0 60.0 78.0Z" fill="#d2152e" stroke="#d4a24c" stroke-width=".8"/><path d="M38.0 98.1 A44 44 0 0 1 21.9 82.0 L44.4 69.0 A18 18 0 0 0 51.0 75.6Z" fill="#0b0b10" stroke="#d4a24c" stroke-width=".8"/><path d="M21.9 82.0 A44 44 0 0 1 16.0 60.0 L42.0 60.0 A18 18 0 0 0 44.4 69.0Z" fill="#d2152e" stroke="#d4a24c" stroke-width=".8"/><path d="M16.0 60.0 A44 44 0 0 1 21.9 38.0 L44.4 51.0 A18 18 0 0 0 42.0 60.0Z" fill="#0b0b10" stroke="#d4a24c" stroke-width=".8"/><path d="M21.9 38.0 A44 44 0 0 1 38.0 21.9 L51.0 44.4 A18 18 0 0 0 44.4 51.0Z" fill="#d2152e" stroke="#d4a24c" stroke-width=".8"/><path d="M38.0 21.9 A44 44 0 0 1 60.0 16.0 L60.0 42.0 A18 18 0 0 0 51.0 44.4Z" fill="#0b0b10" stroke="#d4a24c" stroke-width=".8"/><circle cx="60" cy="60" r="16" fill="url(#gRh)"/><circle cx="60" cy="60" r="4" fill="#5a3a0a"/><path d="M60 46 L60 74 M46 60 L74 60" stroke="#8a5f14" stroke-width="2.5" stroke-linecap="round"/></g>
+<circle cx="86" cy="38" r="4.6" fill="#fff"/><circle cx="85" cy="37" r="1.6" fill="#fff" opacity=".9"/><circle cx="86" cy="38" r="4.6" fill="none" stroke="#000" stroke-opacity=".25"/></svg></div><span class="app-name">Roulette</span>
+                </div>
+                <div class="app-tile" role="button" tabindex="0" onclick="switchGame('Blackjack')" onkeydown="if(event.key==='Enter'||event.key===' ')switchGame('Blackjack')" title="Blackjack — règles classiques, blackjack payé 3:2">
+                    <div class="app-icon"><svg viewBox="0 0 120 120"><defs><radialGradient id="gB" cx=".5" cy=".3" r=".95"><stop offset="0" stop-color="#1f9d5c"/><stop offset="1" stop-color="#053b22"/></radialGradient></defs>
+<rect width="120" height="120" fill="url(#gB)"/><ellipse cx="60" cy="100" rx="44" ry="6" fill="#000" opacity=".25"/>
+<g transform="translate(36 60) rotate(-16)"><rect x="-22" y="-34" width="44" height="64" rx="6" fill="#fff"/><rect x="-22" y="-34" width="44" height="64" rx="6" fill="none" stroke="#ddd"/><text x="-16" y="-17" font-family="Georgia,serif" font-weight="900" font-size="17" fill="#111">A</text><path d="M0 -6 C -16 8, -10 20, 0 14 C 10 20, 16 8, 0 -6Z M0 10 L-4 22 L4 22Z" fill="#111"/></g>
+<g transform="translate(78 60) rotate(14)"><rect x="-22" y="-34" width="44" height="64" rx="6" fill="#fff"/><rect x="-22" y="-34" width="44" height="64" rx="6" fill="none" stroke="#ddd"/><text x="-16" y="-17" font-family="Georgia,serif" font-weight="900" font-size="17" fill="#d2152e">K</text><path d="M0 22 C -18 6, -8 -8, 0 2 C 8 -8, 18 6, 0 22Z" fill="#d2152e"/></g>
+<g><circle cx="22" cy="96" r="11" fill="#d2152e"/><circle cx="22" cy="96" r="11" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="4 4"/><circle cx="22" cy="96" r="6" fill="#a30f22"/><circle cx="96" cy="98" r="10" fill="#1d4ed8"/><circle cx="96" cy="98" r="10" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="4 4"/><circle cx="96" cy="98" r="5" fill="#1636a3"/></g>
+<text x="60" y="16" text-anchor="middle" font-family="system-ui" font-weight="900" font-size="12" fill="#ffd45c" letter-spacing="1">21</text></svg></div><span class="app-name">Blackjack</span>
+                </div>
+                <div class="app-tile" role="button" tabindex="0" onclick="switchGame('Mines')" onkeydown="if(event.key==='Enter'||event.key===' ')switchGame('Mines')" title="Mines — grille 5×5, 1 à 24 mines, RTP 98,5 %">
+                    <div class="app-icon"><svg viewBox="0 0 120 120"><defs><linearGradient id="gM" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0c4a6e"/><stop offset="1" stop-color="#0b1f3a"/></linearGradient><linearGradient id="gMt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a4a6a"/><stop offset="1" stop-color="#1e293f"/></linearGradient><linearGradient id="gMg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9ff5ff"/><stop offset="1" stop-color="#1fb6e8"/></linearGradient></defs>
+<rect width="120" height="120" fill="url(#gM)"/>
+<g stroke="#7aa0d8" stroke-opacity=".35"><rect x="10" y="14" width="30" height="30" rx="7" fill="#175a3e" stroke="#4ade80"/><rect x="45" y="14" width="30" height="30" rx="7" fill="url(#gMt)"/><rect x="80" y="14" width="30" height="30" rx="7" fill="url(#gMt)"/><rect x="10" y="49" width="30" height="30" rx="7" fill="url(#gMt)"/><rect x="45" y="49" width="30" height="30" rx="7" fill="#175a3e" stroke="#4ade80"/><rect x="80" y="49" width="30" height="30" rx="7" fill="url(#gMt)"/><rect x="10" y="84" width="30" height="26" rx="7" fill="url(#gMt)"/><rect x="45" y="84" width="30" height="26" rx="7" fill="url(#gMt)"/><rect x="80" y="84" width="30" height="26" rx="7" fill="#5b1620" stroke="#ff6b6b"/></g>
+<g fill="url(#gMg)" stroke="#fff" stroke-opacity=".7" stroke-width="1"><path d="M25 21 L33 27 L25 38 L17 27Z"/><path d="M60 56 L68 62 L60 73 L52 62Z"/></g><path d="M17 27 H33 M25 21 L25 38" stroke="#fff" stroke-opacity=".5"/><path d="M52 62 H68" stroke="#fff" stroke-opacity=".5"/>
+<g class="app-bomb"><circle cx="95" cy="99" r="11" fill="#14161c"/><circle cx="91" cy="95" r="3" fill="#fff" opacity=".35"/><rect x="92" y="85" width="7" height="5" rx="1.5" fill="#7b7f8a"/><path d="M96 85 C 98 80, 104 82, 104 77" fill="none" stroke="#d6a45c" stroke-width="2"/><g class="app-spark"><circle cx="104" cy="76" r="3.4" fill="#ffd45c"/><path d="M104 69 V73 M110 76 H106 M98 76 H102 M108 71 L105 74 M100 71 L103 74" stroke="#ff9d2e" stroke-width="1.6" stroke-linecap="round"/></g></g></svg></div><span class="app-name">Mines</span>
+                </div>
+                <div class="app-tile" role="button" tabindex="0" onclick="switchGame('Plinko')" onkeydown="if(event.key==='Enter'||event.key===' ')switchGame('Plinko')" title="Plinko — 8 à 16 rangées, 4 risques, multi-billes">
+                    <div class="app-icon"><svg viewBox="0 0 120 120"><defs><linearGradient id="gP" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1e1b4b"/><stop offset=".6" stop-color="#4338ca"/><stop offset="1" stop-color="#ec4899"/></linearGradient><radialGradient id="gPb" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="#ff4d6d"/><stop offset="1" stop-color="#7a0f2a"/></radialGradient></defs>
+<rect width="120" height="120" fill="url(#gP)"/><g fill="#e6ecff"><circle cx="43.0" cy="34" r="2.3"/><circle cx="60.0" cy="34" r="2.3"/><circle cx="77.0" cy="34" r="2.3"/><circle cx="34.5" cy="49" r="2.3"/><circle cx="51.5" cy="49" r="2.3"/><circle cx="68.5" cy="49" r="2.3"/><circle cx="85.5" cy="49" r="2.3"/><circle cx="26.0" cy="64" r="2.3"/><circle cx="43.0" cy="64" r="2.3"/><circle cx="60.0" cy="64" r="2.3"/><circle cx="77.0" cy="64" r="2.3"/><circle cx="94.0" cy="64" r="2.3"/><circle cx="17.5" cy="79" r="2.3"/><circle cx="34.5" cy="79" r="2.3"/><circle cx="51.5" cy="79" r="2.3"/><circle cx="68.5" cy="79" r="2.3"/><circle cx="85.5" cy="79" r="2.3"/><circle cx="102.5" cy="79" r="2.3"/><circle cx="9.0" cy="94" r="2.3"/><circle cx="26.0" cy="94" r="2.3"/><circle cx="43.0" cy="94" r="2.3"/><circle cx="60.0" cy="94" r="2.3"/><circle cx="77.0" cy="94" r="2.3"/><circle cx="94.0" cy="94" r="2.3"/><circle cx="111.0" cy="94" r="2.3"/></g><rect x="8.0" y="102" width="13.6" height="10" rx="3" fill="#ff2b45"/><rect x="23.4" y="102" width="13.6" height="10" rx="3" fill="#ff7a2a"/><rect x="38.8" y="102" width="13.6" height="10" rx="3" fill="#ffc233"/><rect x="54.2" y="102" width="13.6" height="10" rx="3" fill="#ffe14a"/><rect x="69.6" y="102" width="13.6" height="10" rx="3" fill="#ffc233"/><rect x="85.0" y="102" width="13.6" height="10" rx="3" fill="#ff7a2a"/><rect x="100.4" y="102" width="13.6" height="10" rx="3" fill="#ff2b45"/>
+<path d="M60 8 C 60 14, 66 18, 68 26 S 62 38, 66 50" fill="none" stroke="#ff9aa9" stroke-width="3" stroke-linecap="round" opacity=".35"/>
+<g class="app-ball"><circle cx="66" cy="56" r="7.5" fill="url(#gPb)"/></g></svg></div><span class="app-name">Plinko</span>
+                </div>
+                <div class="app-tile" role="button" tabindex="0" onclick="switchGame('Dés')" onkeydown="if(event.key==='Enter'||event.key===' ')switchGame('Dés')" title="Dés — chance réglable de 0,01 % à 98 %, RTP 98,5 %">
+                    <div class="app-icon"><svg viewBox="0 0 120 120"><defs><linearGradient id="gD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0f766e"/><stop offset="1" stop-color="#042f2e"/></linearGradient><linearGradient id="gDd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#d9dee8"/></linearGradient></defs>
+<rect width="120" height="120" fill="url(#gD)"/><ellipse cx="60" cy="100" rx="46" ry="7" fill="#000" opacity=".3"/>
+<g transform="translate(40 60) rotate(-14)"><g class="app-dice1"><rect x="-27" y="-27" width="54" height="54" rx="11" fill="url(#gDd)" stroke="#b7bfce"/><circle cx="-14" cy="-14" r="3.1" fill="#d2152e"/><circle cx="14" cy="-14" r="3.1" fill="#d2152e"/><circle cx="0" cy="0" r="3.1" fill="#d2152e"/><circle cx="-14" cy="14" r="3.1" fill="#d2152e"/><circle cx="14" cy="14" r="3.1" fill="#d2152e"/></g></g>
+<g transform="translate(82 74) rotate(16)"><g class="app-dice2"><rect x="-21" y="-21" width="42" height="42" rx="9" fill="url(#gDd)" stroke="#b7bfce"/><circle cx="-11" cy="-11" r="2.4" fill="#111"/><circle cx="11" cy="11" r="2.4" fill="#111"/><circle cx="0" cy="0" r="2.4" fill="#111"/></g></g>
+<g fill="#ffd45c" opacity=".9"><path d="M96 18 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z"/><circle cx="16" cy="22" r="1.6"/></g></svg></div><span class="app-name">Dés</span>
+                </div>
+                <div class="app-tile" role="button" tabindex="0" onclick="switchGame('Hi-Lo')" onkeydown="if(event.key==='Enter'||event.key===' ')switchGame('Hi-Lo')" title="Hi-Lo — plus haut ou plus bas, série et encaissement, RTP 98,5 %">
+                    <div class="app-icon"><svg viewBox="0 0 120 120"><defs><linearGradient id="gL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e3a8a"/><stop offset="1" stop-color="#0b1437"/></linearGradient></defs>
+<rect width="120" height="120" fill="url(#gL)"/>
+<g transform="translate(60 62) rotate(-6)"><rect x="-27" y="-38" width="54" height="76" rx="8" fill="#fff"/><text x="-20" y="-18" font-family="Georgia,serif" font-weight="900" font-size="19" fill="#d2152e">Q</text><path d="M0 -4 C -14 8, -9 20, 0 15 C 9 20, 14 8, 0 -4Z M0 12 L-4 22 L4 22Z" fill="#d2152e" transform="translate(0 4)"/></g>
+<g class="app-up"><path d="M100 40 L112 54 L104 54 L104 66 L96 66 L96 54 L88 54Z" fill="#34d27a" stroke="#0b6b3a"/></g>
+<g class="app-down"><path d="M18 80 L26 80 L26 92 L34 92 L22 106 L10 92 L18 92Z" fill="#f87171" stroke="#8f1414"/></g>
+<g fill="#fff" opacity=".7"><circle cx="16" cy="18" r="1.4"/><circle cx="102" cy="16" r="1.2"/><circle cx="96" cy="104" r="1.2"/></g></svg></div><span class="app-name">Hi-Lo</span>
+                </div>
+                <div class="app-tile" role="button" tabindex="0" onclick="switchGame('Pile ou Face')" onkeydown="if(event.key==='Enter'||event.key===' ')switchGame('Pile ou Face')" title="Pile ou Face — 50/50, gain x1,97">
+                    <div class="app-icon"><svg viewBox="0 0 120 120"><defs><linearGradient id="gF" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c2d92"/><stop offset="1" stop-color="#2a0f3d"/></linearGradient><radialGradient id="gFc" cx=".35" cy=".3" r=".85"><stop offset="0" stop-color="#fff1b5"/><stop offset=".55" stop-color="#f2b632"/><stop offset="1" stop-color="#b8741a"/></radialGradient></defs>
+<rect width="120" height="120" fill="url(#gF)"/><ellipse cx="60" cy="102" rx="30" ry="6" fill="#000" opacity=".35"/>
+<g class="app-coin"><ellipse cx="60" cy="58" rx="38" ry="38" fill="#b8741a"/><circle cx="60" cy="54" r="38" fill="url(#gFc)" stroke="#8a5410" stroke-width="3"/><circle cx="60" cy="54" r="29" fill="none" stroke="#fff3c4" stroke-opacity=".8" stroke-width="2" stroke-dasharray="3 4"/><text x="60" y="68" text-anchor="middle" font-family="Georgia,serif" font-weight="900" font-size="42" fill="#7a4b00">€</text><path d="M30 38 C 36 24, 52 18, 64 20" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="3" stroke-linecap="round"/></g>
+<g fill="#ffd45c" opacity=".9"><path d="M100 22 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z"/><circle cx="16" cy="26" r="1.6"/><circle cx="104" cy="92" r="1.3"/></g></svg></div><span class="app-name">Pile ou Face</span>
+                </div>
+                <div class="app-tile" role="button" tabindex="0" onclick="switchGame('Machine à sous')" onkeydown="if(event.key==='Enter'||event.key===' ')switchGame('Machine à sous')" title="La Nuit du Loup — machine à sous, bonus et jackpots">
+                    <div class="app-icon"><svg viewBox="0 0 120 120"><defs><linearGradient id="gS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1c0830"/><stop offset=".6" stop-color="#4a1346"/><stop offset="1" stop-color="#0a0410"/></linearGradient><radialGradient id="gSm" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#fffbe0"/><stop offset=".6" stop-color="#f4d98a"/><stop offset="1" stop-color="#b89440"/></radialGradient><radialGradient id="gSh" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffe9a0" stop-opacity=".55"/><stop offset="1" stop-color="#ffe9a0" stop-opacity="0"/></radialGradient><radialGradient id="gSl" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffb347" stop-opacity=".9"/><stop offset="1" stop-color="#ff7a00" stop-opacity="0"/></radialGradient></defs>
+<rect width="120" height="120" fill="url(#gS)"/>
+<g class="app-halo"><circle cx="74" cy="40" r="42" fill="url(#gSh)"/></g>
+<circle cx="74" cy="40" r="25" fill="url(#gSm)"/><circle cx="66" cy="34" r="5" fill="#d9bf74" opacity=".55"/><circle cx="83" cy="48" r="3.5" fill="#d9bf74" opacity=".5"/><circle cx="80" cy="30" r="2.2" fill="#d9bf74" opacity=".45"/>
+<g fill="#fff"><circle class="app-tw" cx="14" cy="16" r="1.3"/><circle class="app-tw tw2" cx="38" cy="10" r="1"/><circle class="app-tw" cx="108" cy="12" r="1.2"/><circle class="app-tw tw2" cx="22" cy="42" r=".9"/><circle class="app-tw" cx="112" cy="58" r=".9"/></g>
+<path d="M0 104 L0 90 C16 84 26 90 40 86 C54 82 64 90 80 86 C96 82 108 88 120 92 L120 120 L0 120Z" fill="#06030c"/>
+<path d="M30 100 L34 84 L44 80 L50 70 L54 56 L50 46 L56 50 L60 44 L64 52 C70 56 72 62 70 70 C76 74 82 76 90 74 L98 70 L96 80 C92 90 84 94 76 94 L72 100Z" fill="#0b0614" stroke="#7c2d92" stroke-width="1"/>
+<path d="M54 56 L50 46 L56 50 L60 44 L64 52" fill="#0b0614" stroke="#a855f7" stroke-width=".8"/>
+<circle cx="60" cy="52" r="1.6" fill="#ff3b3b"/>
+<g class="app-bulb"><line x1="18" y1="64" x2="18" y2="78" stroke="#6b3a12" stroke-width="1.2"/><circle cx="18" cy="86" r="11" fill="url(#gSl)"/><path d="M12 80 h12 l2 5 q-1 8 -8 9 q-7 -1 -8 -9z" fill="#ff9a2a" stroke="#7a3b00" stroke-width="1"/><rect x="14" y="78" width="8" height="2.5" rx="1" fill="#6b3a12"/></g>
+<g class="app-bulb b2"><line x1="104" y1="70" x2="104" y2="84" stroke="#6b3a12" stroke-width="1"/><circle cx="104" cy="90" r="9" fill="url(#gSl)"/><path d="M99 85 h10 l1.6 4 q-1 6.5 -6.6 7.5 q-5.600 -1 -6.600 -7.500z" fill="#ffb347" stroke="#7a3b00" stroke-width=".8"/></g>
+<g font-family="system-ui,sans-serif" font-weight="900"><rect x="8" y="8" width="46" height="19" rx="9" fill="#000" opacity=".4"/><text x="31" y="22" text-anchor="middle" font-size="12.5" fill="#fde68a">7500×</text></g></svg></div><span class="app-name">Machine à sous</span>
+                </div>
+            </div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+
+        <!-- 4. ÉCRAN DE JEU AVIATOR PRO -->
+        <div id="game-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <button class="musicBtn btn-history-more" onclick="toggleMusic()" title="Musique on/off">🎵</button><span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+
+            <div class="history-container">
+                <div class="history-bar" id="historyBar"></div>
+                <button class="btn-history-more" onclick="openHistoryModal()">•••</button>
+            </div>
+
+            <div class="provably-fair-box" id="provablyFairBox">
+                🔒 <b>Provably Fair Hash (SHA-256) :</b> <span id="currentHashDisplay" style="color: #38bdf8;">En attente...</span>
+            </div>
+
+            <div class="game-canvas-container" id="stage">
+                <div class="rays"></div>
+                <div id="multiplierBox" class="multiplier-display">1.00x</div>
+                <svg class="game-svg" viewBox="0 0 500 260">
+                    <defs>
+                        <linearGradient id="gBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#dfe6f1"/><stop offset="1" stop-color="#7b8ba5"/></linearGradient>
+                        <linearGradient id="gWing" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c3cfe2"/><stop offset="1" stop-color="#4d5f78"/></linearGradient>
+                        <linearGradient id="gCanopy" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b9e6ff"/><stop offset="1" stop-color="#2b6cb0"/></linearGradient>
+                        <linearGradient id="gCurve" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="500" y2="0"><stop offset="0" stop-color="#ff4d5e" stop-opacity=".1"/><stop offset=".7" stop-color="#ff7a45"/><stop offset="1" stop-color="#ffd27a"/></linearGradient>
+                        <linearGradient id="gArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4d5e" stop-opacity=".42"/><stop offset="1" stop-color="#ff4d5e" stop-opacity="0"/></linearGradient>
+                        <radialGradient id="gFlame"><stop offset="0" stop-color="#fffbc4"/><stop offset=".45" stop-color="#ff9d3c"/><stop offset="1" stop-color="#ff3c2f" stop-opacity="0"/></radialGradient>
+                        <radialGradient id="gBoom"><stop offset="0" stop-color="#fff"/><stop offset=".3" stop-color="#ffd24d"/><stop offset=".7" stop-color="#ff4d2f"/><stop offset="1" stop-color="#ff4d2f" stop-opacity="0"/></radialGradient>
+                        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                    </defs>
+                    <g id="clouds"></g>
+                    <g stroke="rgba(255,255,255,.05)"><path d="M0 60H500M0 120H500M0 180H500M0 240H500M100 0V260M200 0V260M300 0V260M400 0V260"/></g>
+                    <g id="axis" font-size="9" fill="rgba(255,255,255,.4)"></g>
+                    <path id="curveArea" fill="url(#gArea)"/>
+                    <path id="flightCurve" fill="none" stroke="url(#gCurve)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+                    <g id="trail"></g><g id="smoke"></g>
+                    <g id="planeGroup" transform="translate(24 236)">
+                        <g transform="scale(1.1)">
+                            <ellipse id="flame" cx="-48" cy="0" rx="4" ry="3.4" fill="url(#gFlame)"/>
+                            <path d="M-34 -4L-50 -28L-40 -28L-18 -6Z" fill="#b3122f"/>
+                            <path d="M-36 2L-52 12L-44 14L-22 5Z" fill="#8f0f27"/>
+                            <path d="M-2 -4L-18 -22L-8 -23L16 -6Z" fill="#a8b4c8"/>
+                            <path d="M-42 -3Q-38 -11 -14 -12L22 -11Q44 -9 52 0Q44 9 22 10L-14 10Q-38 9 -42 3Z" fill="url(#gBody)" stroke="#7d8da6" stroke-width=".6"/>
+                            <path d="M-40 1L48 1" stroke="#d6283f" stroke-width="3"/>
+                            <g fill="#4aa3df"><circle cx="-24" cy="-3" r="1.8"/><circle cx="-16" cy="-3" r="1.8"/><circle cx="-8" cy="-3" r="1.8"/><circle cx="0" cy="-3" r="1.8"/></g>
+                            <path d="M8 -11Q22 -23 35 -9L8 -9Z" fill="url(#gCanopy)" stroke="#5b7aa8" stroke-width=".7"/>
+                            <path d="M12 -12Q20 -19 28 -12" stroke="rgba(255,255,255,.75)" stroke-width="1.2" fill="none"/>
+                            <path d="M0 3L-24 30L-12 31L22 5Z" fill="url(#gWing)"/>
+                            <path d="M-24 30L-12 31L-14 33.5L-26 32.5Z" fill="#c81e3a"/>
+                            <rect x="-2" y="9" width="18" height="6" rx="3" fill="#5b6b82"/>
+                            <ellipse cx="53" cy="0" rx="4" ry="5.5" fill="#c81e3a"/>
+                            <ellipse id="prop" cx="56" cy="0" rx="2.2" ry="19" fill="rgba(215,228,246,.6)"/>
+                        </g>
+                    </g>
+                    <circle id="boom" cx="0" cy="0" r="30" fill="url(#gBoom)"/>
+                </svg>
+            </div>
+
+            <p id="gameStatusText" style="color: #94a3b8; margin: 10px 0; font-weight: bold;">En attente de la prochaine manche...</p>
+
+            <div id="betPanels" class="bet-grid"></div>
+            <div id="liveCashoutPreview" style="margin:10px 0 0;font-size:15px;color:#5cc8ff;font-weight:700;min-height:20px"></div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+
+
+            <div class="card" style="margin-top: 15px; background: #0f172a;">
+                <h4 style="margin-top:0;">👥 Mises en direct :</h4>
+                <ul id="gamePlayersList"></ul>
+                <div class="stats-badge" id="myStatsBadge">
+                    <span>📊 <b>Mes Stats :</b> 0 parties</span>
+                    <span>Victoires : 0</span>
+                    <span>Profit : <span class="text-green">0 🪙</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. ÉCRAN ICEFIELD -->
+        <div id="icefield-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <button class="musicBtn btn-history-more" onclick="toggleMusic()" title="Musique on/off">🎵</button><span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h3 style="margin: 5px 0; color: #7dd3fc;">🧊 Icefield - La Traversée du Yéti</h3>
+            <p id="iceStatusText" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;"></p>
+            <div class="bet-control-box" style="margin: 0 0 10px;">
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;"><label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Blocs par colonne (2 - 10)</label>
+                        <input type="number" id="iceColsInput" value="3" min="2" max="10" oninput="onColsChange()" style="margin: 4px 0;"></div>
+                    <div style="flex: 1.5;"><label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
+                        <input type="number" id="iceBetAmount" value="50" min="1" style="margin: 4px 0;"></div>
+                </div>
+                <div class="quick-bet-row" id="iceQuick" style="margin:6px 0 0">
+                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
+                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+                </div>
+            </div>
+            <div id="iceBoard" class="ice-board"><div id="yeti" class="yeti"><svg viewBox="0 0 64 72"><ellipse cx="32" cy="67" rx="16" ry="3.5" fill="rgba(0,0,0,.3)"/><ellipse cx="22" cy="60" rx="8" ry="6" fill="#e8f4ff"/><ellipse cx="42" cy="60" rx="8" ry="6" fill="#e8f4ff"/><path d="M14 56Q8 36 18 26Q32 18 46 26Q56 36 50 56Q32 64 14 56Z" fill="#f4faff" stroke="#bcd6ea" stroke-width="1.2"/><ellipse cx="11" cy="42" rx="6" ry="10" fill="#eaf4ff" stroke="#bcd6ea" transform="rotate(14 11 42)"/><ellipse cx="53" cy="42" rx="6" ry="10" fill="#eaf4ff" stroke="#bcd6ea" transform="rotate(-14 53 42)"/><ellipse cx="32" cy="26" rx="14" ry="13" fill="#f4faff" stroke="#bcd6ea"/><ellipse cx="32" cy="28" rx="10" ry="9" fill="#7ec8f0"/><circle cx="27.5" cy="25" r="3" fill="#fff"/><circle cx="36.5" cy="25" r="3" fill="#fff"/><circle cx="28" cy="25.5" r="1.5" fill="#12263a"/><circle cx="36" cy="25.5" r="1.5" fill="#12263a"/><path d="M26 32Q32 37 38 32Z" fill="#12263a"/><path d="M20 16Q15 8 22 5Q22 12 25 14ZM44 16Q49 8 42 5Q42 12 39 14Z" fill="#cfe3f3"/></svg></div><div id="iceToast" class="ice-toast"></div></div>
+            <div style="display: flex; gap: 10px;">
+                <button id="iceStartBtn" onclick="startIcefieldGame()">Lancer la traversée 🧊</button>
+                <button id="iceCashoutBtn" class="btn-cashout hidden" onclick="cashoutIcefield()">ENCAISSER</button>
+            </div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+
+        <!-- 6. ÉCRAN JUST MIXED -->
+        <div id="jm-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h3 style="margin: 5px 0; color: #f6dc9a;">🥤 Just mixed</h3>
+            <p id="jmStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Mise, regarde le mélange, puis choisis le bon gobelet !</p>
+            <div class="bet-control-box" style="margin: 0 0 10px;">
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <div style="flex: 1.5;"><label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
+                        <input type="number" id="jmBetAmount" value="50" min="1" style="margin: 4px 0;"></div>
+                    <div style="flex: 1; text-align: center; font-size: 12px; color: #cdbf9f; line-height: 1.5;">Gain <b style="color:#ffc24d;font-size:16px">x1.478</b><br>2 chances sur 3<br>RTP 98,5 %</div>
+                </div>
+                <div class="quick-bet-row" id="jmQuick" style="margin:6px 0 0">
+                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
+                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+                </div>
+            </div>
+            <div class="jm-stage"><svg id="jmSvg" viewBox="0 0 600 300"><defs>
+<radialGradient id="jmFelt" cx="50%" cy="40%" r="75%"><stop offset="0" stop-color="#1f7a4d"/><stop offset="1" stop-color="#0b3a26"/></radialGradient>
+<linearGradient id="jmCup" x1="0" x2="1"><stop offset="0" stop-color="#9f1239"/><stop offset=".45" stop-color="#f43f5e"/><stop offset="1" stop-color="#7f0f2e"/></linearGradient>
+<linearGradient id="jmRim" x1="0" x2="1"><stop offset="0" stop-color="#b8892f"/><stop offset=".5" stop-color="#f6dc9a"/><stop offset="1" stop-color="#b8892f"/></linearGradient>
+<radialGradient id="jmBall" cx="35%" cy="30%"><stop offset="0" stop-color="#fff7c2"/><stop offset=".5" stop-color="#f5b82e"/><stop offset="1" stop-color="#a1620c"/></radialGradient>
+<radialGradient id="jmLight" cx="50%" cy="0" r="80%"><stop offset="0" stop-color="#ffe6aa" stop-opacity=".38"/><stop offset="1" stop-color="#ffe6aa" stop-opacity="0"/></radialGradient>
+</defs><rect width="600" height="300" fill="#120a1c"/>
+<rect x="14" y="14" width="572" height="272" rx="26" fill="url(#jmFelt)" stroke="#8a5a1c" stroke-width="8"/>
+<rect x="14" y="14" width="572" height="272" rx="26" fill="url(#jmLight)"/>
+<path d="M60 262Q300 214 540 262" fill="none" stroke="rgba(246,220,154,.35)" stroke-width="2"/>
+<g id="jmBalls"></g><g id="jmCups"></g><g id="jmFx"></g></svg><div id="jmToast" class="ice-toast"></div></div>
+            <button id="jmStartBtn" onclick="startJm()">Jouer 🥤</button>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+
+        <!-- 7. ÉCRAN CHICKEN ROAD -->
+        <div id="pk-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h3 style="margin: 5px 0; color: #ffd45c;">🔴 Plinko</h3>
+            <p id="pkStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Choisis les rangées, le risque et le nombre de billes, puis lâche-les !</p>
+            <div class="bet-control-box" style="margin: 0 0 10px;">
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Risque</label>
+                <div class="cr-modes" id="pkRisks"></div>
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Rangées (8 à 16)</label>
+                <div class="mn-count"><button id="pkRowsMinus" type="button">−</button><input type="number" id="pkRows" value="12" min="8" max="16"><button id="pkRowsPlus" type="button">+</button></div>
+                <div class="quick-bet-row" id="pkRowQuick"><button class="quick-btn" data-n="8">8</button><button class="quick-btn" data-n="10">10</button><button class="quick-btn" data-n="12">12</button><button class="quick-btn" data-n="14">14</button><button class="quick-btn" data-n="16">16</button></div>
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Nombre de billes (1 à 20)</label>
+                <input type="number" id="pkBalls" value="1" min="1" max="20" style="margin: 4px 0 8px;">
+                <div class="quick-bet-row" id="pkBallQuick"><button class="quick-btn" data-n="1">1</button><button class="quick-btn" data-n="3">3</button><button class="quick-btn" data-n="5">5</button><button class="quick-btn" data-n="10">10</button><button class="quick-btn" data-n="20">20</button></div>
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise par bille</label>
+                <input type="number" id="pkBetAmount" value="50" min="1" style="margin: 4px 0 8px;">
+                <div class="quick-bet-row" id="pkQuick" style="margin-bottom:0">
+                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
+                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+                </div>
+                <div id="pkTotal" style="font-size:12px;color:#cdbf9f;margin-top:8px">Mise totale : —</div>
+            </div>
+            <div class="pk-wrap"><canvas id="pkCanvas" width="680" height="560"></canvas></div>
+            <button id="pkStartBtn" onclick="pkStart()">Lâcher les billes 🔴</button>
+            <div class="history-bar" id="pkHist" style="margin-top: 10px;"></div>
+            <div id="pkProof" style="font-size:11px;color:#7c8aa5;word-break:break-all;margin-top:8px"></div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+        <div id="mn-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h3 style="margin: 5px 0; color: #ffd45c;">💣 Mines</h3>
+            <p id="mnStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Choisis le nombre de mines et ta mise, puis dévoile les cases sûres. Encaisse quand tu veux !</p>
+            <div class="bet-control-box" style="margin: 0 0 10px;">
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Nombre de mines (1 à 24)</label>
+                <div class="mn-count"><button id="mnMinus" type="button">−</button><input type="number" id="mnMines" value="3" min="1" max="24"><button id="mnPlus" type="button">+</button></div>
+                <div class="quick-bet-row" id="mnMineQuick">
+                    <button class="quick-btn" data-m="1">1</button><button class="quick-btn" data-m="3">3</button><button class="quick-btn" data-m="5">5</button><button class="quick-btn" data-m="10">10</button><button class="quick-btn" data-m="15">15</button><button class="quick-btn" data-m="24">24</button>
+                </div>
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
+                <input type="number" id="mnBetAmount" value="50" min="1" style="margin: 4px 0 8px;">
+                <div class="quick-bet-row" id="mnQuick" style="margin-bottom:0">
+                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
+                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+                </div>
+            </div>
+            <div class="cr-hud">
+                <div>Multiplicateur<b id="mnMult">x1.00</b></div>
+                <div>Gain actuel<b id="mnGain">0 🪙</b></div>
+                <div>Prochaine case<b id="mnNext">—</b></div>
+            </div>
+            <div class="mn-grid" id="mnGrid"></div>
+            <button id="mnStartBtn" onclick="mnStart()">Lancer la partie 💣</button>
+            <button id="mnCashBtn" class="btn-cashout hidden" onclick="mnCash()">ENCAISSER</button>
+            <div id="mnProof" style="font-size:11px;color:#7c8aa5;word-break:break-all;margin-top:8px"></div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+        <div id="dc-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h3 style="margin: 5px 0; color: #ffd45c;">🎲 Dés</h3>
+            <p id="dcStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Choisis « moins que » ou « plus que », règle ta chance, lance !</p>
+            <div class="dc-box">
+                <div class="dc-num" id="dcNum">50.00</div>
+                <div class="dc-bar"><div class="dc-zone" id="dcZone"></div><div class="dc-mark" id="dcMark" style="left:50%"></div></div>
+                <div class="dc-scale"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+            </div>
+            <div class="dc-tog"><button id="dcUnder" class="on">⬇️ Moins que</button><button id="dcOver">⬆️ Plus que</button></div>
+            <div class="bet-control-box" style="margin:0 0 10px">
+                <div class="dc-row"><div><label>Chance de gagner (%)</label><input type="number" id="dcChance" value="49.5" min="0.01" max="98" step="0.01" style="margin:4px 0"></div><div><label>Mise</label><input type="number" id="dcBet" value="50" min="1" style="margin:4px 0"></div></div>
+                <input type="range" class="dc-slider" id="dcSlider" min="1" max="98" step="1" value="49.5">
+                <div class="quick-bet-row" id="dcQuick" style="margin-bottom:0"><button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button><button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button></div>
+            </div>
+            <div class="cr-hud"><div>Multiplicateur<b id="dcMult">x2.00</b></div><div>Gain si gagné<b id="dcGain">0 🪙</b></div><div id="dcCondBox">Condition<b id="dcCond">&lt; 49.50</b></div></div>
+            <button id="dcRollBtn" onclick="dcRoll()">Lancer les dés 🎲</button>
+            <div class="history-bar" id="dcHist" style="margin-top: 10px;"></div>
+            <div id="dcProof" style="font-size:11px;color:#7c8aa5;word-break:break-all;margin-top:8px"></div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+        <div id="sl-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <div class="sl-box" id="slBox">
+                <div class="sl-moon"></div>
+                <h3 class="sl-title">LA NUIT DU LOUP</h3>
+                <div class="sl-jp" id="slJp"></div>
+                <div class="sl-cab" id="slCab">
+                    <div class="sl-hud hidden" id="slHud"><span>🏮 Tours : <b id="slLeft">6</b></span><span id="slHudMid"></span><span>Gain bonus : <b id="slBonusWin">0</b> 🪙</span></div>
+                    <div class="sl-grid" id="slGrid"></div>
+                    <div class="sl-banner" id="slBanner"></div>
+                    <div class="sl-wheel hidden" id="slWheel"><div class="swh-t" id="swhTitle"></div><div class="swh-w"><div class="swh-ptr"></div><div id="swhWrap"></div></div><div class="swh-r" id="swhRes"></div></div>
+                    <button class="sl-skip hidden" id="slSkip" onclick="slSkip()">⏭️ Passer</button>
+                </div>
+                <div class="sl-win" id="slWin">Choisis ta mise et lance les rouleaux… 🌕</div>
+                <div class="sl-gamble hidden" id="slGamble">
+                    <div class="slg-top"><div>Gain en attente<b id="slGpend">0 🪙</b></div><div class="slg-card" id="slGcard">?</div><div>Si rouge/noir juste<b id="slGnext">0 🪙</b></div></div>
+                    <div class="slg-ladder" id="slGladder"></div>
+                    <div class="slg-btns"><button class="slg-red" onclick="slGamble('red')">♥ Rouge ♦</button><button class="slg-black" onclick="slGamble('black')">♠ Noir ♣</button><button class="slg-take" onclick="slCollect()">💰 Encaisser</button></div>
+                    <small id="slGnote"></small>
+                </div>
+            </div>
+            <div class="bet-control-box" style="margin:10px 0">
+                <div class="dc-row"><div><label>Mise par tour</label><input type="number" id="slBet" value="50" min="1" style="margin:4px 0"></div><div><label>Options</label><div class="sl-opts"><button id="slTurbo" class="quick-btn" onclick="slTurboToggle()">⚡ Turbo : non</button></div></div></div>
+                <div class="quick-bet-row" id="slQuick" style="margin-bottom:0"><button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button><button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button></div>
+            </div>
+            <div class="sl-autopanel hidden" id="slAutoPanel"><span>Nombre de tours automatiques :</span><div><button onclick="slAutoStart(10)">10</button><button onclick="slAutoStart(25)">25</button><button onclick="slAutoStart(50)">50</button><button onclick="slAutoStart(100)">100</button><button onclick="slAutoStart(500)">500</button><button class="inf" onclick="slAutoStart(Infinity)">∞ Infini</button></div><small>Les gains en attente sont encaissés tout seuls. Appuie sur « Stop auto » pour arrêter à tout moment.</small></div>
+            <div class="sl-btnrow"><button id="slSpinBtn" class="sl-spin" onclick="slSpin()">🌕 TOURNER</button><button id="slAutoBtn" class="sl-auto" onclick="slAutoToggle()">🔁 Auto</button><button class="sl-buy" onclick="slBuyOpen()">🎡 Acheter un bonus</button></div>
+            <div class="history-bar" id="slHist" style="margin-top: 10px;"></div>
+            <div id="slRules" class="sl-rules"><b>Comment ça marche ?</b> 5 rouleaux × 3 lignes, <b>243 façons de gagner</b> (3 symboles identiques ou plus, de gauche à droite). 🌕 Wild sur les rouleaux 2-3-4. <b>🏮 6 lanternes ou plus</b> = <b>Tours gratuits</b> : 6 tours, chaque lanterne pose un cadre Paille, ou améliore un cadre (Paille → Bois → Brique) ; 3 lanternes dans un tour = +1 tour ; une lanterne sur une Brique améliore une autre case ; toutes les cases en Brique = 10×. À la fin, <b>le loup souffle</b> : chaque maison révèle son prix (Tombe 0,5–2×, Crypte 2–8× ou Mini/Minor, Manoir 10–250× ou Mini/Minor/Major/Grand, et dans les Tours gratuits une Brique peut offrir un tour de roue). <b>3 scies ou plus</b> (rouleaux 1 à 5) = <b>La Roue</b> ; avec <b>une scie dorée</b> (rouleau 5) = <b>Roue améliorée</b> (Super bonus 5×6, Major, Grand, SUPER 7500×). La roue donne : La Scie (les scies avancent et posent des lanternes), Mega Chapeau (blocs de lanternes), Manoir (cadres Brique), Tours gratuits, Mini 20×, Minor 100×, Major 1000×, Grand 5000×, ou Amélioration. Gain maximum : 7500× la mise. Rendement visé : 99 %. Le « double ou rien » rouge/noir est un petit bonus en plus.</div>
+            <div id="slProof" style="font-size:11px;color:#7c8aa5;word-break:break-all;margin-top:8px"></div>
+            <div class="sl-buyback hidden" id="slBuyBack" onclick="if(event.target===this)slBuyClose()"><div class="sl-buymodal" id="slBuyModal"></div></div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+        <div id="hl-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h3 style="margin: 5px 0; color: #ffd45c;">⬆️ Hi-Lo</h3>
+            <p id="hlStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Devine si la prochaine carte sera plus haute ou plus basse. Égalité = perdu. Encaisse quand tu veux !</p>
+            <div class="bet-control-box" style="margin: 0 0 10px;"><label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label><input type="number" id="hlBet" value="50" min="1" style="margin: 4px 0 8px;"><div class="quick-bet-row" id="hlQuick" style="margin-bottom:0"><button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button><button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button></div></div>
+            <div class="cr-hud"><div>Multiplicateur<b id="hlMult">—</b></div><div>Gain actuel<b id="hlGain">0 🪙</b></div><div>Série<b id="hlSteps">0</b></div></div>
+            <div class="hl-trail" id="hlTrail"></div>
+            <div class="hl-table" id="hlTable"><div class="pcard back"></div></div>
+            <div class="hl-btns" id="hlBtns"><button id="hlHi">⬆️ Plus haut<small id="hlHiS"></small></button><button id="hlLo">⬇️ Plus bas<small id="hlLoS"></small></button></div>
+            <button id="hlSkip" style="background:#475569;margin:0 0 8px">⏭️ Passer cette carte (gratuit)</button>
+            <button id="hlStartBtn" onclick="hlStart()">Distribuer 🃏</button>
+            <button id="hlCashBtn" class="btn-cashout hidden" onclick="hlCash()">ENCAISSER</button>
+            <div id="hlProof" style="font-size:11px;color:#7c8aa5;word-break:break-all;margin-top:8px"></div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+        <div id="cf-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h3 style="margin: 5px 0; color: #ffd45c;">🪙 Pile ou Face</h3>
+            <p id="cfStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">50 / 50, gain ×1,97. Choisis ton côté et lance la pièce !</p>
+            <div class="cf-stage"><div class="cf-coin" id="cfCoin"><div class="cf-face">€</div><div class="cf-face back">👑</div></div></div>
+            <div class="cf-side"><button id="cfPile" class="on">€ Pile</button><button id="cfFace">👑 Face</button></div>
+            <div class="bet-control-box" style="margin:0 0 10px"><label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label><input type="number" id="cfBet" value="50" min="1" style="margin: 4px 0 8px;"><div class="quick-bet-row" id="cfQuick" style="margin-bottom:0"><button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button><button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button></div></div>
+            <div class="cr-hud"><div>Multiplicateur<b>x1.97</b></div><div>Gain si gagné<b id="cfGain">0 🪙</b></div><div>Série<b id="cfStreak">0</b></div></div>
+            <button id="cfFlipBtn" onclick="cfFlip()">Lancer la pièce 🪙</button>
+            <div class="history-bar" id="cfHist" style="margin-top: 10px;"></div>
+            <div id="cfProof" style="font-size:11px;color:#7c8aa5;word-break:break-all;margin-top:8px"></div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+        <div id="cr-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h3 style="margin: 5px 0; color: #ffd45c;">🐔 Chicken Road</h3>
+            <p id="crStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Choisis un mode, mise, puis fais traverser le poulet. Encaisse avant la prochaine voiture !</p>
+            <div class="bet-control-box" style="margin: 0 0 10px;">
+                <div class="cr-modes" id="crModes"></div>
+                <div class="cr-info" id="crInfo"></div>
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
+                <input type="number" id="crBetAmount" value="50" min="1" style="margin: 4px 0 8px;">
+                <div class="quick-bet-row" id="crQuick" style="margin-bottom:0">
+                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
+                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+                </div>
+            </div>
+            <div class="provably-fair-box">🔒 <b>Hash SHA-256 de la partie :</b> <span id="crHash" style="color: #38bdf8;">—</span><br><span id="crProof"></span></div>
+            <div class="cr-hud"><div>Multiplicateur<b id="crMult">x1.00</b></div><div>Gain actuel<b id="crGain">0 🪙</b></div><div>Prochain pas<b id="crNext">—</b></div></div>
+            <div class="cr-stage" id="crStage"><div class="cr-world" id="crWorld"></div><div id="crToast" class="ice-toast"></div></div>
+            <div style="display: flex; gap: 10px;">
+                <button id="crStartBtn" onclick="crStart()">Lancer la traversée 🐔</button>
+                <button id="crGoBtn" class="hidden" onclick="crGo()" style="background: linear-gradient(180deg,#3b82f6,#1d4ed8);">AVANCER ➜</button>
+                <button id="crCashBtn" class="btn-cashout hidden" onclick="crCash()">ENCAISSER</button>
+            </div>
+            <div class="history-bar" id="crHist" style="margin-top: 10px;"></div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+
+        <!-- 8. ÉCRAN ARROWS X -->
+        <div id="ar-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h3 style="margin: 5px 0; color: #ffd45c;">🎯 Arrows X</h3>
+            <p id="arStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Choisis un mode, mise, puis lance ta fléchette. Plus le mode est difficile, plus les anneaux rapportent… et plus la cible est petite !</p>
+            <div class="bet-control-box" style="margin: 0 0 10px;">
+                <div class="cr-modes" id="arModes"></div>
+                <div class="cr-info" id="arInfo"></div>
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Fléchettes d'affilée (1 à 20)</label>
+                <input type="number" id="arDarts" value="1" min="1" max="20" style="margin: 4px 0 8px;">
+                <div class="quick-bet-row" id="arDartQuick"><button class="quick-btn" data-n="1">1</button><button class="quick-btn" data-n="3">3</button><button class="quick-btn" data-n="5">5</button><button class="quick-btn" data-n="10">10</button><button class="quick-btn" data-n="20">20</button></div>
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise par fléchette</label>
+                <input type="number" id="arBetAmount" value="50" min="1" style="margin: 4px 0 8px;">
+                <div class="quick-bet-row" id="arQuick" style="margin-bottom:0">
+                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
+                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+                </div>
+            </div>
+            <div id="arTotal" style="font-size:12px;color:#cdbf9f;margin:-4px 0 8px">Mise totale : —</div>
+            <div class="provably-fair-box">🔒 <b>Hash SHA-256 de la partie :</b> <span id="arHash" style="color: #38bdf8;">—</span><br><span id="arProof"></span></div>
+            <div class="ar-hud"><div>Mode<b id="arModeName">Facile</b></div><div>Chance de toucher<b id="arHitPct">61,9 %</b></div><div>Gain max<b id="arMax">x20</b></div></div>
+            <div class="ar-stage" id="arStage"><svg id="arSvg" viewBox="0 0 640 320" preserveAspectRatio="xMidYMid meet"></svg><div id="arToast" class="ice-toast"></div><div id="arPop" class="ar-pop"></div></div>
+            <div style="display: flex; gap: 10px;">
+                <button id="arStartBtn" onclick="arStart()">Armer la fléchette 🏹</button>
+                <button id="arThrowBtn" class="hidden" onclick="arThrow()" style="background: linear-gradient(180deg,#a21caf,#701a85);">LANCER 🎯</button>
+            </div>
+            <p style="font-size:11.5px;color:#7d7494;margin:8px 0 0;">💡 Mode « mitralette » : tant que la partie est armée, retape simplement sur LANCER — une nouvelle mise est débitée et la fléchette repart aussitôt, sans temps mort.</p>
+            <div class="history-bar" id="arHist" style="margin-top: 10px;"></div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+
+        <!-- 9. ÉCRAN ROULETTE -->
+        <div id="rl-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h3 style="margin: 5px 0; color: #ffd45c;">🎡 Roulette européenne</h3>
+            <p id="rlStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Roue classique 0-36, un seul zéro. Clique une case du tapis pour miser (le montant du jeton est pris dans la boîte). Simple chance x2, douzaine/colonne x3, plein x36.</p>
+            <div class="rl-wheel-wrap">
+                <div id="rlWheelBox" style="position:relative;flex:none;width:230px;height:230px">
+                    <svg id="rlWheelSvg" viewBox="0 0 100 100" width="230" height="230"></svg>
+                    </div>
+                <div style="flex:1">
+                    <div class="rl-res" id="rlRes" style="background:#0f7a44;display:inline-block">?</div>
+                    <div style="font-size:12px;color:#9a90ad;margin:6px 0;">Derniers numéros</div>
+                    <div class="history-bar" id="rlHist" style="margin:0;"></div>
+                    <div class="provably-fair-box" style="margin-top:8px;">🔒 <b>Hash :</b> <span id="rlHash" style="color: #38bdf8;">—</span><br><span id="rlProof"></span></div>
+                </div>
+            </div>
+            <div class="rl-betrow">
+                <label style="font-size:12px;color:#94a3b8;white-space:nowrap;">Jeton</label>
+                <input type="number" id="rlBetAmount" value="25" min="1">
+                <div class="quick-bet-row" id="rlQuick" style="margin:0;">
+                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="25">25</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+                </div>
+                <button id="rlUndoBtn" onclick="rlUndo()" style="width:auto;margin:0;padding:8px 12px;background:#475569;" title="Annuler le dernier jeton posé">↩︎</button>
+            </div>
+            <div class="rl-total"><span>Mise sur la table : <b id="rlTotalVal">0</b> 🪙</span><span id="rlBetsCount">0 pari</span></div>
+            <div class="rl-felt">
+                <div class="rl-hint">↔ Fais glisser le tapis pour voir toutes les cases</div>
+                <div class="rl-scroll" id="rlScroll">
+                    <div id="rlTable"></div>
+                    <div id="rlOut"></div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button id="rlSpinBtn" onclick="rlSpin()" style="background: linear-gradient(180deg,#b91c1c,#7f1d1d);">TOURNER 🎡</button>
+                <button onclick="rlClear()" style="background:#475569;">Effacer</button>
+                <button onclick="rlRepeat()" style="background:#475569;">Rejouer</button>
+            </div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+
+        <!-- 10. ÉCRAN BLACKJACK -->
+        <div id="bj-screen" class="hidden">
+            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
+                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
+                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+            </div>
+            <h3 style="margin: 5px 0; color: #ffd45c;">🃏 Blackjack</h3>
+            <p id="bjStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Blackjack classique : 52 cartes, mélangées à chaque main. Approche 21 sans le dépasser et bats le croupier.</p>
+            <div class="bet-control-box" id="bjBetBox" style="margin: 0 0 10px;">
+                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
+                <input type="number" id="bjBetAmount" value="50" min="1" style="margin: 4px 0 8px;">
+                <div class="quick-bet-row" id="bjQuick" style="margin-bottom:0">
+                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
+                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+                </div>
+            </div>
+            <details class="bj-rules"><summary>📖 Règles du blackjack</summary><ul>
+                <li><b>But :</b> avoir un total plus proche de 21 que le croupier, sans dépasser 21 (sinon tu « sautes » et tu perds).</li>
+                <li><b>Cartes :</b> 2 à 10 = leur valeur, Valet/Dame/Roi = 10, <b>As = 11 ou 1</b> (le meilleur choix pour toi). « 7/17 » = main souple (l'As vaut 1 ou 11).</li>
+                <li><b>Blackjack :</b> As + carte de 10 sur les 2 premières cartes → payé <b>3 pour 2</b> (mise 100 → +150).</li>
+                <li><b>Croupier :</b> tire jusqu'à 16, <b>reste sur tous les 17</b> (même souple). Il regarde sa carte cachée s'il montre un As ou un 10 : en cas de blackjack, la main s'arrête.</li>
+                <li><b>Doubler :</b> sur tes 2 premières cartes, tu doubles ta mise et tu reçois <b>une seule</b> carte.</li>
+                <li><b>Séparer :</b> 2 cartes de même valeur (ex. 8+8, ou Roi+10) → 2 mains, 1 mise chacune. Tu peux re-séparer jusqu'à 4 mains et doubler après un split. Un As séparé ne reçoit qu'une carte et ne se re-sépare pas ; 21 après split = paiement 1:1 (pas un blackjack).</li>
+                <li><b>Assurance :</b> si le croupier montre un As, tu peux miser la moitié de ta mise : payée 2:1 s'il a blackjack.</li>
+                <li><b>Égalité :</b> mise rendue. Paiements : victoire 1:1, blackjack 3:2.</li></ul></details>
+            <div class="provably-fair-box">🔒 <b>Graine de mélange (révélée en fin de main) :</b> <span id="bjSeed" style="color: #38bdf8;">—</span></div>
+            <div class="bj-felt">
+                <div class="bj-zone">
+                    <div class="bj-label">Croupier</div>
+                    <div class="bj-cards" id="bjDealer"></div>
+                    <div class="bj-scorebox" id="bjDealerScore"></div>
+                </div>
+                <div class="bj-banner">BLACKJACK PAYÉ 3:2 · LE CROUPIER TIRE À 16 ET RESTE SUR 17 · ÉGALITÉ = MISE RENDUE</div>
+                <div class="bj-zone">
+                    <div class="bj-label">Toi</div>
+                    <div class="bj-hands" id="bjPlayer"></div>
+                </div>
+                <div id="bjMsg" style="text-align:center;font-size:15px;font-weight:800;color:#ffe9a8;min-height:22px;"></div>
+            </div>
+            <div class="bj-actions">
+                <button id="bjDealBtn" onclick="bjDeal()">Distribuer 🂠</button>
+                <button id="bjHitBtn" class="hidden" onclick="bjHit()" style="background: linear-gradient(180deg,#3b82f6,#1d4ed8);">Tirer ➕</button>
+                <button id="bjStandBtn" class="hidden" onclick="bjStand()" style="background: linear-gradient(180deg,#eab308,#a16207);color:#241202;">Rester ✋</button>
+                <button id="bjDoubleBtn" class="hidden" onclick="bjDouble()" style="background: linear-gradient(180deg,#22c55e,#15803d);">Doubler 💰</button>
+                <button id="bjSplitBtn" class="hidden" onclick="bjSplit()" style="background: linear-gradient(180deg,#a855f7,#7e22ce);">Séparer ✂️</button>
+                <button id="bjInsBtn" class="hidden" onclick="bjInsurance(true)" style="background: linear-gradient(180deg,#22c55e,#15803d);">Assurance 🛡️</button>
+                <button id="bjNoInsBtn" class="hidden" onclick="bjInsurance(false)" style="background: #475569;">Non merci</button>
+            </div>
+            <div class="history-bar" id="bjHist" style="margin-top: 10px;"></div>
+            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+    </div>
+
+    <div id="stopBar" class="hidden"><span id="stopMsg"></span><button id="stopBtn" onclick="voteStop()">🛑 Arrêter la partie</button></div>
+
+    <!-- MODALE HISTORIQUE COMPLET -->
+    <div id="historyModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 style="margin-top:0; color: #38bdf8;">📜 Historique Complet des Tours</h3>
+            <p style="font-size: 13px; color: #94a3b8; margin-bottom: 15px;">Clique sur une pastille pour voir la preuve Provably Fair.</p>
+            <div class="full-history-grid" id="fullHistoryGrid"></div>
+            <button onclick="closeHistoryModal()" style="background: #ef4444; margin-top: 20px;">Fermer</button>
+        </div>
+    </div>
+
+    <!-- MODALE RÉSULTATS DE FIN DE SESSION -->
+    <div id="gameOverModal" class="modal-overlay hidden">
+        <div class="modal-content" id="endBox" style="border: 2px solid #eab308;max-width:560px;max-height:90vh">
+            <h2 style="margin-top:0; color: #eab308;">🏁 Fin de la Session !</h2>
+            <p style="color: #94a3b8; font-size: 14px;">Le temps est écoulé. Pot total à redistribuer : <b id="finalPot" style="color:#22c55e"></b></p>
+            <div id="finalCharts" style="text-align:left;margin:12px 0"></div>
+            <h4 style="margin:10px 0 6px;text-align:left">🏆 Classement final</h4>
+            <div id="finalLeaderboardList" style="text-align: left; margin: 8px 0;"></div>
+            <h4 style="margin:10px 0 6px;text-align:left">💸 Qui paie qui</h4>
+            <div id="finalTransfers" style="text-align:left;font-size:14px;color:#cbd5e1"></div>
+            <div id="endBadges" style="margin-top:14px"></div>
+            <div id="rematchInfo" style="margin-top:16px;font-size:13px;color:#cdbf9f"></div>
+            <button id="rematchBtn" onclick="rematch()" style="background:linear-gradient(180deg,#d4562a,#8a1c3c);margin-top:8px">🔁 Continuer : nouvelle partie avec les mêmes joueurs</button>
+            <button onclick="leaveRoom()" style="background: #22c55e; margin-top: 10px;">Retour à l'accueil</button>
+        </div>
+    </div>
+
+    <!-- PANNEAU LATÉRAL : HISTORIQUE DES PARIS EN DIRECT (rétractable) -->
+    <button id="admGear" onclick="admToggle()" aria-label="zone secrète">⚙️</button>
+<div id="admPanel"><div id="admLock"><div style="margin-bottom:6px">🔒 Zone secrète</div><input type="password" id="admCode" placeholder="Code" autocomplete="off" onkeydown="if(event.key==='Enter')admUnlock()"><div id="admErr" style="color:#f87171;margin-top:4px"></div></div><div id="admBody" style="display:none"></div></div>
+<div id="roomChip" onclick="copyRoomCode()" title="Clique pour copier le code">🔑 <span class="rc-l">Code de la room</span> <b id="roomChipCode">----</b></div>
+<div id="sideTabs" class="hidden"><button class="sb" data-t="charts" title="Graphiques des joueurs">📈</button><button class="sb" data-t="chat" title="Chat de la room">💬<b id="chatBadge" class="hidden">0</b></button><button class="sb" data-t="gen" title="Profils et classement général">🌍</button><button class="sb" data-t="set" title="Réglages">🎚️</button><button class="sb" id="meBtn" data-me="1" title="Mon profil, quêtes, niveau">👤<b id="meLv">1</b></button></div>
+<div id="bdToast"></div>
+<div id="chartPanel" aria-hidden="true">
+  <div class="ch-tabs"><button data-t="charts">📈 Graphiques</button><button data-t="chat">💬 Chat</button><button data-t="gen">🌍 Général</button><button data-t="set" title="Réglages">🎚️</button><button class="ch-x" aria-label="Fermer" title="Fermer">✕</button></div>
+  <div class="ch-head" id="chHead"><button class="ch-back hidden" id="chBack" onclick="chartBack()">← Retour</button><span id="chTitle">📈 Graphiques</span></div>
+  <div id="chartBody" class="side-body"><div class="feed-empty">Chargement…</div></div>
+  <div id="chatBody" class="side-body hidden" style="display:flex;flex-direction:column;padding:0"><div id="chatList"></div><form id="chatForm" autocomplete="off"><input id="chatInput" maxlength="200" placeholder="Écris un message…" autocomplete="off"><button type="submit" aria-label="Envoyer">➤</button></form></div>
+  <div id="genBody" class="side-body hidden"></div>
+  <div id="setBody" class="side-body hidden">
+    <div class="ch-sub" style="margin-top:2px">🎚️ Réglages</div>
+    <div class="st-row"><label>🎵 Musique <b id="stMV">100 %</b></label><input type="range" id="stMusic" min="0" max="100" value="100"></div>
+    <div class="st-row"><label>🔊 Effets sonores <b id="stSV">100 %</b></label><input type="range" id="stSfx" min="0" max="100" value="100"></div>
+    <div class="st-row"><label class="st-chk"><input type="checkbox" id="stRM"> 🎞️ Animations réduites <small>(moins de mouvement, utile si ça rame)</small></label></div>
+    <button id="stTest" style="margin-top:6px;background:#475569">🔔 Tester le son</button>
+    <div class="ch-note" style="margin-top:12px">Tes réglages sont gardés sur cet appareil.</div>
+  </div>
+</div>
+<div id="feedPanel" class="hidden">
+        <div class="feed-head" onclick="toggleFeed()">
+            <span class="feed-title"><span class="live-dot"></span>📡 Paris en direct</span>
+            <span class="feed-chev">▼</span>
+        </div>
+        <div class="feed-stats"><span id="feedCount">0 pari récent</span><span id="feedVol">volume : 0 🪙</span></div>
+        <div id="feedList"><div class="feed-empty">Aucun pari pour l'instant…</div></div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/plinko-tables.js"></script>
+    <script src="/js/core.js?v=4"></script>
+    <script src="/js/app.js?v=4"></script>
+    <script src="/js/jeux1.js?v=1"></script>
+    <script src="/js/jeux2.js?v=1"></script>
+    <script src="/js/jeux3.js?v=2"></script>
+    <script src="/js/panneaux.js?v=3"></script>
+    <script src="/js/profil-chat.js?v=2"></script>
+    <script src="/js/moi.js?v=6"></script>
+    <script src="/js/cadres.js?v=6"></script>
+    <script src="/js/cadres-extra.js?v=3"></script>
+    <script src="/js/sons-slot.js?v=1"></script>
+    <script src="/js/machine.js?v=3"></script>
+<script>
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+let _ip = null; window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); _ip = e; const b = document.getElementById('installApp'); if (b) b.classList.remove('hidden'); });
+function installApp() { if (!_ip) return; _ip.prompt(); _ip.userChoice.finally(() => { _ip = null; const b = document.getElementById('installApp'); if (b) b.classList.add('hidden'); }); }
+window.addEventListener('appinstalled', () => { const b = document.getElementById('installApp'); if (b) b.classList.add('hidden'); });
+</script>
+<button id="installApp" class="hidden" onclick="installApp()" style="position:fixed;right:12px;bottom:12px;z-index:9999;padding:10px 16px;border-radius:999px;border:1px solid #e8c27a99;background:linear-gradient(135deg,#3a1530,#150d22);color:#ffe9b0;font-weight:700;box-shadow:0 4px 18px rgba(0,0,0,.5)">📲 Installer l'appli</button>
+</body>
+</html>

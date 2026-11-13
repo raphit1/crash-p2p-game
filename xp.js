@@ -25,7 +25,9 @@ const TIERS = [
     { id: 'grandmaitre', n: 'Grand Maître', lv: 60, t: 'Seigneur du Hasard',    c: '#c78bff' },
     { id: 'legende',  n: 'Légende',     lv: 80,  t: 'Légende du Casino',       c: '#ffcf33' },
     { id: 'mythique', n: 'Mythique',    lv: 100, t: 'Dieu du Jackpot',         c: '#a66bff' },
-    { id: 'secret',   n: 'SECRET',      lv: 999, t: '???',                     c: '#ff1a2e' }
+    { id: 'secret',   n: 'SECRET',      lv: 999, t: '???',                     c: '#ff1a2e' },
+    { id: 'astral',   n: 'ASTRAL',      lv: 999, t: 'Souverain des Étoiles',   c: '#6fe3ff' },
+    { id: 'kitsune',  n: 'KITSUNE',     lv: 999, t: 'Esprit aux Neuf Queues',  c: '#ff9fcb' }
 ];
 const tierFor = level => { let i = 0; TIERS.forEach((t, k) => { if (level >= t.lv) i = k; }); return i; };
 module.exports = { MAX_LEVEL, xpFor, xpAt, levelInfo, TIERS, tierFor };

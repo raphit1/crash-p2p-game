@@ -650,7 +650,7 @@ io.on('connection', (socket) => {
         const u = meUser(); if (!u) return null;
         const info = XPL.levelInfo(u.xp || 0);
         return { name: u.name, since: u.created, info, top: XPL.tierFor(info.level), cos: A.cosOf(A.key(u.name)), cf: u.cf == null ? null : u.cf, ct: u.ct == null ? null : u.ct,
-            tiers: XPL.TIERS.map((t, k) => (k > XPL.tierFor(info.level) && t.id === 'secret' ? { id: 'secret', n: '???', lv: 0, t: '???', c: '#555' } : t)), prof: A.profileOf(u.name), admin: !!socket.data.admin };
+            tiers: XPL.TIERS.map((t, k) => (k > XPL.tierFor(info.level) && k >= 9 ? { id: t.id, n: '???', lv: 0, t: '???', c: '#555' } : t)), prof: A.profileOf(u.name), admin: !!socket.data.admin };
     };
     const meRefresh = () => { const d = meData(); if (d) socket.emit('me-data', d); accountRooms(A.key(socket.data.user)).forEach(r => broadcast(r)); };
     socket.on('me-get', () => { const d = meData(); if (d) socket.emit('me-data', d); });

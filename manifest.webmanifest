@@ -1,0 +1,17 @@
+{
+  "name": "Crash P2P Arena",
+  "short_name": "Crash P2P",
+  "description": "Casino multijoueur en argent fictif : Crash, Slot, Blackjack et plus.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#150d22",
+  "theme_color": "#150d22",
+  "lang": "fr",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

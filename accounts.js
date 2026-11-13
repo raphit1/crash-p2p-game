@@ -189,7 +189,7 @@ const userRec = k => boost(db.users[k], k) || null;
 function cosOf(k) {
     const u = boost(db.users[k], k); if (!u) return { lv: 1, fr: 0, ti: 0, av: 0 };
     const lv = XP.levelInfo(u.xp).level, top = XP.tierFor(lv);
-    return { lv, fr: u.cf == null ? top : Math.min(u.cf, top), ti: u.ct == null ? top : Math.min(u.ct, top), av: u.avv || 0 };
+    return { lv, fr: u.cf == null ? Math.min(top, 9) : Math.min(u.cf, top), ti: u.ct == null ? Math.min(top, 9) : Math.min(u.ct, top), av: u.avv || 0 };
 }
 function setCos(k, fr, ti) {
     const u = boost(db.users[k], k); if (!u) return false;
