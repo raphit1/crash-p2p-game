@@ -3,7 +3,7 @@
    Utilisé par le serveur ; le client reçoit la table des rangs avec « me-data ».
    ============================================================ */
 'use strict';
-const MAX_LEVEL = 150;
+const MAX_LEVEL = 999;
 // XP nécessaire pour passer du niveau L au niveau L+1
 const xpFor = L => 60 + 25 * L;
 // XP cumulée nécessaire pour ATTEINDRE le niveau L (niveau 1 = 0 XP)
@@ -24,7 +24,8 @@ const TIERS = [
     { id: 'maitre',   n: 'Maître',      lv: 45,  t: 'Maître des Mises',        c: '#ff7a2f' },
     { id: 'grandmaitre', n: 'Grand Maître', lv: 60, t: 'Seigneur du Hasard',    c: '#c78bff' },
     { id: 'legende',  n: 'Légende',     lv: 80,  t: 'Légende du Casino',       c: '#ffcf33' },
-    { id: 'mythique', n: 'Mythique',    lv: 100, t: 'Dieu du Jackpot',         c: '#a66bff' }
+    { id: 'mythique', n: 'Mythique',    lv: 100, t: 'Dieu du Jackpot',         c: '#a66bff' },
+    { id: 'secret',   n: 'SECRET',      lv: 999, t: '???',                     c: '#ff1a2e' }
 ];
 const tierFor = level => { let i = 0; TIERS.forEach((t, k) => { if (level >= t.lv) i = k; }); return i; };
 module.exports = { MAX_LEVEL, xpFor, xpAt, levelInfo, TIERS, tierFor };
