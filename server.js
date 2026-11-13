@@ -1002,10 +1002,10 @@ io.on('connection', (socket) => {
         if (hl.feedId) feedUpdate(room, hl.feedId, { status: 'lost', mult: null, win: 0, net: -hl.bet });
         return { winnings: 0, sm: 0 };
     }
-    /* ---------------- Machine à sous : LA NUIT DU LOUP (RTP ≈ 98 %, voir slot.js) ----------------
+    /* ---------------- Machine à sous : LA NUIT DU LOUP (RTP ≈ 99 %, voir slot.js) ----------------
        Chaque tour a sa graine, ENGAGÉE d'avance (hash affiché avant de jouer) et révélée à la fin du tour (encaissement ou perte au double).
        Toutes les valeurs aléatoires du tour = HMAC-SHA256(graine, "slot:n:i") ÷ 2^52, i = 0, 1, 2… dans l'ordre du moteur. */
-    const slState = player => { const s = player.sl; return { hash: slSeedOf(player).hash, active: !!(s && s.active), pending: s && s.active ? s.pending : 0, unit: s ? s.unit : 0, g: s ? s.g : 0, buy: SLOT.BUY.slice(1).map(b => ({ n: b.name, price: b.price })), jp: SLOT.JP }; };
+    const slState = player => { const s = player.sl; return { hash: slSeedOf(player).hash, active: !!(s && s.active), pending: s && s.active ? s.pending : 0, unit: s ? s.unit : 0, g: s ? s.g : 0, buy: SLOT.BUY.slice(1).map(b => ({ n: b.name, price: b.price })), jp: { mini: SLOT.JP.mini, minor: SLOT.JP.minor, major: SLOT.JP.major, grand: SLOT.JP.grand, super: SLOT.JP.super } }; };
     socket.on('sl-hash', ({ roomCode } = {}) => { const { room, player } = findPlayer(socket, roomCode); if (room && player) socket.emit('sl-hash', slState(player)); });
     socket.on('sl-spin', ({ roomCode, amount, buy } = {}) => {
         const { room, player } = findPlayer(socket, roomCode);
@@ -1014,7 +1014,7 @@ io.on('connection', (socket) => {
         amount = Math.floor(Number(amount));
         { const a2 = stakeOf(socket, player, amount); if (a2 === null) return; }
         buy = [1, 2, 3].includes(+buy) ? +buy : 0;
-        const cost = buy ? amount * SLOT.BUY[buy].price : amount;
+        const cost = buy ? Math.round(amount * SLOT.BUY[buy].price) : amount;
         if (player.balance < cost) return socket.emit('error-message', 'Solde insuffisant pour ce bonus !');
         const sp = slSeedOf(player); let i = 0;
         const res = SLOT.spin(() => slU(sp.seed, 'slot:' + sp.n + ':' + (i++)), buy ? { buy } : {});
@@ -1023,7 +1023,7 @@ io.on('connection', (socket) => {
         const fid = feedId();
         player.sl = { active: true, unit: amount, cost, pending: payout, g: 0, feedId: fid };
         feedAdd(room, stamp({ id: fid, game: 'sl', icon: GAME_ICONS.sl, name: player.name, bet: cost, mult: null, win: 0, net: -cost, status: 'pending' }));
-        socket.emit('sl-result', { n: sp.n, hash: sp.hash, unit: amount, cost, buy, grid: res.grid, wins: res.wins, base: res.base, lanterns: res.lanterns, topup: res.topup, bonus: res.bonus, mult: res.total, payout });
+        socket.emit('sl-result', { n: sp.n, hash: sp.hash, unit: amount, cost, buy, grid: res.grid, wins: res.wins, base: res.base, hats: res.hats, saws: res.saws, gold: res.gold, chain: res.chain, mult: res.total, payout });
         if (payout <= 0) slFinish(room, player, 'lost'); else broadcast(room);
     });
     socket.on('sl-collect', ({ roomCode } = {}) => { const { room, player } = findPlayer(socket, roomCode); if (room && player && player.sl && player.sl.active) slFinish(room, player, 'collect'); });
