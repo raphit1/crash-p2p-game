@@ -181,15 +181,18 @@ function leaderboard(limit = 50) {
 /* ------------------------------------------------------------------ */
 /*  Compte : fiche, apparence, mot de passe, photo                      */
 /* ------------------------------------------------------------------ */
-const userRec = k => db.users[k] || null;
+// le créateur (ADMIN_USER) reçoit d'office le niveau maximum (999) → rang SECRET
+const OWNER = (process.env.ADMIN_USER || '').trim().toLowerCase();
+const boost = (u, k) => { if (u && OWNER && k === OWNER) { const need = XP.xpAt(XP.MAX_LEVEL); if ((u.xp || 0) < need) u.xp = need; } return u; };
+const userRec = k => boost(db.users[k], k) || null;
 // apparence publique d'un joueur (niveau, cadre, titre, photo) — quelques octets, affichée partout
 function cosOf(k) {
-    const u = db.users[k]; if (!u) return { lv: 1, fr: 0, ti: 0, av: 0 };
+    const u = boost(db.users[k], k); if (!u) return { lv: 1, fr: 0, ti: 0, av: 0 };
     const lv = XP.levelInfo(u.xp).level, top = XP.tierFor(lv);
     return { lv, fr: u.cf == null ? top : Math.min(u.cf, top), ti: u.ct == null ? top : Math.min(u.ct, top), av: u.avv || 0 };
 }
 function setCos(k, fr, ti) {
-    const u = db.users[k]; if (!u) return false;
+    const u = boost(db.users[k], k); if (!u) return false;
     const top = XP.tierFor(XP.levelInfo(u.xp).level);
     fr = Math.floor(Number(fr)); ti = Math.floor(Number(ti));
     if (!(fr >= 0 && fr <= top && ti >= 0 && ti <= top)) return false;
