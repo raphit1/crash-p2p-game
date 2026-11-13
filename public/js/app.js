@@ -32,7 +32,7 @@ function switchGame(name) {
   show('game-hub', false);
   socket.emit('join-game-table', { roomCode: S.code });
   S.view = name === 'Icefield' ? 'ice' : name === 'Just mixed' ? 'jm' : name === 'Chicken Road' ? 'cr'
-         : name === 'Arrows X' ? 'ar' : name === 'Roulette' ? 'rl' : name === 'Blackjack' ? 'bj' : name === 'Mines' ? 'mn' : name === 'Plinko' ? 'pk' : name === 'Dés' ? 'dc' : name === 'Hi-Lo' ? 'hl' : name === 'Pile ou Face' ? 'cf' : 'crash';
+         : name === 'Arrows X' ? 'ar' : name === 'Roulette' ? 'rl' : name === 'Blackjack' ? 'bj' : name === 'Mines' ? 'mn' : name === 'Plinko' ? 'pk' : name === 'Dés' ? 'dc' : name === 'Hi-Lo' ? 'hl' : name === 'Pile ou Face' ? 'cf' : name === 'Machine à sous' ? 'sl' : 'crash';
   if (S.view === 'ice') { show('icefield-screen'); updateIce(); }
   else if (S.view === 'jm') { show('jm-screen'); if (!S.jmCups) buildJm(); }
   else if (S.view === 'cr') { show('cr-screen'); crInit(); }
@@ -44,13 +44,14 @@ function switchGame(name) {
   else if (S.view === 'dc') { show('dc-screen'); dcInit(); }
   else if (S.view === 'hl') { show('hl-screen'); hlInit(); }
   else if (S.view === 'cf') { show('cf-screen'); cfInit(); }
+  else if (S.view === 'sl') { show('sl-screen'); slInit(); }
   else { show('game-screen'); socket.emit('crash-join', { roomCode: S.code }); startCrashUI(); }
 }
 function returnToHub() {
   if (S.view === 'crash') { socket.emit('crash-leave', { roomCode: S.code }); stopCrashUI(); } // le jeu Crash s'arrête chez toi ET sur le serveur si tu es seul
   S.view = 'hub';
   show('game-screen', false); show('icefield-screen', false); show('jm-screen', false); show('cr-screen', false); crStop();
-  show('ar-screen', false); show('rl-screen', false); show('bj-screen', false); show('mn-screen', false); show('pk-screen', false); show('dc-screen', false); show('hl-screen', false); show('cf-screen', false); // Arrows/Roulette/Blackjack : aucun timer client, rien à arrêter
+  show('ar-screen', false); show('rl-screen', false); show('bj-screen', false); show('mn-screen', false); show('pk-screen', false); show('dc-screen', false); show('hl-screen', false); show('cf-screen', false); show('sl-screen', false); // Arrows/Roulette/Blackjack : aucun timer client, rien à arrêter
   show('game-hub');
 }
 function buildPanels() {
@@ -117,7 +118,7 @@ function renderPlayers(room) {
     document.querySelectorAll('.playerBalance').forEach(e => { if (e.textContent != me.balance) e.textContent = me.balance; });
   }
   if (!$('lobby').classList.contains('hidden')) {
-    setH($('playersList'), room.players.map(p => `<li>${nm(p.name)} · mise ${eur(p.stake || 0)} (${p.balance} 🪙) ${p.isAdmin ? '👑 Hôte' : ''}${p.connected === false ? ' 💤 déconnecté' : ''}</li>`).join(''));
+    setH($('playersList'), room.players.map(p => `<li class="pl-li">${avHTML(p.name, p.cos, 38)}<span>${nm(p.name)}<small class="lvtag">Niv. ${p.cos ? p.cos.lv : 1}</small></span> · mise ${eur(p.stake || 0)} (${p.balance} 🪙) ${p.isAdmin ? '👑 Hôte' : ''}${p.connected === false ? ' 💤 déconnecté' : ''}</li>`).join(''));
     $('potTotal').textContent = eur(room.players.reduce((a, p) => a + (p.stake || 0), 0));
   }
   if (S.view === 'crash') { // la liste des mises et les stats ne servent que sur l'écran Crash
