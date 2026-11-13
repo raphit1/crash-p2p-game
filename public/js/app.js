@@ -48,6 +48,7 @@ function switchGame(name) {
   else { show('game-screen'); socket.emit('crash-join', { roomCode: S.code }); startCrashUI(); }
 }
 function returnToHub() {
+  if (typeof slLeave === "function") try { slLeave(); } catch (e) {}
   if (S.view === 'crash') { socket.emit('crash-leave', { roomCode: S.code }); stopCrashUI(); } // le jeu Crash s'arrête chez toi ET sur le serveur si tu es seul
   S.view = 'hub';
   show('game-screen', false); show('icefield-screen', false); show('jm-screen', false); show('cr-screen', false); crStop();
