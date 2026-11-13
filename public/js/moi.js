@@ -9,23 +9,8 @@ const TIERS = [
   { id: 'or', n: 'Or', t: 'Chasseur de Gains', c: '#ffd34d' }, { id: 'platine', n: 'Platine', t: 'Stratège de Table', c: '#7fe7e0' },
   { id: 'diamant', n: 'Diamant', t: 'Flambeur Étincelant', c: '#7fc8ff' }, { id: 'maitre', n: 'Maître', t: 'Maître des Mises', c: '#ff7a2f' },
   { id: 'grandmaitre', n: 'Grand Maître', t: 'Seigneur du Hasard', c: '#c78bff' }, { id: 'legende', n: 'Légende', t: 'Légende du Casino', c: '#ffcf33' },
-  { id: 'mythique', n: 'Mythique', t: 'Dieu du Jackpot', c: '#ff4fd8' }
+  { id: 'mythique', n: 'Mythique', t: 'Dieu du Jackpot', c: '#a66bff' }
 ];
-/* ---------- Avatar avec cadre ---------- */
-// cos = { lv, fr (cadre), ti (titre), av (version de la photo, 0 = aucune) }
-function avHTML(name, cos, size, withTitle) {
-  cos = cos || { lv: 1, fr: 0, ti: 0, av: 0 };
-  const fr = Math.max(0, Math.min(TIERS.length - 1, cos.fr | 0)), T = TIERS[fr], s = size || 44;
-  const letter = esc(String(name || '?').trim().charAt(0).toUpperCase());
-  const hue = [...String(name || '')].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7);
-  const img = cos.av ? `<img src="/avatar/${encodeURIComponent(String(name).toLowerCase())}?v=${cos.av}" alt="" onerror="this.remove()">` : '';
-  const deco = (fr >= 6 ? '<b class="wg wL"></b><b class="wg wR"></b>' : '') + (fr >= 5 ? '<b class="fx f1">🔥</b><b class="fx f2">🔥</b>' + (fr >= 7 ? '<b class="fx f3">🔥</b>' : '') : '') + (fr === 4 || fr >= 7 ? '<b class="sp s1">✦</b><b class="sp s2">✦</b>' : '');
-  const out = `<span class="av fr fr-${fr}" style="--s:${s}px;--fc:${T.c}" title="${esc(T.n)} · Niv. ${cos.lv | 0}">${deco}<i class="avi" style="--h:${hue}">${letter}${img}</i><em class="avl">${cos.lv | 0}</em></span>`;
-  if (!withTitle) return out;
-  const ti = TIERS[Math.max(0, Math.min(TIERS.length - 1, cos.ti | 0))];
-  return `<span class="avw">${out}<span class="avt" style="--fc:${ti.c}">${esc(ti.t)}</span></span>`;
-}
-
 /* ---------- Toasts (quêtes, XP, niveaux) ---------- */
 (() => { const d = document.createElement('div'); d.id = 'toasts'; document.body.appendChild(d); })();
 function xpToast(html, cls, ms) {
