@@ -3,7 +3,8 @@ const socket = io({ transports: ['websocket', 'polling'] }); // websocket direct
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // Pseudo du créateur : rouge néon + couronne sur la 1re lettre, visible par TOUT LE MONDE (seul le panneau admin est privé)
-const nm = n => { if (n && String(n).trim().toLowerCase() === 'dario') return '<span class="daria-name">daria</span> 👀'; const e = esc(n); if (!n || !((S.isAdmin && n === S.myName) || (S.vip && S.vip.has(n)))) return e; return `<span class="adm-name"><span class="adm-r">${esc(n[0])}<i>👑</i></span>${esc(n.slice(1))}</span>`; };
+const COS_MAP = {};
+const nm = n => { if (n && String(n).trim().toLowerCase() === 'dario') return '<span class="daria-name">daria</span> 👀'; const e = esc(n); let r = e; if (n && ((S.isAdmin && n === S.myName) || (S.vip && S.vip.has(n)))) r = `<span class="adm-name"><span class="adm-r">${esc(n[0])}<i>👑</i></span>${esc(n.slice(1))}</span>`; const f = n ? (COS_MAP[String(n).toLowerCase()] | 0) : 0; return f >= 5 ? `<span class="pn pn-${f}">${r}${f !== 6 ? '<i class="pst"><b></b><b></b><b></b><b></b></i>' : ''}</span>` : r; };
 const show = (id, on = true) => $(id).classList.toggle('hidden', !on);
 
 /* ---------- État ---------- */
