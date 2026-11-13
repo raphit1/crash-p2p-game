@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Crash P2P - Aviator Pro Ultimate</title>
-    <link rel="stylesheet" href="/style.css?v=6">
+    <link rel="stylesheet" href="/style.css?v=7">
 </head>
 <body>
     <div class="container">
@@ -426,6 +426,7 @@
                     <div class="sl-hud hidden" id="slHud"><span>🏮 Tours : <b id="slLeft">6</b></span><span id="slHudMid"></span><span>Gain bonus : <b id="slBonusWin">0</b> 🪙</span></div>
                     <div class="sl-grid" id="slGrid"></div>
                     <div class="sl-banner" id="slBanner"></div>
+                    <div class="sl-wheel hidden" id="slWheel"><div class="swh-t" id="swhTitle"></div><div class="swh-w"><div class="swh-ptr"></div><div id="swhWrap"></div></div><div class="swh-r" id="swhRes"></div></div>
                     <button class="sl-skip hidden" id="slSkip" onclick="slSkip()">⏭️ Passer</button>
                 </div>
                 <div class="sl-win" id="slWin">Choisis ta mise et lance les rouleaux… 🌕</div>
@@ -440,9 +441,9 @@
                 <div class="dc-row"><div><label>Mise par tour</label><input type="number" id="slBet" value="50" min="1" style="margin:4px 0"></div><div><label>Options</label><div class="sl-opts"><button id="slTurbo" class="quick-btn" onclick="slTurboToggle()">⚡ Turbo : non</button></div></div></div>
                 <div class="quick-bet-row" id="slQuick" style="margin-bottom:0"><button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button><button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button></div>
             </div>
-            <div class="sl-btnrow"><button id="slSpinBtn" class="sl-spin" onclick="slSpin()">🌕 TOURNER</button><button class="sl-buy" onclick="slBuyOpen()">🏮 Acheter un bonus</button></div>
+            <div class="sl-btnrow"><button id="slSpinBtn" class="sl-spin" onclick="slSpin()">🌕 TOURNER</button><button class="sl-buy" onclick="slBuyOpen()">🎡 Acheter un bonus</button></div>
             <div class="history-bar" id="slHist" style="margin-top: 10px;"></div>
-            <div id="slRules" class="sl-rules"><b>Comment ça marche ?</b> 243 façons de gagner (3 symboles identiques ou plus, de gauche à droite). 🌕 = Wild (rouleaux 2-3-4). <b>6 lanternes 🏮 ou plus</b> = <b>Le Souffle du Loup</b> : chaque lanterne devient une tombe, tu as 6 tours pour les améliorer (🪦 → 🏚️ → 🏰), puis le loup hurle 3 fois et révèle les prix (jackpots Mini, Minor, Major, Grand !). Avec 5 lanternes, le loup peut parfois en souffler une 6e. Après un gain, tu peux doubler sur rouge/noir. Rentabilité : 98 %.</div>
+            <div id="slRules" class="sl-rules"><b>Comment ça marche ?</b> 5 rouleaux × 3 lignes, <b>243 façons de gagner</b> (3 symboles identiques ou plus, de gauche à droite). 🌕 Wild sur les rouleaux 2-3-4. <b>🏮 6 lanternes ou plus</b> = <b>Tours gratuits</b> : 6 tours, chaque lanterne pose un cadre Paille, ou améliore un cadre (Paille → Bois → Brique) ; 3 lanternes dans un tour = +1 tour ; une lanterne sur une Brique améliore une autre case ; toutes les cases en Brique = 10×. À la fin, <b>le loup souffle</b> : chaque maison révèle son prix (Tombe 0,5–2×, Crypte 2–8× ou Mini/Minor, Manoir 10–250× ou Mini/Minor/Major/Grand, et dans les Tours gratuits une Brique peut offrir un tour de roue). <b>3 scies ou plus</b> (rouleaux 1 à 5) = <b>La Roue</b> ; avec <b>une scie dorée</b> (rouleau 5) = <b>Roue améliorée</b> (Super bonus 5×6, Major, Grand, SUPER 7500×). La roue donne : La Scie (les scies avancent et posent des lanternes), Mega Chapeau (blocs de lanternes), Manoir (cadres Brique), Tours gratuits, Mini 20×, Minor 100×, Major 1000×, Grand 5000×, ou Amélioration. Gain maximum : 7500× la mise. Rendement visé : 99 %. Le « double ou rien » rouge/noir est un petit bonus en plus.</div>
             <div id="slProof" style="font-size:11px;color:#7c8aa5;word-break:break-all;margin-top:8px"></div>
             <div class="sl-buyback hidden" id="slBuyBack" onclick="if(event.target===this)slBuyClose()"><div class="sl-buymodal" id="slBuyModal"></div></div>
             <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
@@ -708,7 +709,7 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="/plinko-tables.js"></script>
     <script src="/js/core.js?v=4"></script>
-    <script src="/js/app.js?v=3"></script>
+    <script src="/js/app.js?v=4"></script>
     <script src="/js/jeux1.js?v=1"></script>
     <script src="/js/jeux2.js?v=1"></script>
     <script src="/js/jeux3.js?v=1"></script>
@@ -716,6 +717,7 @@
     <script src="/js/profil-chat.js?v=2"></script>
     <script src="/js/moi.js?v=4"></script>
     <script src="/js/cadres.js?v=3"></script>
-    <script src="/js/machine.js?v=1"></script>
+    <script src="/js/sons-slot.js?v=1"></script>
+    <script src="/js/machine.js?v=2"></script>
 </body>
 </html>
