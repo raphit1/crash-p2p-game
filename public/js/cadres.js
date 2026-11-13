@@ -136,7 +136,7 @@ function ringFront(k, big) {
   return s;
 }
 function dyson() { // « sphère de Dyson » : anneaux qui tournent en 3D (projetés), satellites, anneau de Saturne
-  const rings = [[64, -20, 'Y', 9, 0, 1], [69, 35, 'Y', 13, -4, 0], [74, 80, 'X', 11, -2, 1], [79, -55, 'Y', 17, -9, 0], [84, 10, 'X', 21, -6, 1], [89, -80, 'Y', 26, -13, 0]];
+  const rings = [[66, 0, 'Y', 14, 0, 1], [72, 60, 'Y', 18, -6, 0], [78, 120, 'Y', 22, -11, 1], [84, 30, 'X', 26, -4, 0]];
   let s = `<g class="spin" style="animation-duration:46s"><circle r="61" fill="none" stroke="#ff1a2e" stroke-width="7.4" opacity=".9"/><circle r="61" fill="none" stroke="#050000" stroke-width="5.6" stroke-dasharray="26 4"/><circle r="61" fill="none" stroke="#ff2a3d" stroke-width=".9" stroke-dasharray="3 5"/></g>`;
   rings.forEach(([R, rot, ax, per, dl, sat], i) => {
     s += `<g transform="rotate(${rot})"><g class="r${ax}" style="animation-duration:${per}s;animation-delay:${dl}s"><circle r="${R}" fill="none" stroke="#ff1a2e" stroke-width="5.8"/><circle r="${R}" fill="none" stroke="#050000" stroke-width="3.8"/><circle r="${R}" fill="none" stroke="#ff4a5a" stroke-width="7" stroke-dasharray="1 9" opacity=".6"/><circle class="dsh" style="animation-duration:${6 + i}s" r="${R}" fill="none" stroke="#ff3347" stroke-width="1.2" stroke-dasharray="${12 + i * 2} 5 3 5"/>${sat ? `<g class="spin" style="animation-duration:${5 + i * 1.5}s"><path d="M${R} -5L${R + 3.4} 0L${R} 5L${R - 3.4} 0Z" fill="#ff5666" stroke="#050000" stroke-width=".8"/></g>` : ''}</g></g>`;
@@ -169,6 +169,14 @@ function cosmos() {
   return { b, f };
 }
 
+/* Animations SMIL : centre de rotation = (0,0) en unités du dessin → toujours centré sur l'avatar, quel que soit le navigateur */
+const _dur = st => { const m = /animation-duration:([\d.]+)s/.exec(st), d = /animation-delay:(-?[\d.]+)s/.exec(st); return [m ? +m[1] : 20, d ? +d[1] : 0]; };
+const _spin = (st, rev) => { if (RM) return ''; const [du, dl] = _dur(st); return `<animateTransform attributeName="transform" type="rotate" from="${rev ? 360 : 0} 0 0" to="${rev ? 0 : 360} 0 0" dur="${du}s" begin="${dl}s" repeatCount="indefinite"/>`; };
+const _scl = (st, ax) => { if (RM) return ''; const [du, dl] = _dur(st), c = [1, .924, .707, .383, .1, .383, .707, .924, 1]; return `<animateTransform attributeName="transform" type="scale" values="${c.map(v => ax === 'Y' ? v + ' 1' : '1 ' + v).join(';')}" dur="${f1(du / 2)}s" begin="${dl}s" repeatCount="indefinite"/>`; };
+const smil = h => h
+  .replace(/<circle class="spin( rev)?" style="([^"]*)"([^>]*?)\/>/g, (m, rev, st, rest) => `<circle${rest}>${_spin(st, rev)}</circle>`)
+  .replace(/<g class="spin( rev)?" style="([^"]*)">/g, (m, rev, st) => `<g>${_spin(st, rev)}`)
+  .replace(/<g class="r([XY])" style="([^"]*)">/g, (m, ax, st) => `<g>${_scl(st, ax)}`);
 const _avc = {};
 function _layers(fr, big) {
   const key = fr + (big ? 'b' : 's'); if (_avc[key]) return _avc[key];
@@ -184,7 +192,7 @@ function _layers(fr, big) {
     }
     if (fr === 8) { const c = cosmos(); back = c.b + wingUse(8, 1) + wingUse(8, 0); front += c.f; }
   }
-  return _avc[key] = { back, front };
+  return _avc[key] = { back: smil(back), front: smil(front) };
 }
 
 function avHTML(name, cos, size, withTitle) {
