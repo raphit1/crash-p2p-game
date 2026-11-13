@@ -618,3 +618,5 @@ html.rm .av *,html.rm .pn,html.rm .pn *{animation:none!important}
 .ap-c.sec .sec-q{width:76px;height:76px;margin:0 auto;border-radius:50%;display:grid;place-items:center;font-size:42px;font-weight:900;color:#ff2a3d;background:radial-gradient(circle,#2a0007,#050000);box-shadow:0 0 0 3px #1a0003,0 0 0 4px #ff1a2e66,0 0 18px rgba(255,20,40,.5);text-shadow:0 0 12px #ff0019;animation:cPulse 2.5s ease-in-out infinite}
 .ap-c.sec b{color:#ff2a3d!important;letter-spacing:2px}
 @media (max-width:700px){.me-av:has(.x9){padding:90px 0 60px}.me-av:has(.x9) .av{--s:66px!important}}
+
+.ap-c{overflow:hidden}
