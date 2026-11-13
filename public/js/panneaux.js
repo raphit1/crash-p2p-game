@@ -21,9 +21,9 @@ socket.on('stop-notice', d => { S.stopMsg = d.message; $('stopMsg').textContent 
    multiplicateur, résultat net, statut (pending / win / loss / push / void).
    Rétractable via l'en-tête ; les « il y a Xs » sont rafraîchis toutes les 5 s.
    ============================================================ */
-const FEED_NAMES = { crash:'Crash Out', ice:'Icefield', jm:'Just Mixed', cr:'Chicken Road', ar:'Arrows X', rl:'Roulette', bj:'Blackjack', mn:'Mines', pk:'Plinko', dc:'Dés', hl:'Hi-Lo', cf:'Pile ou Face' };
+const FEED_NAMES = { crash:'Crash Out', ice:'Icefield', jm:'Just Mixed', cr:'Chicken Road', ar:'Arrows X', rl:'Roulette', bj:'Blackjack', mn:'Mines', pk:'Plinko', dc:'Dés', sl:'Machine à sous', hl:'Hi-Lo', cf:'Pile ou Face' };
 let feedRows = [];
-try { if (localStorage.getItem('feedCollapsed') === '1') $('feedPanel').classList.add('collapsed'); } catch (e) {}
+try { const fc = localStorage.getItem('feedCollapsed'); if (fc === '1' || (fc === null && window.innerWidth <= 700)) $('feedPanel').classList.add('collapsed'); } catch (e) { if (window.innerWidth <= 700) $('feedPanel').classList.add('collapsed'); } // sur téléphone, replié par défaut
 
 function toggleFeed() {
   const p = $('feedPanel');
@@ -160,7 +160,7 @@ function sideToggle(tab) {
   sideSet(tab);
 }
 function chartToggle() { sideToggle('charts'); }
-document.querySelectorAll('#sideTabs .sb').forEach(x => x.addEventListener('click', () => sideToggle(x.dataset.t)));
+document.querySelectorAll("#sideTabs .sb[data-t]").forEach(x => x.addEventListener("click", () => sideToggle(x.dataset.t)));
 document.querySelectorAll('.ch-tabs button[data-t]').forEach(x => x.addEventListener('click', () => sideSet(x.dataset.t)));
 document.querySelector('.ch-x').addEventListener('click', () => sideToggle(sideTab));
 sideSet('charts');
