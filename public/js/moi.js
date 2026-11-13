@@ -99,7 +99,7 @@ function apRender() {
   h += TIERS.map((T, k) => {
     const lock = k > d.top, lv = d.tiers[k].lv;
     if (k === 9 && lock) return `<div class="ap-c lock sec"><div class="ap-av"><div class="sec-q">?</div></div><b>SECRET ???</b><small>???</small><em>🔒 ???</em></div>`;
-    return `<div class="ap-c${lock ? ' lock' : ''}${curF === k ? ' selF' : ''}${curT === k ? ' selT' : ''}"><div class="ap-av">${avHTML(d.name, { lv: lock ? lv : d.cos.lv, fr: k, ti: k, av: d.cos.av }, k === 9 ? 52 : 76)}</div><b style="color:${T.c}">${esc(T.n)}</b><small>${esc(T.t)}</small>
+    return `<div class="ap-c${lock ? ' lock' : ''}${curF === k ? ' selF' : ''}${curT === k ? ' selT' : ''}"><div class="ap-av">${avHTML(d.name, { lv: lock ? lv : d.cos.lv, fr: k, ti: k, av: d.cos.av }, k === 9 ? 52 : k >= 6 ? 60 : 76)}</div><b style="color:${T.c}">${esc(T.n)}</b><small>${esc(T.t)}</small>
       ${lock ? `<em>🔒 Niveau ${lv}</em>` : `<div class="ap-b"><button data-a="fr" data-k="${k}" class="${curF === k ? 'on' : ''}">${curF === k ? '✔ ' : ''}Cadre</button><button data-a="ti" data-k="${k}" class="${curT === k ? 'on' : ''}">${curT === k ? '✔ ' : ''}Titre</button></div>`}</div>`;
   }).join('') + '</div>';
   return h;
