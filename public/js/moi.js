@@ -9,7 +9,8 @@ const TIERS = [
   { id: 'or', n: 'Or', t: 'Chasseur de Gains', c: '#ffd34d' }, { id: 'platine', n: 'Platine', t: 'Stratège de Table', c: '#7fe7e0' },
   { id: 'diamant', n: 'Diamant', t: 'Flambeur Étincelant', c: '#7fc8ff' }, { id: 'maitre', n: 'Maître', t: 'Maître des Mises', c: '#ff7a2f' },
   { id: 'grandmaitre', n: 'Grand Maître', t: 'Seigneur du Hasard', c: '#c78bff' }, { id: 'legende', n: 'Légende', t: 'Légende du Casino', c: '#ffcf33' },
-  { id: 'mythique', n: 'Mythique', t: 'Dieu du Jackpot', c: '#a66bff' }
+  { id: 'mythique', n: 'Mythique', t: 'Dieu du Jackpot', c: '#a66bff' },
+  { id: 'secret', n: 'SECRET', t: '???', c: '#ff1a2e' }
 ];
 /* ---------- Toasts (quêtes, XP, niveaux) ---------- */
 (() => { const d = document.createElement('div'); d.id = 'toasts'; document.body.appendChild(d); })();
@@ -41,7 +42,7 @@ const fmtT = ms => { ms = Math.max(0, ms); const s = Math.ceil(ms / 1000), d = M
 function meHero() {
   const d = meD, i = d.info, pct = i.need ? Math.round(i.into / i.need * 100) : 100, ti = TIERS[d.cos.ti];
   return `<div class="me-hero"><div class="me-av">${avHTML(d.name, d.cos, 120)}</div><div class="me-id"><div class="me-name">${nm(d.name)}</div><div class="me-title" style="--fc:${ti.c}">${esc(ti.t)}</div><div class="me-rank" style="color:${TIERS[d.top].c}">Rang ${esc(TIERS[d.top].n)}</div>
-    <div class="xpbar"><i style="width:${pct}%"></i></div><div class="xpl"><b>Niveau ${i.level}</b><span>${i.need ? fmtN(i.into) + ' / ' + fmtN(i.need) + ' XP' : 'Niveau maximum !'}</span></div></div></div>`;
+    <div class="xpbar"><i style="width:${pct}%"></i></div><div class="xpl"><b>Niveau ${i.level}</b><span>${i.need ? fmtN(i.into) + ' / ' + fmtN(i.need) + ' XP' : 'MAX'}</span></div></div></div>`;
 }
 function meRender() {
   if (!meOpen) return;
@@ -97,7 +98,8 @@ function apRender() {
   let h = `<div class="ch-note" style="text-align:left;margin-bottom:8px">Plus tu montes de niveau, plus tu débloques de rangs. Choisis le cadre et le titre que les autres voient.</div><div class="ap-grid">`;
   h += TIERS.map((T, k) => {
     const lock = k > d.top, lv = d.tiers[k].lv;
-    return `<div class="ap-c${lock ? ' lock' : ''}${curF === k ? ' selF' : ''}${curT === k ? ' selT' : ''}"><div class="ap-av">${avHTML(d.name, { lv: lock ? lv : d.cos.lv, fr: k, ti: k, av: d.cos.av }, 76)}</div><b style="color:${T.c}">${esc(T.n)}</b><small>${esc(T.t)}</small>
+    if (k === 9 && lock) return `<div class="ap-c lock sec"><div class="ap-av"><div class="sec-q">?</div></div><b>SECRET ???</b><small>???</small><em>🔒 ???</em></div>`;
+    return `<div class="ap-c${lock ? ' lock' : ''}${curF === k ? ' selF' : ''}${curT === k ? ' selT' : ''}"><div class="ap-av">${avHTML(d.name, { lv: lock ? lv : d.cos.lv, fr: k, ti: k, av: d.cos.av }, k === 9 ? 52 : 76)}</div><b style="color:${T.c}">${esc(T.n)}</b><small>${esc(T.t)}</small>
       ${lock ? `<em>🔒 Niveau ${lv}</em>` : `<div class="ap-b"><button data-a="fr" data-k="${k}" class="${curF === k ? 'on' : ''}">${curF === k ? '✔ ' : ''}Cadre</button><button data-a="ti" data-k="${k}" class="${curT === k ? 'on' : ''}">${curT === k ? '✔ ' : ''}Titre</button></div>`}</div>`;
   }).join('') + '</div>';
   return h;
