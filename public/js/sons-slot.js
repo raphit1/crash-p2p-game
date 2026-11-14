@@ -106,6 +106,8 @@ const SLX = (() => {
       else if (lv === 2) { tone(190, t, .12, { v: .22, to: 120, type: 'triangle' }); tone(160, t + .1, .14, { v: .2, to: 100, type: 'triangle' }); noise(t, .1, { f: 1400, v: .08 }); }
       else { tone(70, t, .35, { v: .3, to: 36, type: 'sine' }); tone(hz(48) * 2.1, t, .5, { v: .1, type: 'square', lp: 2000, rev: .5 }); noise(t, .18, { f: 900, v: .16 }); tone(hz(84), t + .06, 1, { v: .05, rev: .7 }); }
     },
+    sawCut() { const t = now(); noise(t, .55, { type: 'bandpass', f: 900, to: 4200, v: .13, q: 7 }); noise(t + .02, .45, { type: 'highpass', f: 3600, v: .05 }); tone(140, t, .55, { v: .1, type: 'sawtooth', to: 540, lp: 2400, vib: [28, 40] }); },
+    goldHat() { const t = now(); [84, 88, 91, 96].forEach((m, i) => bell(m, t + i * .06, .09, 1.1)); noise(t, .4, { type: 'highpass', f: 4500, v: .05 }); },
     sawWhir() { const t = now(); noise(t, .7, { type: 'bandpass', f: 1200, to: 3800, v: .08, q: 5 }); tone(160, t, .7, { v: .06, type: 'sawtooth', to: 620, lp: 2000, vib: [22, 30] }); },
     megaHat() { const t = now(); tone(52, t, 1.2, { v: .34, to: 30, type: 'sine' }); noise(t, .9, { f: 400, to: 80, v: .2 }); [0, 3, 7, 10].forEach(k => tone(hz(45 + k), t + .1, 1.6, { v: .06, type: 'sawtooth', lp: 900, a: .3, rev: .6 })); },
     superUp() { const t = now(); tone(80, t, 1.4, { v: .14, to: 800, type: 'sawtooth', lp: 400, lpTo: 4000, a: .3, rev: .5 }); noise(t, 1.4, { type: 'highpass', f: 800, to: 8000, v: .08, a: .6 }); setTimeout(() => ctx && (tone(46, now(), 1.2, { v: .36, to: 28 }), noise(now(), .5, { f: 600, to: 100, v: .22 })), 1250); },
