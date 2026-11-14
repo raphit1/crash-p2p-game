@@ -12,9 +12,10 @@
      • Dans un bonus : 6 tours. Chaque lanterne qui tombe pose un cadre sur sa case ou l'améliore : Paille → Bois → Brique.
          Sur une Brique, elle améliore une autre case (ou ajoute un cadre) ; tout en Brique → prix de 10× la mise.
          3 lanternes ou plus pendant un tour → 1 tour en plus.
-         – Scie : les scies de départ avancent d'un rouleau à droite à chaque tour (chaque case touchée = une lanterne)
+         – Scie : AVANT les tours, les scies de départ traversent la grille vers la droite et posent une maison sur chaque case traversée
+         – Lanterne DORÉE (variante maison) : améliore une maison de 2 niveaux d'un coup
          – Mega Chapeau : un tour de départ avec uniquement des méga-lanternes 2×2, 3×3 ou 3×5 qui posent des cadres Paille
-         – Manoir : toutes les cases touchées par les scies de départ sont des cadres BRIQUE d'emblée ; les lanternes ajoutent des Briques
+         – Manoir : toutes les cases traversées par les scies sont des cadres BRIQUE ; les lanternes ajoutent des Briques
          – Super : même chose sur 6 lignes (30 cases)
      • À la fin, le loup souffle sur chaque maison : Paille (Tombe) · Bois (Crypte) · Brique (Manoir hanté), chacune avec son prix
          (la Brique peut aussi contenir un jackpot, ou un tour de Roue — seulement pendant les Tours Gratuits)
@@ -38,7 +39,12 @@ const P = {
     P_GOLD: 0.0045,         // rouleau 5 : scie dorée
     PAY_SCALE: 4.5,
     // chance qu'une case reçoive une lanterne à chaque tour de bonus
-    BH: { fs: 0.075, bs: 0.045, mh: 0.055, ms: 0.04 },
+    BH: { fs: 0.118, bs: 0.085, mh: 0.105, ms: 0.07 },
+    BH_SUP: 1.25,          // grille 5×6 : les lanternes tombent 25 % plus souvent par case (elle se remplit vite, comme dans le vrai jeu)
+    GH: 0.17, GH_SUP: 0.24, // lanterne DORÉE : améliore une maison de 2 niveaux d'un coup (Paille → Brique)
+    JWM: { fs: 1, bs: 1, mh: 1, ms: 1, sfs: .08, sbs: .08, smh: .08, sms: .08 }, // fréquence des jackpots / tours de roue cachés dans les maisons, par bonus
+    HSM: { fs: .2, bs: .358, mh: .31, ms: .376, sfs: .172, sbs: .172, smh: .172, sms: .172 }, // échelle des prix des maisons, par bonus (calibrage du RTP)
+    SUP_EXTRA_SAWS: 2,     // grille 5×6 : scies supplémentaires
     // roue : poids de chaque case [code, poids]
     WHEEL1: [['bs', 24], ['mh', 24], ['ms', 4], ['fs', 30], ['mini', 12], ['minor', 3.5], ['major', 0.15], ['grand', 0.02], ['up', 2]],
     WHEEL2: [['sbs', 24], ['smh', 20], ['sms', 18], ['sfs', 24], ['major', 6], ['grand', 1.1], ['super', 0.16]],
@@ -85,10 +91,10 @@ function evalWays(grid) {
 
 /* ---------- Maisons ---------- */
 // lv : 1 Paille (Tombe) · 2 Bois (Crypte) · 3 Brique (Manoir hanté)
-function housePrize(rng, lv, allowWheel) {
-    if (lv === 3 && allowWheel && rng() < P.WHEEL_BRICK) return { lv, wheel: true, mult: 0 };
-    const v = pickW(rng, lv === 1 ? P.STRAW : lv === 2 ? P.STICK : P.BRICK);
-    return typeof v === 'string' ? { lv, jp: v, mult: JP[v] } : { lv, mult: v };
+function housePrize(rng, lv, allowWheel, hs, jw) {
+    if (lv === 3 && allowWheel && rng() < P.WHEEL_BRICK * jw) return { lv, wheel: true, mult: 0 };
+    const v = pickW(rng, (lv === 1 ? P.STRAW : lv === 2 ? P.STICK : P.BRICK).map(([x, w]) => [x, typeof x === 'string' ? w * jw : w]));
+    return typeof v === 'string' ? { lv, jp: v, mult: JP[v] } : { lv, mult: +(v * hs).toFixed(2) };
 }
 
 /* ---------- La Roue ---------- */
@@ -112,11 +118,13 @@ function bonus(rng, mode, sup, ctx, depth) {
     if (mode === 'bs' || mode === 'ms') {
         let base = ctx.saws && ctx.saws.length >= 3 ? ctx.saws.map(i => [Math.floor(i / 3), i % 3]) : null; // cases de la grille 5×3 d'origine
         if (!base) { const n = 3 + Math.floor(rng() * 3); base = pickCells(n, [...Array(15).keys()]).map(i => [Math.floor(i / 3), i % 3]); }
-        saws = base.slice(); if (sup) base.forEach(([r, k]) => saws.push([r, k + 3]));
+        saws = base.slice(); if (sup) { base.forEach(([r, k]) => saws.push([r, k + 3])); const taken = new Set(saws.map(([r, k]) => r * R + k)); for (let n = 0; n < P.SUP_EXTRA_SAWS; n++) { const free = []; for (let r = 0; r < COLS; r++) for (let k = 0; k < R; k++) if (!taken.has(r * R + k)) free.push([r, k]); if (!free.length) break; const q = free[Math.floor(rng() * free.length)]; taken.add(q[0] * R + q[1]); saws.push(q); } }
         seg.saws = saws.map(([r, k]) => cell(r, k));
     }
-    if (mode === 'ms') saws.forEach(([r, k]) => { f[cell(r, k)] = 3; });
-    if (mode === 'fs') (ctx.hats || []).forEach(i => { f[sup ? i : i] = 1; }); // cases de la grille d'origine (3 lignes, haut de la grille en Super)
+    if (mode === 'fs') { // lanternes de départ : celles qui ont déclenché le bonus ; sinon (bonus venu de la Roue) 6 lanternes au hasard, 12 en grille 5×6
+        if (ctx.hats && ctx.hats.length) ctx.hats.forEach(i => { f[cell(Math.floor(i / 3), i % 3)] = 1; });
+        else pickCells(sup ? 12 : 6, [...Array(C).keys()]).forEach(c => { f[c] = 1; });
+    }
     if (mode === 'mh') { // tour de départ : uniquement des méga-lanternes
         const cnt = 1 + (rng() < 0.35 ? 1 : 0) + (rng() < 0.12 ? 1 : 0), blocks = [];
         const sizes = [['2x2', 55], ['3x3', 38], ['3x5', 7]];
@@ -132,32 +140,41 @@ function bonus(rng, mode, sup, ctx, depth) {
         blocks.forEach(bb => bb.cells.forEach(c => { f[c] = 1; })); seg.mega = blocks;
     }
     seg.init = f.slice();
-    const p = P.BH[mode];
+    // BALAYAGE DES SCIES : avant les 6 tours, les scies tracent leur route de gauche à droite et posent une maison sur chaque case traversée
+    seg.sweep = [];
+    if (mode === 'bs' || mode === 'ms') {
+        for (let j = 0; j < COLS; j++) {
+            const here = saws.filter(s => s[0] <= j).map(s => cell(j, s[1])), ups = [];
+            here.forEach(c => { const was = f[c], to = mode === 'ms' ? 3 : Math.min(3, was + 1); if (to !== was) { f[c] = to; ups.push({ c, from: was, to }); } });
+            seg.sweep.push({ saws: here, ups });
+        }
+    }
+    seg.afterSweep = f.slice();
+    const p = P.BH[mode] * (sup ? P.BH_SUP : 1), gh = sup ? P.GH_SUP : P.GH;
     let left = 6, done = 0;
-    const apply = (c, ups, sp) => { // une lanterne tombe sur la case c
-        const from = f[c];
-        const up = (t, redir) => { const was = f[t]; f[t] = mode === 'ms' ? 3 : was + 1; ups.push({ c: t, from: was, to: f[t], re: redir }); };
+    const apply = (c, ups, gold) => { // une lanterne tombe sur la case c (dorée : +2 niveaux)
+        const from = f[c], n = gold ? 2 : 1;
+        const up = (t, redir) => { const was = f[t]; f[t] = mode === 'ms' ? 3 : Math.min(3, was + n); ups.push({ c: t, from: was, to: f[t], re: redir, g: gold ? 1 : undefined }); };
         if (mode === 'ms' ? from === 0 : from < 3) return up(c, undefined);
         // case déjà au maximum : une autre case est améliorée
         const cand = []; for (let k = 0; k < C; k++) if (f[k] < 3) cand.push(k);
         if (cand.length) up(cand[Math.floor(rng() * cand.length)], c);
-        else { seg.credit += 10; ups.push({ c, credit: 10 }); }
+        else { const cr = +(10 * P.HSM[(sup ? 's' : '') + mode]).toFixed(2); seg.credit += cr; ups.push({ c, credit: cr }); }
     };
     while (left > 0 && done < MAX_SPINS) {
         left--; done++;
-        const touch = [], hats = [], ups = [];
-        if (mode === 'bs') { saws.forEach(s => { if (s[0] < COLS) touch.push(cell(s[0], s[1])); s[0]++; }); }
-        for (let c = 0; c < C; c++) if (rng() < p) hats.push(c);
-        touch.forEach(c => apply(c, ups, true)); hats.forEach(c => apply(c, ups, false));
-        const n = touch.length + hats.length; let extra = false;
+        const touch = [], hats = [], golds = [], ups = [];
+        for (let c = 0; c < C; c++) if (rng() < p) { hats.push(c); if (rng() < gh) golds.push(c); }
+        hats.forEach(c => apply(c, ups, golds.includes(c)));
+        const n = hats.length; let extra = false;
         if (n >= 3 && done + left < MAX_SPINS) { left++; extra = true; }
-        seg.spins.push({ touch, hats, ups, left, extra, saws: mode === 'bs' ? saws.filter(s => s[0] < COLS).map(s => cell(s[0], s[1])) : undefined });
+        seg.spins.push({ touch, hats, golds, ups, left, extra });
     }
     // le loup souffle sur les maisons
     const reveal = [];
     const allowWheel = (mode === 'fs') && depth < MAX_DEPTH;
     for (let c = 0; c < C; c++) if (f[c] > 0) {
-        const hp = housePrize(rng, f[c], allowWheel); hp.c = c; reveal.push(hp);
+        const hk = (sup ? 's' : '') + mode, hp = housePrize(rng, f[c], allowWheel, P.HSM[hk], P.JWM[hk]); hp.c = c; reveal.push(hp);
     }
     // ordre du souffle : Pailles, puis Bois, puis Briques
     reveal.sort((a, b) => a.lv - b.lv || a.c - b.c);

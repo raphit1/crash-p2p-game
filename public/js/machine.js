@@ -10,7 +10,7 @@ const SL_EMO = { WO: '🐺', VA: '🧛', OW: '🦉', CF: '⚰️', CD: '🕯️'
 const SL_WD = 11, SL_HT = 12, SL_SW = 13, SL_GS = 14;
 const SL_HOUSE = ['', '🪦', '🏚️', '🏰'], SL_HNAME = ['', 'Tombe', 'Crypte', 'Manoir hanté'];
 const SL_JPN = { mini: 'MINI', mini2: 'MINI ×2', minor: 'MINOR', major: 'MAJOR', grand: 'GRAND', super: 'SUPER' };
-const SL_MODE = { fs: ['TOURS GRATUITS', '6 tours : chaque lanterne pose ou améliore un cadre'], bs: ['LA SCIE', 'les scies avancent et posent des lanternes sur leur passage'], mh: ['MEGA CHAPEAU', 'un tour de méga-lanternes, puis 6 tours'], ms: ['LE MANOIR', 'des cadres en Brique dès le départ'] };
+const SL_MODE = { fs: ['TOURS GRATUITS', '6 tours : chaque lanterne pose ou améliore un cadre'], bs: ['LA SCIE', 'les scies traversent la grille et posent une maison sur chaque case traversée'], mh: ['MEGA CHAPEAU', 'un tour de méga-lanternes, puis 6 tours'], ms: ['LE MANOIR', 'des cadres en Brique dès le départ'] };
 const SL = { inited: false, busy: false, playing: false, got: false, turbo: false, skip: false, pending: 0, unit: 0, g: 0, active: false, cells: [], rows: 3, run: 0, jp: { mini: 20, minor: 100, major: 1000, grand: 5000, super: 7500 }, buy: [null, { n: 'La Roue', price: 45 }, { n: 'Tours Gratuits', price: 32.5 }, { n: 'Roue améliorée', price: 266 }], hist: [], endData: null, wrot: 0, auto: 0, autoOn: false };
 const slSleep = ms => new Promise(r => setTimeout(r, SL.skip ? 0 : SL.turbo ? ms * .4 : ms));
 // scie circulaire dessinée en SVG (grise ou dorée)
@@ -190,6 +190,20 @@ function slMegaShow(blocks) {
   blocks.forEach(b => { const a = SL.cells[b.cells[0]], z = SL.cells[b.cells[b.cells.length - 1]], o = document.createElement('div'); o.className = 'megahat'; o.innerHTML = '<span>🏮</span>';
     o.style.cssText = `left:${a.offsetLeft}px;top:${a.offsetTop}px;width:${z.offsetLeft + z.offsetWidth - a.offsetLeft}px;height:${z.offsetTop + z.offsetHeight - a.offsetTop}px;font-size:${(z.offsetTop + z.offsetHeight - a.offsetTop) * .75}px`; $('slGrid').appendChild(o); });
 }
+async function slSawSweep(seg, lv) { // les scies tracent leur route, colonne par colonne, et posent les maisons AVANT les tours
+  $('slHudMid').textContent = 'les scies tracent leur route…';
+  const R = seg.R, starts = seg.saws;
+  for (let j = 0; j < seg.sweep.length; j++) {
+    const st = seg.sweep[j]; if (!st.saws.length) continue;
+    slSawsShow(st.saws.concat(starts.filter(c => Math.floor(c / R) > j))); SLX.sawCut();
+    st.saws.forEach(c => { const el = SL.cells[c]; el.classList.add('cut'); setTimeout(() => el.classList.remove('cut'), 750); });
+    await slSleep(260);
+    st.ups.forEach(up => { lv[up.c] = up.to; slPaintCell(up.c, up.to, true); const el = SL.cells[up.c]; el.classList.add('up'); setTimeout(() => el.classList.remove('up'), 650); });
+    if (st.ups.length) SLX.frameUp(Math.max(...st.ups.map(x => x.to)));
+    await slSleep(st.ups.length ? 460 : 280);
+  }
+  slSawsShow([]); $('slHudMid').textContent = 'les maisons sont posées !'; await slSleep(650);
+}
 async function slBonusGame(seg, hatCells) {
   const u = SL.unit, R = seg.R, name = (seg.sup ? 'SUPER ' : '') + SL_MODE[seg.mode][0], lv = seg.init.slice();
   SL.cells.forEach(el => el.classList.remove('hit', 'glow'));
@@ -205,25 +219,24 @@ async function slBonusGame(seg, hatCells) {
   } else {
     lv.forEach((x, i) => { if (x) slPaintCell(i, x, true); });
     if (seg.mode === 'fs' && hatCells && hatCells.length) { SLX.frameUp(1); }
-    if (seg.mode === 'ms') SLX.frameUp(3);
     if (seg.mode === 'bs' || seg.mode === 'ms') { slSawsShow(seg.saws); SLX.saw(); }
     await slSleep(900);
+    if (seg.sweep && seg.sweep.length) await slSawSweep(seg, lv);
   }
   for (const sp of seg.spins) {
     await slBonusRoll(lv, R, new Set(sp.hats.concat(sp.touch)));
-    if (seg.mode === 'bs' && sp.touch.length) SLX.sawWhir();
-    sp.hats.forEach((c, k) => { const dr = document.createElement('div'); dr.className = 'drop'; dr.innerHTML = '<span class="sy">🏮</span>'; SL.cells[c].appendChild(dr); if (k < 6) setTimeout(() => SLX.lanternDrop(), k * 90); });
+    const gl = sp.golds || []; sp.hats.forEach((c, k) => { const dr = document.createElement('div'); dr.className = 'drop' + (gl.includes(c) ? ' gold' : ''); dr.innerHTML = '<span class="sy">🏮</span>'; SL.cells[c].appendChild(dr); if (k < 6) setTimeout(() => SLX.lanternDrop(), k * 90); if (gl.includes(c)) setTimeout(() => SLX.goldHat(), 250 + k * 60); });
     sp.touch.forEach(c => SL.cells[c].classList.add('touched'));
-    if (!sp.hats.length && !sp.touch.length) $('slHudMid').textContent = 'aucune lanterne…'; else $('slHudMid').textContent = (sp.touch.length + sp.hats.length) + ' lanterne' + (sp.touch.length + sp.hats.length > 1 ? 's' : '');
+    if (!sp.hats.length && !sp.touch.length) $('slHudMid').textContent = 'aucune lanterne…'; else $('slHudMid').textContent = (sp.hats.length) + ' lanterne' + (sp.hats.length > 1 ? 's' : '') + (gl.length ? ' dont ' + gl.length + ' dorée' + (gl.length > 1 ? 's ✨' : ' ✨') : '');
     await slSleep(sp.hats.length || sp.touch.length ? 650 : 350);
     SL.cells.forEach(el => { el.querySelectorAll('.drop').forEach(x => x.remove()); el.classList.remove('touched'); });
     for (const up of sp.ups) {
       if (up.credit) { won += up.credit; setW(); slRun(up.credit); const p = document.createElement('div'); p.className = 'prize'; p.innerHTML = `+${up.credit}×<small>maison complète !</small>`; SL.cells[up.c].appendChild(p); SLX.prize(up.credit); setTimeout(() => p.remove(), 900); continue; }
       if (up.re != null) { SL.cells[up.re].classList.add('red'); await slSleep(220); SL.cells[up.re].classList.remove('red'); }
       lv[up.c] = up.to; slPaintCell(up.c, up.to, true); const el = SL.cells[up.c]; el.classList.add('up'); setTimeout(() => el.classList.remove('up'), 650); SLX.frameUp(up.to);
+      if (up.g) { const p = document.createElement('div'); p.className = 'prize wh'; p.innerHTML = '✨<small>DORÉE</small>'; el.appendChild(p); setTimeout(() => p.remove(), 800); }
       if (sp.ups.length < 7) await slSleep(150);
     }
-    if (seg.mode === 'bs') slSawsShow(sp.saws || []);
     $('slLeft').textContent = sp.left; if (sp.extra) { SLX.extra(); $('slHudMid').textContent = '🎁 +1 tour !'; }
     await slSleep(sp.ups.length ? 450 : 200);
   }
