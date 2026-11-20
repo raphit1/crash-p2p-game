@@ -1,0 +1,383 @@
+/* =====================================================================
+   jeux-a.css — Crash, Plinko, Dés, Pile ou Face, Hi-Lo (voir DESIGN.md)
+   Tout est limité aux 5 écrans : #game-screen, #pk-screen, #dc-screen,
+   #cf-screen, #hl-screen (classe commune locale .ja-game, préfixe ja-).
+   Ordre téléphone : barre d'infos → scène (cadre doré) → tuiles chiffrées
+   → mise → mode/risque → action principale collante → équité, classement.
+   ===================================================================== */
+
+/* ---------- Écran ---------- */
+#game-screen.ja-game { background: none; border: 0; border-radius: 0; padding: 0 0 calc(var(--cz-cta-h) + 16px + var(--cz-safe-b)); box-shadow: none; }
+.ja-game { gap: 10px; text-align: left; }
+.ja-game .cz-topbar { margin: 0; }
+
+/* Champs numériques : pas de flèches, pas de saut au focus */
+.ja-game input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.ja-game input[type="number"]::-webkit-inner-spin-button,
+.ja-game input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.ja-game input:focus { transform: none; }
+
+/* Survol (ordinateur) : on garde les ombres du socle au lieu de l'ombre verte de style.css */
+.ja-game .cz-btn--gold:not(:disabled):hover { box-shadow: 0 4px 0 #6b4510, 0 12px 28px rgba(242, 195, 91, .38), inset 0 1px 0 rgba(255, 255, 255, .7); filter: brightness(1.05); }
+.ja-game .cz-btn--green:not(:disabled):hover { box-shadow: 0 4px 0 #064a2b, 0 12px 28px rgba(31, 195, 122, .38), inset 0 1px 0 rgba(255, 255, 255, .45); filter: brightness(1.05); }
+.ja-game .cz-btn--ghost:not(:disabled):hover { box-shadow: 0 0 0 1px var(--cz-line-strong); border-color: var(--cz-line-strong); }
+.ja-game .cz-chip:not(:disabled):hover { box-shadow: inset 0 0 0 3px rgba(0, 0, 0, .25), 0 5px 0 rgba(0, 0, 0, .45), 0 9px 14px rgba(0, 0, 0, .35); transform: translateY(-2px); }
+.ja-game .cz-chip:not(:disabled):active { transform: translateY(2px); box-shadow: inset 0 0 0 3px rgba(0, 0, 0, .25), 0 1px 0 rgba(0, 0, 0, .45); }
+
+/* ---------- Scène : cadre doré ---------- */
+.ja-game .ja-frame {
+  position: relative; overflow: hidden; flex: none;
+  border: 1px solid var(--cz-gold-3);
+  border-radius: var(--cz-r-lg);
+  background: radial-gradient(130% 90% at 50% 0%, #2c0f22 0%, #120a18 62%, #08050c 100%);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .8), 0 14px 34px rgba(0, 0, 0, .6), 0 0 26px rgba(242, 195, 91, .10);
+}
+/* Liseré intérieur doré, posé PAR-DESSUS le contenu (bandeau, canvas) pour un cadre continu */
+.ja-game .ja-frame::after {
+  content: ""; position: absolute; inset: 0; z-index: 20; pointer-events: none; border-radius: inherit;
+  box-shadow: inset 0 0 0 3px rgba(0, 0, 0, .55), inset 0 0 0 4px rgba(242, 195, 91, .34);
+}
+.ja-game .ja-frame.cz-felt {
+  background:
+    radial-gradient(120% 90% at 50% 18%, rgba(255, 255, 255, .08), transparent 60%),
+    radial-gradient(100% 100% at 50% 50%, var(--cz-felt-1), var(--cz-felt-2));
+  box-shadow:
+    inset 0 0 46px rgba(0, 0, 0, .5),
+    0 0 0 1px rgba(0, 0, 0, .8),
+    0 14px 34px rgba(0, 0, 0, .6);
+}
+
+/* Bandeau du haut de la scène : nom du jeu + historique en pastilles fines */
+.ja-game .ja-head {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 40px; margin: 0; padding: 6px 8px 6px 14px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, .45), rgba(0, 0, 0, .18));
+  border-bottom: 1px solid rgba(242, 195, 91, .18);
+}
+.ja-game .ja-name {
+  flex: none; white-space: nowrap;
+  font: 900 12.5px/1 var(--cz-display); letter-spacing: .14em; text-transform: uppercase;
+  background: var(--cz-gold-text); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.ja-game .ja-head .history-bar {
+  flex: 1; min-width: 0; gap: 5px; padding: 2px 0;
+  -webkit-mask-image: linear-gradient(90deg, #000 82%, transparent); mask-image: linear-gradient(90deg, #000 82%, transparent);
+}
+.ja-game .ja-head .history-pill { flex: none; padding: 4px 9px; font-size: 12px; line-height: 1.2; }
+.ja-game .ja-head .history-pill:hover { transform: none; }
+
+/* Ligne d'état sous la scène */
+.ja-game .ja-status { margin: -2px 8px 0; min-height: 18px; text-align: center; font: 600 13px/1.35 var(--cz-font); color: var(--cz-muted); }
+
+/* Tuiles chiffrées */
+.ja-game .ja-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.ja-game .ja-stats .cz-stat { min-width: 0; }
+.ja-game .ja-stats .cz-stat small { font-size: 9.5px; letter-spacing: .06em; white-space: nowrap; }
+.ja-game .ja-stats .cz-stat b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- Réglages ---------- */
+.ja-game .cz-controls { gap: 10px; }
+.ja-game .ja-panel { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 18px; }
+.ja-game .ja-bet { display: flex; flex-direction: column; gap: 10px; }
+
+/* Montant : champ + ÷2 ×2 Max */
+.ja-game .ja-amt-row { display: flex; align-items: stretch; gap: 6px; }
+.ja-game .ja-amt {
+  flex: 1; min-width: 0; height: 50px; margin: 0; padding: 0 12px;
+  display: flex; flex-direction: column; justify-content: center; gap: 2px;
+  border-radius: 14px; background: rgba(0, 0, 0, .45); border: 1px solid var(--cz-line-strong);
+  cursor: text;
+}
+.ja-game .ja-amt:focus-within { border-color: var(--cz-gold-2); box-shadow: 0 0 0 3px rgba(242, 195, 91, .2); }
+.ja-game .ja-amt small { font-size: 9.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--cz-muted); line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ja-game .ja-amt-in { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.ja-game .ja-amt-in i { font-style: normal; font-size: 15px; flex: none; }
+.ja-game .ja-amt input {
+  flex: 1; width: 100%; min-width: 0; margin: 0; padding: 0; height: 26px;
+  border: 0; border-radius: 0; background: transparent; box-shadow: none; outline: none;
+  font: 800 19px/1 var(--cz-num); color: #fff; font-variant-numeric: tabular-nums;
+}
+.ja-game .ja-amt input:disabled { color: var(--cz-muted); }
+.ja-game .ja-amt-row .cz-btn { flex: none; width: 48px; min-height: 50px; padding: 0; border-radius: 14px; font-size: 14px; }
+
+/* Jetons */
+.ja-game .ja-chips { display: flex; justify-content: space-around; gap: 6px; padding: 2px 0 4px; }
+
+/* Segmentés (risque, côté, moins/plus) */
+.ja-game .ja-seg > button {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  width: auto; min-width: 0; min-height: 44px; margin: 0; padding: 4px 6px;
+  border: 0; border-radius: 999px; background: transparent; box-shadow: none;
+  font: 700 14px/1.15 var(--cz-font); color: var(--cz-muted);
+}
+.ja-game .ja-seg > button::after { display: none; }
+.ja-game .ja-seg > button small { display: block; font-size: 10px; font-weight: 600; opacity: .85; }
+.ja-game .ja-seg > button:not(:disabled):hover { box-shadow: none; transform: none; color: var(--cz-gold-1); filter: none; }
+.ja-game .ja-seg > button.on,
+.ja-game .ja-seg > button.on:not(:disabled):hover { background: var(--cz-gold-grad); color: #2a1803; box-shadow: 0 2px 0 #6b4510, inset 0 1px 0 rgba(255, 255, 255, .6); }
+.ja-game .ja-seg > button.pk-ultra { color: #ff8aa2; }
+.ja-game .ja-seg > button.pk-ultra.on { background: linear-gradient(180deg, #ff4b6e, #d11a43 55%, #8c0c29); color: #fff; box-shadow: 0 2px 0 #5a0718, 0 0 14px rgba(255, 60, 90, .55); }
+
+/* Ligne « libellé … valeur » */
+.ja-game .ja-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; }
+.ja-game .ja-step { display: flex; align-items: center; gap: 6px; margin: 0; }
+.ja-game .ja-step .cz-btn--icon { width: 44px; min-width: 44px; min-height: 44px; margin: 0; padding: 0; font-size: 22px; }
+.ja-game .ja-step input, .ja-game .ja-num, .ja-game .ja-unit {
+  width: 64px; height: 44px; margin: 0; padding: 0 6px;
+  border-radius: 12px; background: rgba(0, 0, 0, .45); border: 1px solid var(--cz-line-strong);
+  font: 800 17px/1 var(--cz-num); color: #fff; text-align: center; font-variant-numeric: tabular-nums;
+}
+.ja-game .ja-unit { display: inline-flex; align-items: center; width: 108px; padding: 0 12px; gap: 4px; cursor: text; }
+.ja-game .ja-unit:focus-within { border-color: var(--cz-gold-2); box-shadow: 0 0 0 3px rgba(242, 195, 91, .2); }
+.ja-game .ja-unit input { flex: 1; min-width: 0; height: 100%; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; font: inherit; color: inherit; text-align: right; }
+.ja-game .ja-unit i { font-style: normal; color: var(--cz-muted); }
+.ja-game .ja-total { font-size: 12px; color: var(--cz-muted); text-align: center; }
+
+/* ---------- Action principale collante ---------- */
+.ja-game .cz-cta { margin: 0 -4px; }
+.ja-game .cz-cta > .cz-btn { margin: 0; }
+
+/* ---------- Bas d'écran : équité, classement ---------- */
+.ja-game .ja-fair { margin: 2px 0 0; border-radius: 14px; border: 1px dashed rgba(242, 195, 91, .25); background: rgba(0, 0, 0, .3); }
+.ja-game .ja-fair summary {
+  display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px;
+  list-style: none; cursor: pointer; font-size: 12px; font-weight: 700; color: var(--cz-muted);
+}
+.ja-game .ja-fair summary::-webkit-details-marker { display: none; }
+.ja-game .ja-fair summary::after { content: "▾"; margin-left: auto; color: var(--cz-gold-2); transition: transform .2s; }
+.ja-game .ja-fair[open] summary::after { transform: rotate(180deg); }
+.ja-game .ja-proof { padding: 0 14px 12px; font: 500 11px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; color: #8d8399; word-break: break-all; }
+.ja-game .ja-proof:empty::before { content: "Le hash de la prochaine partie s'affiche ici."; font-family: var(--cz-font); }
+
+.ja-game .ja-rank, .ja-game .ja-players {
+  margin: 4px 0 0; padding: 14px;
+  background: linear-gradient(165deg, rgba(42, 13, 28, .85), rgba(15, 9, 20, .95));
+  border: 1px solid var(--cz-line); border-radius: var(--cz-r-lg);
+}
+.ja-game .ja-rank h4, .ja-game .ja-players h4 { margin: 0 0 10px; font: 700 14px/1.3 var(--cz-display); letter-spacing: .06em; color: var(--cz-gold-1); }
+.ja-game .ja-rank h4 small { margin-left: 6px; font: 600 11px var(--cz-font); letter-spacing: 0; color: var(--cz-muted); }
+.ja-game .ja-players ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; }
+.ja-game .ja-players .stats-badge { background: rgba(0, 0, 0, .35); }
+
+/* =====================================================================
+   CRASH (#game-screen)
+   ===================================================================== */
+#game-screen .ja-head.history-container { margin: 0; }
+#game-screen .ja-histmore {
+  position: relative; flex: none; width: 40px; min-height: 30px; margin: 0; padding: 0;
+  border-radius: 999px; border: 1px solid var(--cz-line); background: rgba(0, 0, 0, .4); color: var(--cz-gold-1);
+  font-size: 13px; letter-spacing: 1px; box-shadow: none;
+}
+#game-screen .ja-histmore::before { content: ""; position: absolute; inset: -7px -4px; } /* zone tactile 44 px */
+#game-screen .ja-histmore:not(:disabled):hover { box-shadow: none; transform: none; border-color: var(--cz-line-strong); }
+#game-screen .game-canvas-container { border: 0; border-radius: 0; box-shadow: inset 0 0 50px rgba(0, 0, 0, .65); }
+
+/* État de la manche, en surimpression en haut de la scène */
+#game-screen .ja-crash-status {
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 11;
+  width: max-content; max-width: calc(100% - 70px); margin: 0; padding: 4px 11px;
+  border-radius: 999px; background: rgba(0, 0, 0, .55); border: 1px solid var(--cz-line);
+  font: 700 11.5px/1.3 var(--cz-font); color: var(--cz-gold-1); text-align: center;
+}
+/* Gain encaissé, en surimpression en bas de la scène */
+#game-screen .ja-live {
+  position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 11;
+  width: max-content; max-width: calc(100% - 20px); margin: 0; padding: 6px 14px;
+  border-radius: 999px; border: 1px solid #6cf3b6;
+  background: linear-gradient(180deg, #3ee59a, #12a862 60%, #0a7444); color: #fff;
+  font: 800 13px/1.2 var(--cz-font); text-shadow: 0 1px 1px rgba(0, 0, 0, .35);
+  box-shadow: 0 6px 18px rgba(31, 195, 122, .35); text-align: center;
+}
+#game-screen .ja-live:empty { display: none; }
+
+/* Hash, en petit sous la scène (toucher = afficher en entier) */
+#game-screen .ja-hash {
+  margin: -4px 6px 0; padding: 2px 4px; background: none; border: 0; border-radius: 0;
+  font-size: 10.5px; line-height: 1.4; color: var(--cz-dim); text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; word-break: normal; cursor: pointer;
+}
+#game-screen .ja-hash b { font-weight: 700; color: var(--cz-muted); }
+#game-screen .ja-hash #currentHashDisplay { color: #7fb0cf; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+#game-screen .ja-hash.open { white-space: normal; word-break: break-all; }
+
+/* Les 2 panneaux de mise */
+#game-screen .ja-bets { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 0; }
+@media (min-width: 640px) { #game-screen .ja-bets { grid-template-columns: 1fr 1fr; } }
+#game-screen .ja-bp {
+  display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 10px;
+  border-radius: 18px; border: 1px solid var(--cz-line);
+  background: linear-gradient(165deg, rgba(42, 13, 28, .92), rgba(15, 9, 20, .96));
+  box-shadow: var(--cz-shadow);
+}
+#game-screen .ja-bp-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 30px; padding-left: 4px; }
+#game-screen .ja-bp-tag { font: 900 12px/1 var(--cz-display); letter-spacing: .14em; text-transform: uppercase; color: var(--cz-gold-2); }
+#game-screen .ja-bp-chk { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; margin: 0 -4px 0 0; padding: 0 8px; border-radius: 999px; font-size: 12.5px; font-weight: 700; color: var(--cz-muted); cursor: pointer; }
+#game-screen .ja-bp-chk input { width: 20px; height: 20px; margin: 0; padding: 0; accent-color: var(--cz-gold-2); flex: none; }
+#game-screen .ja-bp-chk:has(input:checked) { color: var(--cz-gold-1); background: rgba(242, 195, 91, .1); }
+#game-screen .ja-bp-row { display: flex; align-items: center; gap: 6px; }
+#game-screen .ja-bp-auto {
+  flex: 1; min-width: 0; height: 46px; margin: 0 0 0 2px; padding: 0 10px;
+  display: flex; flex-direction: column; justify-content: center; gap: 2px;
+  border-radius: 14px; background: rgba(0, 0, 0, .45); border: 1px solid var(--cz-line); cursor: text;
+}
+#game-screen .ja-bp-auto:focus-within { border-color: var(--cz-gold-2); box-shadow: 0 0 0 3px rgba(242, 195, 91, .2); }
+#game-screen .ja-bp-auto small { font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--cz-muted); line-height: 1; white-space: nowrap; }
+#game-screen .ja-bp-auto input { width: 100%; height: 22px; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; font: 800 16px/1 var(--cz-num); color: #fff; }
+#game-screen .ja-bp-auto input::placeholder { color: var(--cz-dim); }
+
+/* Bouton Parier / Encaisser de chaque panneau : collant en bas tant que son panneau est à l'écran */
+#game-screen .ja-bp-cta { position: sticky; bottom: calc(8px + var(--cz-safe-b)); z-index: 30; display: flex; gap: 6px; margin-top: 2px; }
+#game-screen .ja-bp-cta .act { flex: 1; min-width: 0; margin: 0; padding: 0 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#game-screen .ja-bp-cta .btn-cancel { flex: none; min-height: 56px; margin: 0; padding: 0 14px; font-size: 14px; }
+#game-screen .ja-bp-cta .btn-cancel.hidden { display: none !important; }
+#game-screen .act.ja-set {
+  background: linear-gradient(180deg, #2a1622, #140a12); color: var(--cz-gold-1);
+  border: 1px solid var(--cz-gold-3); box-shadow: inset 0 0 0 1px rgba(242, 195, 91, .18), 0 6px 16px rgba(0, 0, 0, .45);
+  text-transform: none; letter-spacing: .02em; font-size: 16px;
+}
+#game-screen .act.ja-next { font-size: 15px; letter-spacing: .05em; }
+#game-screen .act.ja-wait { background: rgba(255, 255, 255, .05); color: var(--cz-muted); border-color: var(--cz-line); box-shadow: none; text-transform: none; font-size: 15px; }
+#game-screen .act.btn-cashout {
+  background: linear-gradient(180deg, #3ee59a, #12a862 60%, #0a7444) !important; color: #fff !important;
+  font-size: 18px !important; border-color: #6cf3b6;
+  animation: ja-cash 1.1s ease-in-out infinite;
+}
+@keyframes ja-cash {
+  0%, 100% { box-shadow: 0 4px 0 #064a2b, 0 0 0 0 rgba(62, 229, 154, .55), inset 0 1px 0 rgba(255, 255, 255, .45); }
+  50% { box-shadow: 0 4px 0 #064a2b, 0 0 0 8px rgba(62, 229, 154, 0), inset 0 1px 0 rgba(255, 255, 255, .45); }
+}
+
+/* =====================================================================
+   PLINKO (#pk-screen)
+   ===================================================================== */
+#pk-screen .pk-wrap {
+  max-width: none; margin: 0; padding: 6px 4px 8px; border: 0; border-radius: 0; box-shadow: none;
+  background: radial-gradient(120% 80% at 50% 0%, #2d1430, #120a18 60%, #08050c 100%);
+}
+#pk-screen .ja-risk > button { padding: 4px 2px; font-size: 13px; }
+#pk-screen .ja-mini > button { font-size: 15px; }
+
+/* =====================================================================
+   DÉS (#dc-screen)
+   ===================================================================== */
+#dc-screen .dc-box { margin: 0; padding: 16px 18px 14px; background: none; border: 0; border-radius: 0; }
+#dc-screen .dc-num {
+  width: fit-content; min-width: 62%; margin: 0 auto; padding: 4px 20px 6px;
+  border-radius: 18px; background: rgba(0, 0, 0, .32); border: 1px solid rgba(242, 195, 91, .3);
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, .45);
+  font: 900 clamp(52px, 16vw, 80px)/1.05 var(--cz-num); color: #fff8e6;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, .45), 0 0 26px rgba(242, 195, 91, .3);
+}
+#dc-screen .dc-num.win { color: #5dffb0; text-shadow: 0 3px 0 rgba(0, 0, 0, .45), 0 0 26px rgba(62, 229, 154, .6); }
+#dc-screen .dc-num.lose { color: #ff7d93; text-shadow: 0 3px 0 rgba(0, 0, 0, .45), 0 0 26px rgba(255, 75, 110, .5); }
+#dc-screen .dc-bar {
+  height: 22px; margin: 22px 4px 8px; border-radius: 11px;
+  background: linear-gradient(180deg, #6a1027, #3a0816);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, .6), 0 0 0 2px rgba(0, 0, 0, .4), 0 0 0 3px rgba(242, 195, 91, .45);
+}
+#dc-screen .dc-zone { border-radius: 11px; background: linear-gradient(180deg, #3ee59a, #12a862 60%, #0a7444); }
+#dc-screen .dc-mark { top: -10px; height: 42px; }
+#dc-screen .dc-scale { margin: 0 4px; font-size: 11px; font-weight: 700; color: rgba(255, 240, 210, .6); }
+
+/* Curseur de chance : piste dorée, bouton jeton */
+#dc-screen .dc-slider {
+  -webkit-appearance: none; appearance: none;
+  display: block; width: 100%; height: 36px; margin: 0; padding: 0;
+  border: 0; border-radius: 0; background: transparent; box-shadow: none; cursor: pointer;
+}
+#dc-screen .dc-slider:focus { box-shadow: none; outline: none; }
+#dc-screen .dc-slider::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--cz-gold-4), var(--cz-gold-2)); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .5); }
+#dc-screen .dc-slider::-moz-range-track { height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--cz-gold-4), var(--cz-gold-2)); }
+#dc-screen .dc-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 28px; height: 28px; margin-top: -10px; border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, #fff3cf, #f2c35b 55%, #b98222); border: 2px solid #fff3cf;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .55);
+}
+#dc-screen .dc-slider::-moz-range-thumb { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 50% 40%, #fff3cf, #f2c35b 55%, #b98222); border: 2px solid #fff3cf; }
+
+/* =====================================================================
+   PILE OU FACE (#cf-screen)
+   ===================================================================== */
+#cf-screen .cf-stage { position: relative; height: 210px; }
+#cf-screen .cf-stage::after {
+  content: ""; position: absolute; left: 50%; bottom: 18px; width: 130px; height: 18px; margin-left: -65px;
+  border-radius: 50%; background: radial-gradient(closest-side, rgba(0, 0, 0, .55), transparent); pointer-events: none;
+}
+#cf-screen .cf-coin { width: 150px; height: 150px; z-index: 1; }
+#cf-screen .cf-face {
+  border: 6px solid #a8741f; font-size: 64px;
+  box-shadow: inset 0 0 0 3px #ffe08a, inset 0 0 0 9px rgba(122, 75, 0, .35), inset 0 -12px 20px rgba(120, 70, 0, .5), 0 12px 26px rgba(0, 0, 0, .55);
+}
+#cf-screen .ja-side > button { min-height: 52px; font-size: 16px; }
+
+/* =====================================================================
+   HI-LO (#hl-screen) — vraie carte de casino
+   ===================================================================== */
+#hl-screen .ja-head { padding-right: 10px; }
+#hl-screen .hl-trail {
+  flex: 1; min-width: 0; min-height: 0; margin: 0; gap: 4px;
+  flex-wrap: nowrap; justify-content: flex-end; overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 28px); mask-image: linear-gradient(90deg, transparent, #000 28px);
+}
+#hl-screen .hl-mini { flex: none; padding: 3px 6px; border-radius: 5px; font-size: 12px; line-height: 1.2; background: #fffdf6; box-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
+#hl-screen .ja-hl-table { display: flex; align-items: center; justify-content: center; gap: 22px; min-height: 236px; padding: 18px 12px 64px; }
+#hl-screen .hl-table { min-height: 0; margin: 0; gap: 0; flex-wrap: nowrap; }
+#hl-screen .pcard {
+  width: 118px; height: 168px; border-radius: 12px; color: #17131a;
+  background: linear-gradient(160deg, #fffef9 0%, #f6efdf 100%);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .3), inset 0 0 0 5px #fffef9, inset 0 0 0 6px rgba(176, 132, 58, .35), 0 12px 24px rgba(0, 0, 0, .55);
+  font-family: Georgia, 'Times New Roman', serif;
+}
+#hl-screen .pcard.red { color: #c8102e; }
+#hl-screen .pcard .c1 { left: 10px; top: 8px; font-size: 25px; }
+#hl-screen .pcard .c2 { right: 10px; bottom: 8px; font-size: 25px; }
+#hl-screen .pcard .c1 i, #hl-screen .pcard .c2 i { font-size: 19px; }
+#hl-screen .pcard .big { font-size: 66px; text-shadow: 0 1px 0 rgba(255, 255, 255, .6); }
+/* Dos de carte : bordeaux, liseré doré, médaillon central */
+#hl-screen .pcard.back {
+  border: 5px solid #fffef9; color: transparent;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(242, 195, 91, .9) 0 15px, transparent 16px),
+    repeating-linear-gradient(45deg, #8a1230 0 5px, #650c23 5px 10px);
+  box-shadow: inset 0 0 0 2px var(--cz-gold-2), inset 0 0 0 4px #650c23, 0 0 0 1px rgba(0, 0, 0, .35), 0 12px 24px rgba(0, 0, 0, .55);
+}
+#hl-screen .pcard.back::before { content: "♠"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 20px; line-height: 1; color: #650c23; }
+/* Sabot décoratif à gauche de la carte */
+#hl-screen .ja-deck { position: relative; flex: none; width: 92px; height: 132px; }
+#hl-screen .ja-deck .pcard { position: absolute; inset: 0; width: 100%; height: 100%; animation: none; }
+#hl-screen .ja-deck .pcard:nth-child(1) { transform: translate(-6px, 6px); }
+#hl-screen .ja-deck .pcard:nth-child(2) { transform: translate(-3px, 3px); }
+/* « Passer la carte » : sous la carte, dans la scène */
+#hl-screen .ja-skip {
+  position: absolute; left: 0; right: 0; bottom: 12px; width: fit-content; margin: 0 auto;
+  min-height: 44px; padding: 0 16px; line-height: 42px; font-size: 13px; text-align: center;
+}
+#hl-screen .ja-skip:not(:disabled):hover { transform: none; }
+/* Barre d'action : Distribuer, ou Plus haut / Plus bas + Encaisser */
+#hl-screen .ja-hl-cta { display: flex; flex-direction: column; gap: 8px; border-radius: 28px; }
+#hl-screen .ja-hl-btns { grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; }
+#hl-screen .ja-hl-btn {
+  flex-direction: column; gap: 3px; min-height: 58px; margin: 0; padding: 6px 4px;
+  border-radius: 999px; font-size: 16px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; line-height: 1.1;
+}
+#hl-screen .ja-hl-btn small { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0; text-transform: none; opacity: .8; }
+#hl-screen #hlCashBtn { min-height: 52px; font-size: 15px; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* =====================================================================
+   Très petits écrans (≤ 380 px) et animations réduites
+   ===================================================================== */
+@media (max-width: 380px) {
+  .ja-game .ja-amt-row .cz-btn { width: 44px; }
+  .ja-game .ja-amt { padding: 0 10px; }
+  #game-screen .ja-bp-auto { padding: 0 8px; }
+  #hl-screen .ja-hl-table { gap: 16px; }
+  #hl-screen .ja-deck { width: 84px; height: 120px; }
+  #hl-screen .ja-hl-btn { font-size: 14px; }
+  #pk-screen .ja-risk > button { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #game-screen .act.btn-cashout { animation: none; }
+}
+html.rm #game-screen .act.btn-cashout { animation: none; }
+/* Plus haut / Plus bas : or tous les deux (le vert reste réservé à « Encaisser ») */
+#hl-screen #hlHi, #hl-screen #hlLo { background: var(--cz-gold-grad); color: #2a1803; }

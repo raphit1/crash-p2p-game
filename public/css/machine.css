@@ -1,0 +1,363 @@
+/* =====================================================================
+   machine.css — Machine à sous « LA NUIT DU LOUP » (#sl-screen)
+   Une vraie borne : cadre doré, fronton lumineux, jackpots lisibles,
+   rouleaux pleine largeur, afficheur de gain, console de mise et gros
+   bouton TOURNER collant en bas (voir DESIGN.md).
+   Tout est préfixé par #sl-screen pour surcharger les anciennes règles
+   .sl-* de style.css sans déborder sur les autres écrans.
+   ===================================================================== */
+
+/* L'animation d'entrée (style.css, fill-mode both) laisse un transform identité sur l'écran :
+   cela piégeait la fenêtre d'achat (position:fixed) sous l'en-tête et le fil. On ne garde que le début. */
+#sl-screen:not(.hidden) { animation-fill-mode: backwards; }
+
+/* ---------- La borne (cadre doré) ---------- */
+#sl-screen .sl-box {
+  position: relative; overflow: hidden; scroll-margin-top: 112px;
+  padding: 8px 7px 9px;
+  border: 4px solid transparent;
+  border-radius: 26px 26px 20px 20px;
+  background:
+    radial-gradient(1.2px 1.2px at 12% 18%, rgba(255, 255, 255, .8), transparent 60%) padding-box,
+    radial-gradient(1px 1px at 78% 9%, rgba(255, 255, 255, .7), transparent 60%) padding-box,
+    radial-gradient(1.4px 1.4px at 62% 26%, rgba(255, 255, 255, .55), transparent 60%) padding-box,
+    radial-gradient(1px 1px at 30% 40%, rgba(255, 255, 255, .5), transparent 60%) padding-box,
+    radial-gradient(1px 1px at 90% 45%, rgba(255, 255, 255, .5), transparent 60%) padding-box,
+    radial-gradient(120% 60% at 50% -10%, #3e1048 0%, #1a0822 45%, #08030d 100%) padding-box,
+    linear-gradient(180deg, #ffe9a9 0%, #c8902e 30%, #7a5212 55%, #f2c35b 80%, #9a6a1c 100%) border-box;
+  box-shadow:
+    0 0 0 1px #2a1803,
+    0 0 0 3px rgba(242, 195, 91, .18),
+    0 18px 40px rgba(0, 0, 0, .7),
+    0 0 46px rgba(124, 45, 146, .32);
+}
+
+/* ---------- Fronton lumineux : lune + titre ---------- */
+#sl-screen .sl-marquee {
+  position: relative;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin: 0 0 8px; padding: 9px 12px 8px;
+  border-radius: 18px 18px 10px 10px;
+  background: linear-gradient(180deg, #3d0c22, #160610 70%);
+  border: 1px solid var(--cz-line-strong);
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, .65), inset 0 1px 0 rgba(255, 231, 168, .2);
+}
+/* rangées d'ampoules en haut et en bas du fronton */
+#sl-screen .sl-marquee::before {
+  content: ""; position: absolute; left: 10px; right: 10px; top: 3px; bottom: 3px; pointer-events: none;
+  background:
+    radial-gradient(circle, #ffe7a8 0 1.6px, rgba(255, 200, 90, .35) 2.4px, transparent 3.2px) 0 0 / 12px 6px repeat-x,
+    radial-gradient(circle, #ffe7a8 0 1.6px, rgba(255, 200, 90, .35) 2.4px, transparent 3.2px) 6px 100% / 12px 6px repeat-x;
+  opacity: .85;
+  animation: slBulbs 1.2s steps(2) infinite;
+}
+@keyframes slBulbs { 50% { opacity: .45; } }
+#sl-screen .sl-moon {
+  position: relative; top: auto; right: auto; flex: none;
+  width: 32px; height: 32px; border-radius: 50%; opacity: 1;
+  background: radial-gradient(circle at 36% 34%, #fffbe6, #f1d98f 55%, #9c7c36);
+  box-shadow: 0 0 14px 3px rgba(255, 230, 150, .45);
+  animation: slMoon 5s ease-in-out infinite;
+}
+@keyframes slMoon { 50% { box-shadow: 0 0 22px 6px rgba(255, 230, 150, .6); } }
+#sl-screen .sl-mq-txt { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+#sl-screen .sl-title {
+  margin: 0; white-space: nowrap;
+  font: 900 clamp(17px, 5.1vw, 26px)/1.1 var(--cz-display);
+  letter-spacing: .07em;
+  background: var(--cz-gold-text); -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: none; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .7)) drop-shadow(0 0 10px rgba(242, 195, 91, .35));
+  animation: none;
+}
+#sl-screen .sl-sub { margin-top: 2px; font-size: 9.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #e7b7c6; white-space: nowrap; }
+
+/* ---------- Jackpots : SUPER et GRAND en grand, puis MAJOR, MINOR, MINI ---------- */
+#sl-screen .sl-jp { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; margin: 0 0 8px; }
+#sl-screen .sl-jp > div {
+  --jc: #c084fc;
+  grid-column: span 2; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  padding: 5px 4px 6px; border-radius: 10px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--jc) 22%, #0b0510), #07030a 80%);
+  border: 1px solid var(--jc);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 0 10px color-mix(in srgb, var(--jc) 25%, transparent);
+  color: var(--jc); line-height: 1.1; text-align: center; font-size: inherit; letter-spacing: 0;
+}
+#sl-screen .sl-jp > div:hover { transform: none; }
+#sl-screen .sl-jp .jn { display: flex; align-items: baseline; gap: 4px; font: 800 10px/1 var(--cz-font); letter-spacing: .1em; color: #fff; opacity: .92; }
+#sl-screen .sl-jp .jn small { font-size: 9px; font-weight: 700; letter-spacing: 0; color: var(--jc); opacity: .9; }
+#sl-screen .sl-jp b {
+  display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: 800 13px/1.15 var(--cz-num); font-variant-numeric: tabular-nums; color: var(--jc);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--jc) 45%, transparent);
+}
+#sl-screen .sl-jp > .j5, #sl-screen .sl-jp > .j4 { grid-column: span 3; padding: 6px 6px 7px; }
+#sl-screen .sl-jp > .j5 b, #sl-screen .sl-jp > .j4 b { font-size: clamp(15px, 4.6vw, 19px); }
+#sl-screen .sl-jp > .j5 .jn, #sl-screen .sl-jp > .j4 .jn { font-size: 11px; }
+#sl-screen .sl-jp .j1 { --jc: #4ade80; }
+#sl-screen .sl-jp .j2 { --jc: #38bdf8; }
+#sl-screen .sl-jp .j3 { --jc: #c084fc; }
+#sl-screen .sl-jp .j4 { --jc: #fbbf24; background: linear-gradient(180deg, #6b4510, #1d1004 85%); border-color: #ffe7a8; }
+#sl-screen .sl-jp .j4 b { color: var(--cz-gold-1); }
+#sl-screen .sl-jp .j5 { --jc: #fb7185; background: linear-gradient(180deg, #6a0d26, #1a040b 85%); border-color: #ff8aa2; }
+#sl-screen .sl-jp .j5 b { color: #ffd1da; }
+#sl-screen .sl-jp .on { animation: jpFlash .5s ease-in-out 4; box-shadow: 0 0 20px var(--jc); }
+
+/* ---------- Fenêtre des rouleaux ---------- */
+#sl-screen .sl-cab {
+  position: relative; padding: 6px; border-radius: 14px;
+  background: linear-gradient(180deg, #14060f, #05020a);
+  border: 2px solid #9a6a1c;
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .65), inset 0 12px 22px rgba(0, 0, 0, .75),
+              0 0 0 1px rgba(255, 231, 168, .3), 0 0 18px rgba(242, 195, 91, .14);
+}
+/* reflet de vitre (sous les bandeaux et la roue) */
+#sl-screen .sl-cab::after {
+  content: ""; position: absolute; inset: 2px; border-radius: 12px; pointer-events: none; z-index: 5;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .07), transparent 22%, transparent 80%, rgba(0, 0, 0, .25));
+}
+#sl-screen .sl-grid { gap: 4px; }
+#sl-screen .sc {
+  border-radius: 10px;
+  background: linear-gradient(170deg, #2a1236 0%, #150719 60%, #0d0410 100%);
+  border: 1px solid rgba(255, 231, 168, .12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), inset 0 -6px 10px rgba(0, 0, 0, .35);
+  font-size: clamp(24px, 8.6vw, 50px);
+}
+/* Grille SUPER 5×6 : cases un peu plus larges que hautes pour que la borne tienne sur un téléphone */
+#sl-screen .sl-grid[style*="--rows: 6"] { gap: 3px 4px; }
+#sl-screen .sl-grid[style*="--rows: 6"] .sc { aspect-ratio: 5 / 4; font-size: clamp(18px, 6vw, 34px); border-radius: 8px; }
+#sl-screen .sc .lw { font-family: var(--cz-display); }
+#sl-screen .sc .prize { font-size: .44em; }
+#sl-screen .sc .prize small { font-size: .62em; }
+#sl-screen .sl-grid[style*="--rows: 6"] .sc .prize { font-size: .56em; }
+#sl-screen .sc.hit { border-color: #ffe7a8; box-shadow: 0 0 0 1px #ffe7a8, 0 0 16px rgba(255, 231, 168, .75); }
+
+/* Compteurs du jeu bonus (dans la fenêtre, au-dessus de la grille) */
+#sl-screen .sl-hud {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; align-items: center;
+  margin: 0 0 6px; padding: 6px 10px; border-radius: 10px;
+  background: rgba(0, 0, 0, .6); border: 1px solid var(--cz-line-strong);
+  font: 700 13px/1.2 var(--cz-font); color: var(--cz-gold-1);
+}
+#sl-screen .sl-hud.hidden { display: none !important; }
+#sl-screen .sl-hud b { color: #fff; font-variant-numeric: tabular-nums; }
+#sl-screen .sl-hud-r { text-align: right; white-space: nowrap; }
+#sl-screen .sl-hud-l { white-space: nowrap; }
+#sl-screen .sl-hud-m { grid-column: 1 / -1; min-height: 15px; text-align: center; font-size: 12px; font-weight: 600; color: #e7b7c6; }
+#sl-screen .sl-hud-m:empty { display: none; }
+
+/* Bandeaux (tours gratuits, scies, total…) */
+#sl-screen .sl-banner {
+  font-family: var(--cz-display); font-size: clamp(18px, 5.4vw, 28px); letter-spacing: .06em; line-height: 1.15;
+  padding: 14px 10px;
+  background: linear-gradient(90deg, transparent, rgba(8, 2, 12, .94) 10%, rgba(8, 2, 12, .94) 90%, transparent);
+  border-top: 1px solid rgba(242, 195, 91, .45); border-bottom: 1px solid rgba(242, 195, 91, .45);
+}
+#sl-screen .sl-banner small { margin-top: 4px; font-family: var(--cz-font); font-size: .5em; font-weight: 700; letter-spacing: .04em; color: #fca5a5; }
+
+/* Roue */
+#sl-screen .sl-wheel { border-radius: 12px; padding: 8px; }
+#sl-screen .swh-t { font-family: var(--cz-display); letter-spacing: .08em; }
+#sl-screen .swh-w { width: min(70vw, 300px); }
+#sl-screen .swh-r { padding: 0 6px; }
+
+/* ---------- Afficheur de gain ---------- */
+#sl-screen .sl-win {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 52px; margin: 8px 0 0; padding: 8px 12px;
+  border-radius: 12px; text-align: center;
+  background: linear-gradient(180deg, #050207, #170a11);
+  border: 1px solid var(--cz-line);
+  box-shadow: inset 0 2px 12px rgba(0, 0, 0, .85);
+  font: 700 14px/1.25 var(--cz-font); color: #d8cbe6; text-shadow: none;
+}
+#sl-screen .sl-win.big {
+  font: 900 clamp(17px, 5vw, 22px)/1.2 var(--cz-num); font-variant-numeric: tabular-nums;
+  color: var(--cz-gold-1); border-color: var(--cz-line-strong);
+  text-shadow: 0 0 14px rgba(242, 195, 91, .65);
+  box-shadow: inset 0 2px 12px rgba(0, 0, 0, .85), 0 0 18px rgba(242, 195, 91, .22);
+  animation: slWinIn .45s cubic-bezier(.3, 1.4, .5, 1);
+}
+#sl-screen .sl-win.lose { color: var(--cz-muted); font-weight: 600; }
+@keyframes slWinIn { from { transform: scale(.94); filter: brightness(1.6); } }
+
+/* ---------- Quitte ou double ---------- */
+#sl-screen .sl-gamble {
+  margin-top: 8px; padding: 10px; border-radius: 14px;
+  background: linear-gradient(180deg, rgba(14, 74, 51, .55), rgba(6, 41, 28, .75));
+  border: 1px solid var(--cz-gold-4);
+  box-shadow: inset 0 0 22px rgba(0, 0, 0, .5);
+}
+#sl-screen .slg-head { margin: 0 0 6px; text-align: center; font: 900 13px/1 var(--cz-display); letter-spacing: .12em; text-transform: uppercase; color: var(--cz-gold-1); }
+#sl-screen .slg-top { gap: 8px; font-size: 11px; color: #cfe7da; }
+#sl-screen .slg-top b { font: 800 16px/1.15 var(--cz-num); font-variant-numeric: tabular-nums; color: var(--cz-gold-1); }
+#sl-screen .slg-card { width: 56px; height: 80px; font-size: 24px; border-radius: 8px; }
+#sl-screen .slg-ladder { flex-wrap: wrap; margin: 8px 0; }
+#sl-screen .slg-ladder i { padding: 4px 9px; font-size: 12px; }
+#sl-screen .slg-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#sl-screen .slg-btns button {
+  min-height: 48px; margin: 0; padding: 8px 6px; border-radius: 999px;
+  font: 800 15px/1 var(--cz-font); color: #fff; box-shadow: 0 3px 0 rgba(0, 0, 0, .45);
+}
+#sl-screen .slg-red { background: linear-gradient(180deg, #ff4b6e, #d11a43 55%, #8c0c29); border: 1px solid #ff8aa2; }
+#sl-screen .slg-black { background: linear-gradient(180deg, #4b5563, #1f2937 55%, #0b0f17); border: 1px solid #9ca3af; }
+#sl-screen .slg-take {
+  grid-column: 1 / -1;
+  background: linear-gradient(180deg, #3ee59a, #12a862 60%, #0a7444); border: 1px solid #6cf3b6;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .35);
+  box-shadow: 0 4px 0 #064a2b, 0 8px 18px rgba(31, 195, 122, .3);
+}
+#sl-screen .sl-gamble small { margin-top: 8px; color: #b9d3c6; line-height: 1.35; }
+
+/* ---------- Console de mise ---------- */
+#sl-screen .sl-deck {
+  padding: 12px; border-radius: var(--cz-r-lg);
+  background: linear-gradient(165deg, rgba(42, 13, 28, .92), rgba(15, 9, 20, .96));
+  border: 1px solid var(--cz-line);
+  box-shadow: var(--cz-shadow);
+}
+#sl-screen .sl-bet .cz-label { display: block; margin: 0 0 7px 4px; text-align: left; }
+#sl-screen .sl-betrow { display: flex; align-items: stretch; gap: 6px; }
+#sl-screen .sl-adj { flex: none; min-width: 48px; min-height: 48px; padding: 0 10px; font-size: 15px; }
+#sl-screen .sl-amt {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px;
+  padding: 0 12px; border-radius: 999px;
+  background: #07040a; border: 1px solid var(--cz-line-strong);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, .7);
+}
+#sl-screen .sl-amt:focus-within { border-color: var(--cz-gold-2); box-shadow: inset 0 2px 8px rgba(0, 0, 0, .7), 0 0 0 3px rgba(242, 195, 91, .2); }
+#sl-screen .sl-amt input {
+  flex: 1; min-width: 0; width: 100%; height: 46px; margin: 0; padding: 0;
+  border: 0; border-radius: 0; background: transparent; box-shadow: none; outline: none;
+  font: 800 20px/1 var(--cz-num); font-variant-numeric: tabular-nums; color: var(--cz-gold-1); text-align: center;
+  -moz-appearance: textfield; appearance: textfield;
+}
+#sl-screen .sl-amt input:focus { transform: none; box-shadow: none; }
+#sl-screen .sl-amt input::-webkit-inner-spin-button, #sl-screen .sl-amt input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+#sl-screen .sl-amt span { flex: none; font-size: 16px; }
+#sl-screen .sl-chips { display: flex; justify-content: space-evenly; gap: 6px; margin-top: 12px; }
+#sl-screen .sl-chips .cz-chip { width: 48px; height: 48px; min-width: 48px; }
+#sl-screen .sl-buy {
+  min-height: 44px; margin: 0; padding: 8px 14px; font-size: 14px;
+  background: linear-gradient(180deg, rgba(107, 43, 181, .35), rgba(40, 12, 60, .55));
+  border-color: rgba(192, 132, 252, .45); color: #ead9ff; border-radius: 999px;
+}
+
+/* ---------- Barre d'action collante : Turbo · TOURNER · Auto ---------- */
+#sl-screen .sl-cta {
+  display: flex; align-items: center; gap: 6px; padding: 6px;
+  border-color: var(--cz-line-strong);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .6);
+}
+#sl-screen .sl-side {
+  position: relative; flex: none; width: 58px; height: 56px; margin: 0; padding: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border-radius: 999px; border: 1px solid var(--cz-line); background: rgba(0, 0, 0, .45);
+  color: var(--cz-gold-1); box-shadow: none; font: inherit; min-width: 0;
+}
+#sl-screen .sl-side i { font-style: normal; font-size: 20px; line-height: 1; }
+#sl-screen .sl-side small { font: 800 10px/1 var(--cz-font); letter-spacing: .06em; text-transform: uppercase; }
+#sl-screen .sl-side.on { background: var(--cz-gold-grad); color: #2a1803; border-color: #ffe7a8; box-shadow: 0 0 14px rgba(242, 195, 91, .45); }
+#sl-screen .sl-auto.on {
+  background: linear-gradient(180deg, #ff4b6e, #d11a43 55%, #8c0c29); color: #fff; border-color: #ff8aa2;
+  animation: autoPulse 1.4s ease-in-out infinite;
+}
+#sl-screen .sl-auto.on small { font-size: 12px; letter-spacing: 0; text-transform: none; }
+#sl-screen .sl-spin {
+  flex: 1; min-width: 0; margin: 0; padding: 0 12px; height: 56px; min-height: 56px; border-radius: 999px;
+  background: var(--cz-gold-grad); color: #2a1803; border: 1px solid #ffe7a8;
+  font: 900 20px/1 var(--cz-display); letter-spacing: .1em; text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .45);
+  box-shadow: 0 4px 0 #6b4510, 0 10px 24px rgba(242, 195, 91, .35), inset 0 1px 0 rgba(255, 255, 255, .7);
+  white-space: nowrap;
+}
+#sl-screen .sl-spin:not(:disabled):hover { box-shadow: 0 4px 0 #6b4510, 0 10px 28px rgba(242, 195, 91, .5), inset 0 1px 0 rgba(255, 255, 255, .7); }
+#sl-screen .sl-spin:not(:disabled):active { transform: translateY(3px); box-shadow: 0 1px 0 #6b4510, 0 6px 16px rgba(242, 195, 91, .3), inset 0 1px 0 rgba(255, 255, 255, .7); }
+#sl-screen .sl-spin:disabled { opacity: 1; filter: grayscale(.55) brightness(.7); }
+/* « Passer » prend la place de TOURNER pendant l'animation (appuyer à nouveau = accélérer) */
+#sl-screen .sl-skip {
+  position: static; flex: 1; min-width: 0; width: auto; height: 56px; min-height: 56px; margin: 0; padding: 0 12px;
+  border-radius: 999px; border: 1px solid var(--cz-gold-2);
+  background: linear-gradient(180deg, #2a1236, #12060f); color: var(--cz-gold-1);
+  font: 800 17px/1 var(--cz-font); letter-spacing: .06em; text-transform: uppercase;
+  box-shadow: inset 0 0 0 1px rgba(255, 231, 168, .15), 0 0 14px rgba(242, 195, 91, .2);
+}
+#sl-screen .sl-cta:has(#slSkip:not(.hidden)) #slSpinBtn { display: none; }
+
+/* Choix du nombre de tours automatiques : s'ouvre au-dessus de la barre */
+#sl-screen .sl-autopanel {
+  position: absolute; left: 0; right: 0; bottom: calc(100% + 8px); margin: 0; z-index: 3;
+  padding: 12px; border-radius: 18px; text-align: center;
+  background: linear-gradient(180deg, #1c0d22, #0b0510); border: 1px solid var(--cz-line-strong);
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, .7);
+  font: 700 13px/1.3 var(--cz-font); color: var(--cz-gold-1);
+}
+#sl-screen .sl-autopanel div { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin: 10px 0 8px; }
+#sl-screen .sl-autopanel button {
+  width: auto; min-width: 0; min-height: 44px; margin: 0; padding: 0;
+  border-radius: 999px; border: 1px solid var(--cz-line); background: rgba(0, 0, 0, .45);
+  color: var(--cz-text); font: 800 14px/1 var(--cz-font); box-shadow: none;
+}
+#sl-screen .sl-autopanel button.inf { background: var(--cz-gold-grad); color: #2a1803; border-color: #ffe7a8; font-size: 18px; }
+#sl-screen .sl-autopanel small { display: block; font-size: 11px; font-weight: 500; color: var(--cz-muted); }
+
+/* ---------- Historique, règles, équité ---------- */
+#sl-screen .sl-hist { margin: 0; }
+#sl-screen .sl-hist:empty { display: none; }
+#sl-screen .sl-more {
+  border-radius: var(--cz-r); background: rgba(0, 0, 0, .3); border: 1px solid var(--cz-line);
+}
+#sl-screen .sl-more summary {
+  display: flex; align-items: center; min-height: 44px; padding: 0 14px; cursor: pointer; list-style: none;
+  font: 700 14px/1 var(--cz-font); color: var(--cz-gold-1);
+}
+#sl-screen .sl-more summary::-webkit-details-marker { display: none; }
+#sl-screen .sl-more summary::after { content: "▾"; margin-left: auto; color: var(--cz-muted); transition: transform .2s; }
+#sl-screen .sl-more[open] summary::after { transform: rotate(180deg); }
+#sl-screen .sl-rules { margin: 0 10px 10px; background: rgba(255, 255, 255, .03); color: #b9aec6; }
+#sl-screen .sl-rules b { color: var(--cz-gold-1); }
+#sl-screen .sl-proof { margin: 0 14px 12px; font-size: 11px; line-height: 1.4; color: var(--cz-dim); word-break: break-all; }
+#sl-screen .rank-card { margin-top: 0 !important; }
+
+/* ---------- Achat de bonus (fenêtre) ---------- */
+#sl-screen .sl-buyback { z-index: 1200; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); padding: 14px calc(14px + var(--cz-safe-r)) calc(14px + var(--cz-safe-b)) calc(14px + var(--cz-safe-l)); }
+#sl-screen .sl-buymodal {
+  width: min(100%, 440px); max-height: calc(100dvh - 28px);
+  background: linear-gradient(165deg, #2a0d1c, #0f0914);
+  border: 1px solid var(--cz-line-strong); border-radius: var(--cz-r-lg);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .7), 0 0 0 3px rgba(242, 195, 91, .12);
+}
+#sl-screen .sl-buymodal h4 { font-family: var(--cz-display); color: var(--cz-gold-1); letter-spacing: .05em; }
+#sl-screen .slb-o { min-height: 64px; border-radius: var(--cz-r); background: rgba(0, 0, 0, .35); border-color: var(--cz-line); color: var(--cz-text); }
+#sl-screen .slb-o:not(:disabled):hover, #sl-screen .slb-o:not(:disabled):active { border-color: var(--cz-gold-2); background: rgba(242, 195, 91, .1); }
+#sl-screen .slb-o > span:nth-child(2) { flex: 1; min-width: 0; }
+#sl-screen .slb-o .pr { color: var(--cz-gold-1); }
+#sl-screen .slb-o > span:nth-child(2) small { font-weight: 500; line-height: 1.35; color: var(--cz-muted); }
+#sl-screen .sl-buymodal p { color: var(--cz-muted); }
+#sl-screen .sl-x { min-height: 48px; border-radius: 999px; background: rgba(0, 0, 0, .35); border: 1px solid var(--cz-line); color: var(--cz-gold-1); box-shadow: none; }
+
+/* ---------- Écrans étroits ---------- */
+@media (max-width: 380px) {
+  #sl-screen .sl-box { padding: 7px 6px 8px; }
+  #sl-screen .sl-marquee { gap: 8px; padding: 8px 8px 7px; }
+  #sl-screen .sl-moon { width: 26px; height: 26px; }
+  #sl-screen .sl-cab { padding: 5px; }
+  #sl-screen .sl-side { width: 54px; }
+  #sl-screen .sl-spin { font-size: 18px; letter-spacing: .07em; }
+  #sl-screen .sl-chips .cz-chip { width: 46px; height: 46px; min-width: 46px; }
+  #sl-screen .sl-deck { padding: 10px; }
+}
+
+/* ---------- Grand écran : une borne centrée, pas une grille géante ---------- */
+@media (min-width: 700px) {
+  #sl-screen .sl-box, #sl-screen .sl-deck, #sl-screen .sl-cta, #sl-screen .sl-hist, #sl-screen .sl-more { width: 100%; max-width: 540px; margin-left: auto; margin-right: auto; }
+}
+
+/* ---------- Animations réduites ---------- */
+@media (prefers-reduced-motion: reduce) {
+  #sl-screen .sl-marquee::before, #sl-screen .sl-moon, #sl-screen .sl-win.big,
+  #sl-screen .sl-auto.on, #sl-screen .sl-jp .on, #sl-screen .sl-title { animation: none !important; }
+}
+html.rm #sl-screen .sl-marquee::before, html.rm #sl-screen .sl-moon, html.rm #sl-screen .sl-win.big,
+html.rm #sl-screen .sl-auto.on, html.rm #sl-screen .sl-title { animation: none !important; }

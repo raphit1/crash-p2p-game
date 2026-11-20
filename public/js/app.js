@@ -9,20 +9,28 @@ function stakeValue() {
 function onStakeInput() {
   const v = stakeValue();
   $('stakeInfo').textContent = v === null ? `Mise : ${STAKE_RANGE}` : `= ${Math.round(v * TOKENS_PER_EUR).toLocaleString('fr-FR')} jetons (1 € = ${TOKENS_PER_EUR} 🪙)`;
+  document.querySelectorAll('.sh-stake-chips [data-v]').forEach(b => b.classList.toggle('on', +b.dataset.v === v)); // affichage : jeton choisi en surbrillance
 }
 function setStake(v) { $('stakeInput').value = v; onStakeInput(); }
+function setDuration(v) { $('duration').value = v; document.querySelectorAll('.sh-dur [data-v]').forEach(b => b.classList.toggle('on', +b.dataset.v === v)); }
+/* Messages à l'écran (remplacent alert(), bloquant et peu lisible sur téléphone / appli installée) — utilise les toasts de moi.js */
+function czToast(msg, cls, ms) {
+  if (typeof xpToast !== 'function') return alert(msg); // garde-fou si moi.js n'est pas chargé
+  xpToast(`<span>${esc(msg)}</span>`, 'sh-tap ' + (cls || 'err'), ms || 4000);
+}
+document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('.tst.sh-tap'); if (t) t.remove(); }); // toucher un message le ferme
 function copyRoomCode() { const c = S.code; if (!c) return; try { navigator.clipboard.writeText(c); $('roomChipCode').textContent = 'copié ✓'; setTimeout(() => { $('roomChipCode').textContent = S.code || c; }, 1200); } catch (e) {} }
 function leaveRoom() { socket.emit('leave-room'); }
 socket.on('left-room', () => location.reload());
 function createRoom() {
-  if (!S.myName) return alert('Connecte-toi d\'abord !');
-  const stake = stakeValue(); if (stake === null) return alert(`Mise invalide : ${STAKE_RANGE}.`);
+  if (!S.myName) return czToast('Connecte-toi d\'abord !');
+  const stake = stakeValue(); if (stake === null) return czToast(`Mise invalide : ${STAKE_RANGE}.`);
   Snd.unlock(); socket.emit('create-room', { duration: $('duration').value, stake });
 }
 function joinRoom() {
   const roomCode = $('roomCodeInput').value.trim().toUpperCase();
-  if (!roomCode) return alert('Entre le code de la room !');
-  const stake = stakeValue(); if (stake === null) return alert(`Mise invalide : ${STAKE_RANGE}.`);
+  if (!roomCode) return czToast('Entre le code de la room !');
+  const stake = stakeValue(); if (stake === null) return czToast(`Mise invalide : ${STAKE_RANGE}.`);
   Snd.unlock(); socket.emit('join-room', { roomCode, stake });
 }
 onStakeInput();
@@ -56,13 +64,12 @@ function returnToHub() {
   show('game-hub');
 }
 function buildPanels() {
-  $('betPanels').innerHTML = [0, 1].map(i => `<div class="bet-control-box">
-    <div class="quick-bet-row">${[10, 50, 100, 500].map(a => `<button class="quick-btn" data-i="${i}" data-a="${a}">${a}</button>`).join('')}</div>
-    <div class="quick-bet-row"><button class="quick-btn" data-i="${i}" data-f=".5">÷2</button><button class="quick-btn" data-i="${i}" data-f="2">×2</button><button class="quick-btn" data-i="${i}" data-f="max">Max</button></div>
-    <div style="display:flex;gap:8px"><input type="number" id="amt${i}" value="${i ? 100 : 50}" min="1" style="margin:0;flex:2"><input type="number" step="0.1" min="1.01" id="auto${i}" placeholder="Auto cash-out" style="margin:0;flex:1.5"></div>
-    <label class="auto-row"><input type="checkbox" id="ab${i}"> Relancer la mise automatiquement</label>
-    <button class="act" id="act${i}" data-i="${i}"></button>
-    <button class="btn-cancel hidden" id="cancel${i}" data-i="${i}">Annuler</button></div>`).join('');
+  const chip = (i, a) => `<button type="button" class="cz-chip cz-chip--${a}" data-i="${i}" data-a="${a}">${a}</button>`;
+  $('betPanels').innerHTML = [0, 1].map(i => `<div class="bet-control-box ja-bp">
+    <div class="ja-bp-top"><span class="ja-bp-tag">Mise ${i + 1}</span><label class="auto-row ja-bp-chk"><input type="checkbox" id="ab${i}"> Relance auto</label></div>
+    <div class="ja-amt-row"><span class="ja-amt"><span class="ja-amt-in"><input type="number" id="amt${i}" value="${i ? 100 : 50}" min="1" inputmode="numeric" aria-label="Montant de la mise ${i + 1}"><i>🪙</i></span></span><button type="button" class="cz-btn cz-btn--ghost" data-i="${i}" data-f=".5">÷2</button><button type="button" class="cz-btn cz-btn--ghost" data-i="${i}" data-f="2">×2</button><button type="button" class="cz-btn cz-btn--ghost" data-i="${i}" data-f="max">Max</button></div>
+    <div class="ja-bp-row">${[10, 50, 100, 500].map(a => chip(i, a)).join('')}<label class="ja-bp-auto"><small>Auto ×</small><input type="number" step="0.1" min="1.01" id="auto${i}" placeholder="—" inputmode="decimal" aria-label="Encaissement automatique à ce multiplicateur"></label></div>
+    <div class="ja-bp-cta"><button class="act cz-btn cz-btn--xl cz-btn--block" id="act${i}" data-i="${i}"></button><button class="btn-cancel cz-btn cz-btn--ruby hidden" id="cancel${i}" data-i="${i}">Annuler</button></div></div>`).join('');
   $('betPanels').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     const i = +b.dataset.i, amt = $('amt' + i);
@@ -79,7 +86,7 @@ function act(i) {
   if (S.phase === 'playing' && s.bet > 0 && !s.cashed) return socket.emit('cash-out', { roomCode: S.code, slot: i });
   if (S.phase === 'betting' ? s.bet > 0 : s.next > 0) return; // pari déjà posé
   const amount = parseInt($('amt' + i).value);
-  if (!amount || amount <= 0) return alert('Entre un montant valide !');
+  if (!amount || amount <= 0) return (typeof czToast === 'function' ? czToast : alert)('Entre un montant valide !');
   sound('bet');
   socket.emit('place-bet', { roomCode: S.code, slot: i, amount, autoCashOut: $('auto' + i).value });
 }
@@ -95,16 +102,18 @@ buildPanels();
 function renderButtons() {
   [0, 1].forEach(i => {
     const s = S.slots[i], b = $('act' + i), ph = S.phase;
-    let text, bg = '', cash = false, dis = false, cancel = false;
+    let text, look = 'gold', dis = false, cancel = false; // look : apparence seulement (gold = Parier, green = Encaisser, set = pari déjà posé)
     if (ph === 'betting') {
-      if (s.bet > 0) { text = `Pari enregistré : ${s.bet} 🪙 ✅`; bg = '#3b82f6'; cancel = true; }
-      else { text = 'Parier'; bg = '#22c55e'; }
-    } else if (ph === 'playing' && s.bet > 0 && !s.cashed) { text = `CASH OUT ${Math.floor(s.bet * S.shown)} 🪙`; cash = true; }
+      if (s.bet > 0) { text = `✅ Misé ${s.bet} 🪙`; look = 'set'; cancel = true; }
+      else text = 'Parier';
+    } else if (ph === 'playing' && s.bet > 0 && !s.cashed) { text = `Encaisser ${Math.floor(s.bet * S.shown)} 🪙`; look = 'green'; }
     else if (ph === 'playing' || ph === 'crashed') {
-      if (s.next > 0) { text = `Prochain tour : ${s.next} 🪙 ✅`; bg = '#eab308'; cancel = true; }
-      else { text = 'Parier pour le tour suivant'; bg = '#3b82f6'; }
-    } else { text = 'En attente...'; dis = true; }
-    b.textContent = text; b.style.background = bg; b.disabled = dis; b.classList.toggle('btn-cashout', cash);
+      if (s.next > 0) { text = `✅ Prochain tour ${s.next} 🪙`; look = 'set'; cancel = true; }
+      else { text = 'Parier · tour suivant'; look = 'next'; }
+    } else { text = 'En attente…'; look = 'wait'; dis = true; }
+    if (b.textContent !== text) b.textContent = text;
+    b.disabled = dis; b.style.background = '';
+    b.className = 'act cz-btn cz-btn--xl cz-btn--block ja-' + look + (look === 'green' ? ' btn-cashout cz-btn--green' : look === 'gold' || look === 'next' ? ' cz-btn--gold' : '');
     $('cancel' + i).classList.toggle('hidden', !cancel);
   });
 }
@@ -119,7 +128,7 @@ function renderPlayers(room) {
     document.querySelectorAll('.playerBalance').forEach(e => { if (e.textContent != me.balance) e.textContent = me.balance; });
   }
   if (!$('lobby').classList.contains('hidden')) {
-    setH($('playersList'), room.players.map(p => `<li class="pl-li">${avHTML(p.name, p.cos, 38)}<span>${nm(p.name)}<small class="lvtag">Niv. ${p.cos ? p.cos.lv : 1}</small></span> · mise ${eur(p.stake || 0)} (${p.balance} 🪙) ${p.isAdmin ? '👑 Hôte' : ''}${p.connected === false ? ' 💤 déconnecté' : ''}</li>`).join(''));
+    setH($('playersList'), room.players.map(p => `<li class="pl-li sh-seat${p.connected === false ? ' off' : ''}">${avHTML(p.name, p.cos, 38)}<span class="sh-seat-n">${nm(p.name)}<small class="lvtag">Niv. ${p.cos ? p.cos.lv : 1}${p.isAdmin ? ' · 👑 Hôte' : ''}${p.connected === false ? ' · 💤 déconnecté' : ''}</small></span><span class="sh-seat-m"><b>${eur(p.stake || 0)}</b><small>${p.balance} 🪙</small></span></li>`).join(''));
     $('potTotal').textContent = eur(room.players.reduce((a, p) => a + (p.stake || 0), 0));
   }
   if (S.view === 'crash') { // la liste des mises et les stats ne servent que sur l'écran Crash
@@ -138,7 +147,12 @@ function pill(item) {
   const d = document.createElement('div');
   d.className = 'history-pill ' + (item.multiplier < 2 ? 'hist-low' : item.multiplier < 10 ? 'hist-mid' : 'hist-high');
   d.textContent = item.multiplier.toFixed(2) + 'x';
-  d.onclick = () => alert(`🔍 Preuve Provably Fair :\n\n- Multiplicateur : ${item.multiplier}x\n- Hash publié avant la manche : ${item.hash}\n- Graine secrète révélée : ${item.secret}\n\nVérification :\n1) SHA-256(graine) doit être égal au hash publié\n2) Le crash est dérivé de HMAC-SHA256(graine, "crash")`);
+  d.onclick = () => { // preuve affichée dans la modale d'historique si elle est ouverte, sinon en message à l'écran
+    const proof = `<b>🔍 Preuve Provably Fair · ${esc(item.multiplier)}x</b><span>Hash publié avant la manche :<code>${esc(item.hash)}</code></span><span>Graine secrète révélée :<code>${esc(item.secret)}</code></span><em>Vérification : SHA-256(graine) = hash publié ; le crash est dérivé de HMAC-SHA256(graine, "crash").</em>`;
+    const box = $('hmProof');
+    if (box && !$('historyModal').classList.contains('hidden')) { box.innerHTML = proof; box.classList.remove('hidden'); box.scrollIntoView({ block: 'nearest' }); }
+    else xpToast(proof + '<em>Touche pour fermer.</em>', 'sh-tap sh-proof', 12000);
+  };
   return d;
 }
 function renderHistory(list) {
@@ -147,7 +161,7 @@ function renderHistory(list) {
   list.slice(0, 8).forEach(i => bar.appendChild(pill(i)));
 }
 function openHistoryModal() {
-  const g = $('fullHistoryGrid'); g.innerHTML = '';
+  const g = $('fullHistoryGrid'); g.innerHTML = ''; $('hmProof').classList.add('hidden');
   if (!S.history.length) g.innerHTML = '<p style="color:#9a90ad">Aucun historique pour l\'instant.</p>';
   S.history.forEach(i => g.appendChild(pill(i)));
   show('historyModal');
@@ -173,6 +187,14 @@ function sync(room) {
   S.meBj = me ? me.bj : null;
   bjSync(me ? me.bj : null);
   renderStopBar(room);
+  // Après un rechargement de page en pleine partie : on revient directement au jeu concerné (sinon la mise reste bloquée sans qu'on le sache)
+  if (!S.resumeChecked && me && S.view === 'hub') {
+    S.resumeChecked = true;
+    const g = me.mn && me.mn.active ? 'Mines' : me.cr && me.cr.active ? 'Chicken Road' : me.hl && me.hl.active ? 'Hi-Lo'
+      : me.iceState && me.iceState.active ? 'Icefield' : me.bj && ['player', 'insurance'].includes(me.bj.phase) ? 'Blackjack'
+      : me.rl && me.rl.bets && me.rl.bets.length ? 'Roulette' : null;
+    if (g) { switchGame(g); czToast('Partie en cours reprise : ' + g); }
+  }
 }
 
 // Classement commun : trié sur le % de gain vs argent de départ (fortune = solde + mises en jeu, pour qu'il ne saute pas à chaque mise)
@@ -239,7 +261,7 @@ function frame(now) {
       mBox.style.transform = `translate(-50%,-50%) scale(${(1 + Math.min(S.shown / 40, .25)).toFixed(3)})`;
       for (const m of [2, 5, 10, 25]) if (lastShown < m && S.shown >= m) sound('milestone');
       lastShown = S.shown;
-      S.slots.forEach((s, i) => { if (s.bet > 0 && !s.cashed) $('act' + i).textContent = `CASH OUT ${Math.floor(s.bet * S.shown)} 🪙`; });
+      S.slots.forEach((s, i) => { if (s.bet > 0 && !s.cashed) $('act' + i).textContent = `Encaisser ${Math.floor(s.bet * S.shown)} 🪙`; });
     }
   } else if (S.phase === 'betting') { S.shown = S.target = 1; S.lastTxt = ''; mBox.style.color = ''; mBox.style.transform = 'translate(-50%,-50%)'; }
   if (S.phase !== 'crashed') {
@@ -279,7 +301,7 @@ socket.on('room-created', d => enterLobby(d.room));
 socket.on('joined-success', enterLobby);
 socket.on('update-room', sync);
 socket.on('error-message', m => {
-  alert(m);
+  czToast(m);
   if (S.jmPhase === 'starting') S.jmPhase = 'idle';
   // Aucun jeu ne doit rester bloqué si le serveur refuse une action : on libère les verrous et on resynchronise.
   S.arBusy = false; S.rlBusy = false; S.bjBusy = false;
@@ -352,7 +374,7 @@ socket.on('game-session-ended', d => {
   const box = $('finalLeaderboardList'); box.innerHTML = '';
   d.leaderboard.forEach((p, i) => {
     const row = document.createElement('div');
-    row.style.cssText = 'background:#0d0814;padding:10px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px';
+    row.className = 'sh-end-row' + (i === 0 ? ' first' : '');
     const perf = (p.performance >= 0 ? '+' : '') + Math.round(p.performance * 100) + ' %';
     const gl = p.finalBalance - p.initialBalance, st = p.stats || {};
     row.innerHTML = `<span><b>#${i + 1} ${nm(p.name)}</b><br><small style="color:#94a3b8">mise ${eur(p.stake)} · ${fmtN(p.finalBalance)} 🪙 (${perf})</small><br><small class="${gl >= 0 ? 'text-green' : 'text-red'}">${gl >= 0 ? 'a gagné +' : 'a perdu −'}${fmtN(Math.abs(gl))} 🪙 (${fmtPctG(pctOf(p.finalBalance, p.initialBalance))})</small><br><small style="color:#7d7494">${st.gamesPlayed || 0} parties · ${st.wins || 0} gagnées</small></span>
@@ -401,7 +423,7 @@ const getTok = () => { try { return localStorage.getItem(TOKEN_KEY); } catch (e)
 const setTok = t => { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch (e) {} };
 function authSubmit(mode) {
   const username = $('authUser').value.trim(), password = $('authPass').value;
-  if (!username || !password) return alert('Entre ton pseudo et ton mot de passe !');
+  if (!username || !password) return czToast('Entre ton pseudo et ton mot de passe !');
   socket.emit(mode === 'register' ? 'auth-register' : 'auth-login', { username, password });
 }
 function logout() { socket.emit('auth-logout'); setTok(null); location.reload(); }
@@ -411,13 +433,13 @@ socket.on('auth-ok', d => {
   if (!S.code) { show('loginCard', false); show('roomCards'); }
   sideVis();
 });
-socket.on('auth-error', m => alert(m));
-socket.on('auth-invalid', () => { setTok(null); if (S.code) { alert('Session expirée : reconnecte-toi.'); location.reload(); } });
+socket.on('auth-error', m => czToast(m));
+socket.on('auth-invalid', () => { setTok(null); if (S.code) { czToast('Session expirée : reconnecte-toi.'); setTimeout(() => location.reload(), 2200); } });
 socket.on('resumed', d => {
   enterLobby(d.room);
   if (d.started) { show('lobby', false); if (S.view !== 'hub') returnToHub(); else show('game-hub'); }
 });
-socket.on('no-room', () => { if (S.code && S.phase !== 'ended') { alert('Cette room n\'existe plus (le serveur a redémarré ou la session est terminée).'); location.reload(); } });
+socket.on('no-room', () => { if (S.code && S.phase !== 'ended') { czToast('Cette room n\'existe plus (le serveur a redémarré ou la session est terminée).'); setTimeout(() => location.reload(), 2600); } });
 socket.on('disconnect', () => { $('gameStatusText').textContent = '⚠️ Connexion perdue... reconnexion automatique'; });
 socket.on('connect', () => { const t = getTok(); if (t) socket.emit('auth-token', { token: t }); S.wasConnected = true; });
 

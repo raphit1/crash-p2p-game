@@ -32,15 +32,18 @@ function slInit() {
   if (!SL.inited) {
     SL.inited = true; slRandomGrid();
     quickBinder('slQuick', 'slBet', slJpPaint); $('slBet').addEventListener('input', slJpPaint);
+    // affichage : le choix des tours auto se referme quand on touche ailleurs
+    document.addEventListener('click', e => { const p = $('slAutoPanel'); if (p && !p.classList.contains('hidden') && !e.target.closest('#slAutoPanel,#slAutoBtn')) p.classList.add('hidden'); });
   }
   slJpPaint(); socket.emit('sl-hash', { roomCode: S.code }); SLX.start();
 }
 function slLeave() { slAutoStop(); SLX.stop(); SLX.heart(false); }
 function slJpPaint() {
   const u = parseInt($('slBet').value) || 0, J = SL.jp;
-  $('slJp').innerHTML = [['mini', 'j1'], ['minor', 'j2'], ['major', 'j3'], ['grand', 'j4'], ['super', 'j5']].map(([k, c]) => `<div class="${c}" id="slJp_${k}">${SL_JPN[k]}<b>${fmtN(J[k] * u)} 🪙</b>×${J[k]}</div>`).join('');
+  // affichage : les plus gros jackpots d'abord (SUPER, GRAND en grand, puis MAJOR, MINOR, MINI)
+  $('slJp').innerHTML = [['super', 'j5'], ['grand', 'j4'], ['major', 'j3'], ['minor', 'j2'], ['mini', 'j1']].map(([k, c]) => `<div class="${c}" id="slJp_${k}"><span class="jn">${SL_JPN[k]}<small>×${J[k]}</small></span><b>${fmtN(J[k] * u)} 🪙</b></div>`).join('');
 }
-function slTurboToggle() { SL.turbo = !SL.turbo; $('slTurbo').textContent = '⚡ Turbo : ' + (SL.turbo ? 'oui' : 'non'); }
+function slTurboToggle() { SL.turbo = !SL.turbo; const b = $('slTurbo'); b.classList.toggle('on', SL.turbo); b.setAttribute('aria-pressed', SL.turbo); b.title = 'Turbo : ' + (SL.turbo ? 'oui' : 'non'); }
 function slSkip() { SL.skip = true; }
 function slBanner(html, ms) { const b = $('slBanner'); b.innerHTML = html; b.classList.add('on'); return slSleep(ms || 1200).then(() => b.classList.remove('on')); }
 function slUnlock() { SL.busy = false; SL.playing = false; $('slSpinBtn').disabled = false; slStopSpinAnim(); }
@@ -50,15 +53,21 @@ function slRun(add) { SL.run += add; $('slWin').className = 'sl-win big'; $('slW
 /* ---------- Lancer ---------- */
 function slSpin(buy) {
   if (SL.busy) return; const amount = parseInt($('slBet').value) || 0;
-  if (amount <= 0) return alert('Entre une mise valide !');
+  if (amount <= 0) return (typeof czToast === 'function' ? czToast : alert)('Entre une mise valide !');
   startAudio(); SLX.ready(); SLX.start(); SL.busy = true; SL.got = false; SL.skip = false; SL.unit = amount; SL.run = 0; SL.t0 = Date.now(); $('slSpinBtn').disabled = true;
   $('slGamble').classList.add('hidden'); SL.active = false; SL.pending = 0; SL.g = 0;
   $('slHud').classList.add('hidden'); $('slWin').className = 'sl-win'; $('slWin').textContent = buy ? '🎡 Bonus acheté…' : 'Les rouleaux tournent… 🌑';
   document.querySelectorAll('#slJp > div').forEach(x => x.classList.remove('on'));
   if (SL.rows !== 3) slRandomGrid();
   if (!buy) { SLX.spinStart(); slStartSpinAnim(); }
+  slShowStage();
   socket.emit('sl-spin', { roomCode: S.code, amount, buy: buy || 0 });
   clearTimeout(SL.wd); SL.wd = setTimeout(() => { if (!SL.got) { slUnlock(); $('slWin').textContent = 'Pas de réponse du serveur, réessaie.'; } }, 9000);
+}
+// affichage : si les rouleaux sont hors de l'écran (on a lancé depuis le bas de la page), on remonte la borne
+function slShowStage() {
+  const c = $('slCab').getBoundingClientRect(), vh = window.innerHeight || 800;
+  if (c.top < 90 || c.top > vh * .45) { let rm = false; try { rm = matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.classList.contains('rm'); } catch (e) {} $('slBox').scrollIntoView({ block: 'start', behavior: rm ? 'auto' : 'smooth' }); }
 }
 function slStartSpinAnim() {
   SL.reel = [true, true, true, true, true]; SL.cells.forEach(el => { el.className = 'sc spin'; });
@@ -284,6 +293,7 @@ function slGambleShow(keepCard) {
   $('slGladder').innerHTML = ['×2', '×4', '×8', '×16', '×32'].map((x, i) => `<i class="${i < SL.g ? 'done' : i === SL.g && can ? 'cur' : ''}">${x}</i>`).join('');
   if (!keepCard) { const c = $('slGcard'); c.className = 'slg-card'; c.textContent = '?'; }
   document.querySelectorAll('#slGamble .slg-red,#slGamble .slg-black').forEach(b => { b.disabled = !can; b.style.opacity = can ? 1 : .4; });
+  const take = document.querySelector('#slGamble .slg-take'); if (take) take.disabled = !(SL.pending > 0); // « Encaisser » redevient cliquable après un double réussi
   $('slGnote').textContent = SL.g >= 5 ? 'Maximum atteint : encaisse ton gain !' : 'Double ou rien (jusqu’à ×32, sans limite de gain) : trouve la couleur de la carte. Le gain en attente est encaissé automatiquement au prochain tour.';
 }
 function slGamble(color) { if (!SL.active) return; document.querySelectorAll('#slGamble button').forEach(b => { b.disabled = true; }); SLX.gambleCard(); socket.emit('sl-gamble', { roomCode: S.code, color }); }
@@ -309,7 +319,7 @@ socket.on('sl-hash', d => {
 });
 
 /* ---------- Tours automatiques (nombre choisi ou infini) ---------- */
-function slAutoLabel() { const b = $('slAutoBtn'); b.classList.toggle('on', SL.autoOn); b.textContent = SL.autoOn ? '⏹ Stop auto' + (SL.auto === Infinity ? ' (∞)' : ' (' + SL.auto + ')') : '🔁 Auto'; }
+function slAutoLabel() { const b = $('slAutoBtn'); b.classList.toggle('on', SL.autoOn); b.setAttribute('aria-pressed', SL.autoOn); b.title = SL.autoOn ? 'Stop auto' : 'Tours automatiques'; b.innerHTML = SL.autoOn ? '<i>⏹</i><small>' + (SL.auto === Infinity ? '∞' : SL.auto) + '</small>' : '<i>🔁</i><small>Auto</small>'; }
 function slAutoToggle() { if (SL.autoOn) return slAutoStop(); $('slAutoPanel').classList.toggle('hidden'); }
 function slAutoStart(n) { $('slAutoPanel').classList.add('hidden'); SL.autoOn = true; SL.auto = n; slAutoLabel(); if (!SL.busy) slAutoNext(true); }
 function slAutoStop() { SL.autoOn = false; SL.auto = 0; clearTimeout(SL.autoT); const b = $('slAutoBtn'); if (b) slAutoLabel(); }
@@ -329,7 +339,7 @@ function slAutoNext(now) {
 }
 /* ---------- Achat de bonus ---------- */
 function slBuyOpen() {
-  if (SL.busy) return; slAutoStop(); const u = parseInt($('slBet').value) || 0; if (u <= 0) return alert('Entre une mise valide !');
+  if (SL.busy) return; slAutoStop(); const u = parseInt($('slBet').value) || 0; if (u <= 0) return (typeof czToast === 'function' ? czToast : alert)('Entre une mise valide !');
   const desc = ['', 'Un tour de la roue : bonus (Scie, Mega Chapeau, Manoir, Tours gratuits) ou jackpot', 'Les Tours gratuits tout de suite : 6 lanternes posent 6 cadres Paille', 'Direct sur la roue améliorée : bonus SUPER (5×6), Major, Grand ou SUPER JACKPOT 7500×'], ic = ['', '🎡', '🏮', '✨'];
   $('slBuyModal').innerHTML = `<h4>🎡 Acheter un bonus</h4><p>Prix en multiples de ta mise (${fmtN(u)} 🪙), calculés pour garder la même rentabilité (99 %) que le jeu normal.</p>` +
     [1, 2, 3].map(k => { const B = SL.buy[k], cost = Math.round(B.price * u), ok = S.balance >= cost; return `<button class="slb-o" ${ok ? '' : 'disabled'} onclick="slBuy(${k})"><span class="ic">${ic[k]}</span><span><b>${esc(B.n)}</b><small>${desc[k]}</small></span><span class="pr">${fmtN(cost)} 🪙<small>×${B.price}</small></span></button>`; }).join('') +

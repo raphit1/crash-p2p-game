@@ -315,9 +315,9 @@ function arInit() {
 }
 function arStart() {
   const amount = parseInt($('arBetAmount').value);
-  if (!amount || amount <= 0) return alert('Entre une mise valide !');
+  if (!amount || amount <= 0) return (typeof czToast === 'function' ? czToast : alert)('Entre une mise valide !');
   if (S.arState && S.arState.active) return;
-  sound('bet'); S.arBusy = true;
+  sound('bet'); S.arBusy = true; czcReveal('#ar-screen .czc-ar-frame');
   socket.emit('ar-start', { roomCode: S.code, amount, mode: S.arMode, darts: arDartsVal() });
 }
 function arThrow() { // aucune cooldown serveur : on peut spammer les lancers dès que la partie est armée.
@@ -370,16 +370,21 @@ const rlColor = n => n === 0 ? 'green' : RL_RED.has(n) ? 'red' : 'black';
 const rlLabel = b => b.kind === 'straight' ? 'Plein ' + b.sel : b.kind === 'dozen' ? `Douzaine ${b.sel}` : b.kind === 'column' ? `Colonne ${b.sel}`
   : ({ red: 'Rouge', black: 'Noir', odd: 'Impair', even: 'Pair', low: '1-18', high: '19-36' })[b.kind];
 function rlBuildTable() {
-  let html = '<div class="rl-table"><button class="rl-cell green" data-k="straight" data-s="0" style="grid-row:span 3">0</button>';
-  for (let row = 0; row < 3; row++) for (let col = 0; col < 12; col++) {
-    const n = col * 3 + (3 - row);
-    html += `<button class="rl-cell ${rlColor(n)}" data-k="straight" data-s="${n}" style="grid-row:${row + 1};grid-column:${col + 2}">${n}</button>`;
+  // Un seul tapis, deux dispositions choisies en CSS (css/jeux-c.css) : horizontal sur grand écran, vertical sur téléphone
+  // (0 en haut, 3 colonnes de numéros, douzaines et chances simples sur le côté). Chaque case porte sa place dans les
+  // deux grilles : --hr/--hc (horizontal) et --vr/--vc (vertical). Les données (data-k / data-s) ne changent pas.
+  const cell = (cls, k, s, label, h, v) => `<button class="rl-cell ${cls}" data-k="${k}" data-s="${s}" style="--hr:${h[0]};--hc:${h[1]};--vr:${v[0]};--vc:${v[1]}">${label}</button>`;
+  let html = '<div class="rl-table">';
+  html += cell('green rl-zero', 'straight', 0, '0', ['1 / span 3', '1'], ['1', '3 / span 3']);
+  for (let n = 1; n <= 36; n++) {
+    const c = (n - 1) % 3, r = Math.floor((n - 1) / 3); // c : colonne (0 = 1, 4, 7…) · r : rangée (0 = 1-2-3)
+    html += cell(rlColor(n) + ' rl-num', 'straight', n, n, [3 - c, r + 2], [r + 2, c + 3]);
   }
-  html += '</div><div class="rl-out">';
-  html += `<button class="rl-cell rl-dozen" data-k="dozen" data-s="1">1ère 12 (x3)</button><button class="rl-cell rl-dozen" data-k="dozen" data-s="2">2e 12 (x3)</button><button class="rl-cell rl-dozen" data-k="dozen" data-s="3">3e 12 (x3)</button>`;
-  html += `<button class="rl-cell" data-k="low" data-s="0">1-18 (x2)</button><button class="rl-cell" data-k="even" data-s="0">Pair (x2)</button><button class="rl-cell red" data-k="red" data-s="0">Rouge (x2)</button>`;
-  html += `<button class="rl-cell black" data-k="black" data-s="0">Noir (x2)</button><button class="rl-cell" data-k="odd" data-s="0">Impair (x2)</button><button class="rl-cell" data-k="high" data-s="0">19-36 (x2)</button>`;
-  html += `<button class="rl-cell rl-col" data-k="column" data-s="1">Colonne 1 (x3)</button><button class="rl-cell rl-col" data-k="column" data-s="2">Colonne 2 (x3)</button><button class="rl-cell rl-col" data-k="column" data-s="3">Colonne 3 (x3)</button>`;
+  for (let k = 1; k <= 3; k++) html += cell('rl-col', 'column', k, `2 : 1<small>x3</small>`, [4 - k, 14], [14, k + 2]);
+  ['1<sup>re</sup> 12', '2<sup>e</sup> 12', '3<sup>e</sup> 12'].forEach((t, i) =>
+    html += cell('rl-dozen', 'dozen', i + 1, `<span>${t}</span><small>x3</small>`, [4, `${2 + i * 4} / span 4`], [`${2 + i * 4} / span 4`, 2]));
+  [['low', '', '1-18'], ['even', '', 'Pair'], ['red', 'red', 'Rouge'], ['black', 'black', 'Noir'], ['odd', '', 'Impair'], ['high', '', '19-36']].forEach(([k, col, t], i) =>
+    html += cell(`rl-even ${col}`, k, 0, `<span>${t}</span><small>x2</small>`, [5, `${2 + i * 2} / span 2`], [`${2 + i * 2} / span 2`, 1]));
   html += '</div>';
   $('rlTable').innerHTML = html; // tapis numéroté + paris extérieurs, régénéré à chaque retour sur l'écran
   // Écouteurs attachés APRÈS création du HTML (et donc ré-attachés si on quitte puis revient sur la Roulette) :
@@ -387,7 +392,7 @@ function rlBuildTable() {
   $('rlTable').addEventListener('click', e => {
     const c = e.target.closest('.rl-cell'); if (!c || S.rlBusy || S.rlSpinning) return;
     const amount = parseInt($('rlBetAmount').value);
-    if (!amount || amount <= 0) return alert('Choisis un montant de jeton valide !');
+    if (!amount || amount <= 0) return (typeof czToast === 'function' ? czToast : alert)('Choisis un montant de jeton valide !');
     S.rlBusy = true; // verrou temporaire : libéré dès que le serveur renvoie la table synchronisée (sync → rlRenderChips)
     socket.emit('rl-bet', { roomCode: S.code, kind: c.dataset.k, sel: c.dataset.s, amount });
   });
@@ -506,7 +511,8 @@ function rlInit() {
   $('rlSpinBtn').disabled = !S.rlBets.length || !!S.rlSpinning;
 }
 function rlSpin() {
-  if (S.rlBusy || S.rlSpinning || !S.rlBets.length) return;
+  if (S.rlBusy || S.rlSpinning) return;
+  if (!S.rlBets.length) return (typeof czToast === 'function' ? czToast : alert)('Pose d\'abord un jeton sur le tapis 🎰');
   S.rlBusy = true; sound('bet');
   $('rlStatus').textContent = 'Les jeux sont faits…';
   socket.emit('rl-spin', { roomCode: S.code });
@@ -522,6 +528,7 @@ function rlRepeat() { // rejoue la même combinaison de paris (nouvelle mise dé
 socket.on('rl-spin-start', d => {
   if (!$('rlWheelRot')) rlBuildWheel();
   S.rlBusy = false; S.rlSpinning = true; $('rlSpinBtn').disabled = true;
+  czcReveal('#rl-screen .czc-rl-stage'); // la roue revient à l'écran si on était descendu sur le tapis
   document.getElementById('rlTable').classList.add('rl-spinning');
   const res = $('rlRes'); res.textContent = '?'; res.style.background = '#2b2036'; res.className = 'rl-res rl-wait';
   $('rlHash').textContent = d.publicHash; $('rlProof').textContent = 'Empreinte publiée AVANT le tirage : le résultat est déjà fixé.';
@@ -558,7 +565,7 @@ const BJ_SUITS = ['♠', '♥', '♦', '♣']; // 0=pique, 1=cœur, 2=carreau, 3
 let bjNewN = 0; // ordre d'arrivée des nouvelles cartes : elles glissent l'une après l'autre depuis le sabot
 const bjDly = cls => / new\b|^new\b/.test(' ' + cls) ? ` style="animation-delay:${(bjNewN++ * 0.22).toFixed(2)}s"` : '';
 const bjCardHtml = (c, cls = '') => c === null ? `<div class="bj-card bj-back ${cls}"${bjDly(cls)}></div>`
-  : `<div class="bj-card ${c.s === 1 || c.s === 2 ? 'red' : 'blk'} ${cls}"${bjDly(cls)}>${BJ_NAMES[c.r]}${BJ_SUITS[c.s]}<i>${BJ_NAMES[c.r]}${BJ_SUITS[c.s]}</i></div>`;
+  : `<div class="bj-card ${c.s === 1 || c.s === 2 ? 'red' : 'blk'} ${cls}"${bjDly(cls)}><span class="bj-ix">${BJ_NAMES[c.r]}<em>${BJ_SUITS[c.s]}</em></span><b class="bj-pip">${BJ_SUITS[c.s]}</b><i class="bj-ix">${BJ_NAMES[c.r]}<em>${BJ_SUITS[c.s]}</em></i></div>`;
 // total affiché : "7/17" pour une main souple (l'As vaut 1 ou 11), "BLACKJACK" pour un naturel
 const bjTotalText = h => h.bj ? 'BJ' : (h.soft && h.total < 21 ? `${h.total - 10}/${h.total}` : String(h.total));
 const BJ_TAG = { blackjack: 'Blackjack !', win: 'Gagné', push: 'Égalité', lose: 'Perdu', bust: 'Sauté' };
@@ -629,10 +636,11 @@ function bjInit() {
 }
 function bjDeal() {
   const amount = parseInt($('bjBetAmount').value);
-  if (!amount || amount <= 0) return alert('Entre une mise valide !');
+  if (!amount || amount <= 0) return (typeof czToast === 'function' ? czToast : alert)('Entre une mise valide !');
   bjBusyOn(); sound('bet');
   S.bjPrev = { d: 0, h: [] }; // nouvelle main : toutes les cartes s'animent
   $('bjMsg').textContent = ''; $('bjSeed').textContent = '—';
+  czcReveal('#bj-screen .czc-bj-table');
   socket.emit('bj-deal', { roomCode: S.code, amount });
 }
 const bjAct = ev => () => { if (!S.bjBusy) { bjBusyOn(); socket.emit(ev, { roomCode: S.code }); } };
@@ -661,3 +669,18 @@ socket.on('bj-result', d => {
   else amt.value = Math.max(1, Math.floor((parseFloat(amt.value) || 0) * b.dataset.f));
 }));
 
+// Affichage seulement : ramène la scène du jeu à l'écran (utile sur téléphone quand on était descendu sur la mise ou le tapis).
+function czcReveal(sel) {
+  const el = document.querySelector(sel); if (!el) return;
+  el.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+}
+// Affichage seulement : surligne le jeton (ou le nombre de fléchettes) qui correspond à la valeur saisie.
+function czcMark(rowId, inputId, attr) {
+  const row = $(rowId), inp = $(inputId); if (!row || !inp) return;
+  const v = String(parseInt(inp.value) || 0);
+  row.querySelectorAll(`[data-${attr}]`).forEach(b => b.classList.toggle('on', b.dataset[attr] === v));
+}
+[['arQuick', 'arBetAmount', 'a'], ['arDartQuick', 'arDarts', 'n'], ['rlQuick', 'rlBetAmount', 'a'], ['bjQuick', 'bjBetAmount', 'a']].forEach(([row, inp, attr]) => {
+  const f = () => czcMark(row, inp, attr);
+  $(row).addEventListener('click', () => setTimeout(f)); $(inp).addEventListener('input', f); f();
+});

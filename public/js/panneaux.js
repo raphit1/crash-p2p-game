@@ -8,7 +8,7 @@ function renderStopBar(room) {
   const me = room.players.find(p => p.id === socket.id), votes = room.stopVotes || [], n = room.players.filter(p => p.connected).length;
   S.iVoted = !!(me && votes.includes(me.name));
   $('stopMsg').textContent = S.stopMsg || (votes.length ? `🛑 ${votes.length}/${n} veulent arrêter` : 'Partie en cours');
-  const btn = $('stopBtn'); btn.textContent = S.iVoted ? '✋ Annuler mon vote' : '🛑 Arrêter la partie'; btn.classList.toggle('on', S.iVoted);
+  const btn = $('stopBtn'); btn.innerHTML = S.iVoted ? '✋ Annuler<span class="sb-long"> mon vote</span>' : '🛑 Arrêter<span class="sb-long"> la partie</span>'; btn.classList.toggle('on', S.iVoted);
 }
 function voteStop() { socket.emit('vote-stop', { roomCode: S.code, vote: !S.iVoted }); }
 socket.on('stop-notice', d => { S.stopMsg = d.message; $('stopMsg').textContent = d.message; clearTimeout(S.stopMsgT); S.stopMsgT = setTimeout(() => { S.stopMsg = ''; }, 3200); });

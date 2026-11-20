@@ -1252,7 +1252,7 @@ io.on('connection', (socket) => {
         const one = throws[0];
         socket.emit('ar-result', {
             success: one.success, multiplier: one.multiplier, winnings, seed: ar.seed, u: one.u, mode: ar.mode, bet: ar.bet, darts: ar.darts, throws, total: winnings, totalMult: tm,
-            message: ar.darts === 1 ? (hit ? `🎯 Dans le mille ! x${tm} → +${winnings} 🪙` : '💨 Raté ! La fléchette tombe à côté de la cible…')
+            message: ar.darts === 1 ? (hit ? (tm >= 1 ? `🎯 Dans le mille ! x${tm} → +${winnings} 🪙` : `🎯 Touché, mais sous la mise : x${tm} → +${winnings} 🪙`) : '💨 Raté ! La fléchette tombe à côté de la cible…')
                 : `🎯 ${hits}/${ar.darts} dans la cible · total ${winnings} 🪙 (x${tm})`
         });
         broadcast(room);
