@@ -36,7 +36,7 @@ function dcInit() {
   dcPaint(); socket.emit('pf-hash', { roomCode: S.code });
 }
 function dcRoll() {
-  const st = dcState(); if (!st.amount || st.amount <= 0) return alert('Entre une mise valide !');
+  const st = dcState(); if (!st.amount || st.amount <= 0) return (typeof czToast === 'function' ? czToast : alert)('Entre une mise valide !');
   sound('dice'); socket.emit('dc-roll', { roomCode: S.code, amount: st.amount, chance: st.chance, over: st.over });
 }
 socket.on('dc-result', d => {
@@ -60,7 +60,7 @@ function cfInit() {
   cfPaint(); socket.emit('pf-hash', { roomCode: S.code });
 }
 function cfFlip() {
-  const a = parseInt($('cfBet').value); if (!a || a <= 0) return alert('Entre une mise valide !');
+  const a = parseInt($('cfBet').value); if (!a || a <= 0) return (typeof czToast === 'function' ? czToast : alert)('Entre une mise valide !');
   sound('coin'); socket.emit('cf-flip', { roomCode: S.code, amount: a, side: S.cfSide });
 }
 socket.on('cf-result', d => {
@@ -106,7 +106,7 @@ function hlInit() {
   const me = S.me; if (me && me.hl && me.hl.active && !(S.hlState && S.hlState.active)) socket.emit('hl-state', { roomCode: S.code });
 }
 function hlStart() {
-  const a = parseInt($('hlBet').value); if (!a || a <= 0) return alert('Entre une mise valide !');
+  const a = parseInt($('hlBet').value); if (!a || a <= 0) return (typeof czToast === 'function' ? czToast : alert)('Entre une mise valide !');
   if (S.hlWait) return; S.hlWait = true; setTimeout(() => { S.hlWait = false; }, 1500); sound('bet'); S.hlBet = a; $('hlProof').textContent = '';
   socket.emit('hl-start', { roomCode: S.code, amount: a });
 }
@@ -201,14 +201,14 @@ function pkDrawStatic() {
   const c = off.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
   for (let r = 0; r < n; r++) for (let j = 0; j < r + 3; j++) {
     const x = g.cx + (j - (r + 2) / 2) * g.dx, y = g.top + r * g.dy;
-    c.beginPath(); c.arc(x, y, g.pr, 0, 7); c.fillStyle = '#dbe4ff'; c.shadowColor = 'rgba(160,190,255,.7)'; c.shadowBlur = 5; c.fill();
+    c.beginPath(); c.arc(x, y, g.pr, 0, 7); c.fillStyle = '#f7e7bf'; c.shadowColor = 'rgba(242,195,91,.6)'; c.shadowBlur = 5; c.fill();
   }
   c.shadowBlur = 0;
   const sw = g.dx - 3;
   mults.forEach((m, k) => {
     const x = g.cx + (k - n / 2) * g.dx - sw / 2, y = g.slotY;
     c.fillStyle = pkColor(m); c.beginPath(); c.roundRect(x, y, sw, g.slotH, 6); c.fill();
-    c.fillStyle = 'rgba(0,0,0,.78)'; c.font = `800 ${Math.max(8, Math.min(12, sw * .34))}px system-ui,sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = 'rgba(0,0,0,.78)'; c.font = `800 ${Math.max(9, Math.min(15, sw * .38))}px system-ui,sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText(pkLabel(m), x + sw / 2, y + g.slotH / 2 + 1);
   });
   S.pkMults = mults; S.pkPegHit = {}; S.pkFlash = {};
@@ -284,10 +284,12 @@ function pkLaunch(d) {
 const pkBallsVal = () => Math.max(1, Math.min(20, parseInt($('pkBalls').value) || 1));
 function pkTotal() {
   const amt = parseInt($('pkBetAmount').value) || 0, n = pkBallsVal();
+  document.querySelectorAll('#pkBallQuick button').forEach(b => b.classList.toggle('on', +b.dataset.n === n));
   $('pkTotal').textContent = amt > 0 ? `Mise totale : ${(amt * n).toLocaleString('fr-FR')} 🪙 (${n} bille${n > 1 ? 's' : ''} × ${amt.toLocaleString('fr-FR')})` : 'Mise totale : —';
 }
 function pkPaint() { // jamais de bouton bloqué : on peut relancer des billes à tout moment
   document.querySelectorAll('#pkRisks .cr-mode').forEach(b => { b.classList.toggle('on', b.dataset.r === S.pkRisk); b.querySelector('small').textContent = 'max ×' + pkLabel(PKT.multipliers(S.pkRows, b.dataset.r)[0]); });
+  document.querySelectorAll('#pkRowQuick button').forEach(b => b.classList.toggle('on', +b.dataset.n === S.pkRows)); // affichage : valeur choisie surlignée
   pkTotal();
 }
 function pkSetRows(v, force) {
@@ -316,7 +318,7 @@ function pkInit() {
 }
 function pkStart() { // aucun cooldown : tu peux spammer, même avec 20 billes déjà en l'air
   const amount = parseInt($('pkBetAmount').value), balls = pkBallsVal();
-  if (!amount || amount <= 0) return alert('Entre une mise valide !');
+  if (!amount || amount <= 0) return (typeof czToast === 'function' ? czToast : alert)('Entre une mise valide !');
   sound('bet'); $('pkBalls').value = balls;
   socket.emit('pk-start', { roomCode: S.code, amount, rows: S.pkRows, risk: S.pkRisk, balls });
 }

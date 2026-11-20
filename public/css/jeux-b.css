@@ -1,0 +1,225 @@
+/* =====================================================================
+   jeux-b.css — Mines, Icefield, Just mixed, Chicken Road (voir DESIGN.md)
+   Ordre téléphone : barre d'infos → scène → tuiles chiffrées → mise →
+   réglages → (équité, classement) → action principale collante en bas.
+   Tous les sélecteurs sont préfixés par l'écran (.jb-game = ces 4 écrans).
+   ===================================================================== */
+
+/* ---------- Écran : plus de « carte » autour du jeu, le velours du fond suffit ---------- */
+#icefield-screen.jb-game, #jm-screen.jb-game, #mn-screen.jb-game, #cr-screen.jb-game {
+  background: none; border: 0; border-radius: 0; box-shadow: none;
+  padding: 0 0 4px;
+  text-align: center;
+}
+.jb-game > .cz-topbar { margin: 0; }
+
+/* ---------- Titre + message d'état (hauteur fixe : la scène ne saute pas) ---------- */
+.jb-head { padding: 0 6px; }
+.jb-title {
+  margin: 0; font: 900 18px/1.2 var(--cz-display); letter-spacing: .06em;
+  color: var(--cz-gold-2); text-shadow: 0 1px 0 rgba(0, 0, 0, .7), 0 0 14px rgba(242, 195, 91, .25); /* pas de dégradé « texte » : il teinterait l'emoji en or */
+}
+.jb-title small {
+  display: inline-block; margin-left: 6px;
+  font: 600 11px/1 var(--cz-font); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--cz-muted); text-shadow: none;
+}
+.jb-status {
+  margin: 3px 0 0; min-height: 2.6em;
+  font-size: 13px; line-height: 1.3; color: var(--cz-muted);
+  display: flex; align-items: center; justify-content: center; text-wrap: balance;
+}
+
+/* ---------- Tuiles chiffrées ---------- */
+.jb-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.jb-stats .cz-stat { min-width: 0; padding: 8px 4px; }
+.jb-stats .cz-stat small { letter-spacing: .05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.jb-stats .cz-stat b { white-space: nowrap; }
+
+/* ---------- Panneaux de réglages ---------- */
+.jb-panel { padding: 12px; text-align: left; border-radius: var(--cz-r); }
+.jb-panel-head { display: flex; align-items: center; justify-content: space-between; margin: 0 2px 8px; }
+.jb-game .cz-label small {
+  display: block; margin-top: 3px;
+  font-size: 11px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--cz-dim);
+}
+
+/* Mise : [÷2] [ montant ] [×2] [Max] puis les jetons */
+.jb-bet { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 6px; align-items: center; }
+.jb-bet .cz-btn { min-width: 48px; padding: 0 10px; font-size: 15px; }
+.jb-game input.jb-amt, .jb-step input {
+  margin: 0; width: 100%; min-width: 0; height: 44px; padding: 0 8px;
+  border-radius: 999px; border: 1px solid var(--cz-line-strong);
+  background: rgba(0, 0, 0, .5); color: #fff;
+  font: 800 18px/1 var(--cz-num); text-align: center; font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield; appearance: textfield;
+}
+.jb-game input.jb-amt:focus, .jb-step input:focus { transform: none; border-color: var(--cz-gold-2); box-shadow: 0 0 0 3px rgba(242, 195, 91, .22); }
+.jb-game input::-webkit-outer-spin-button, .jb-game input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.jb-game input:disabled { opacity: .6; }
+.jb-chips { display: flex; justify-content: space-around; gap: 8px; margin-top: 12px; }
+.jb-panel:has(input.jb-amt:disabled) .cz-chip, .jb-panel:has(input.jb-amt:disabled) .jb-bet .cz-btn { opacity: .4; pointer-events: none; } /* mise verrouillée pendant la partie */
+
+/* Réglage avec − / + (blocs par colonne, nombre de mines) */
+.jb-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.jb-step { display: flex; align-items: center; gap: 6px; flex: none; margin: 0; }
+.jb-step input { width: 58px; }
+.jb-step .cz-btn--icon { width: 44px; min-width: 44px; height: 44px; padding: 0; font-size: 22px; }
+.jb-step:has(input:disabled) .cz-btn { opacity: .45; pointer-events: none; }
+
+/* Segmentés (raccourcis mines, difficulté Chicken Road) */
+.jb-game .jb-seg { margin-top: 10px; }
+.jb-game .jb-seg > button { min-height: 44px; padding: 0 4px; font-size: 15px; }
+.jb-game .jb-seg > button:disabled:not(.on) { opacity: .45; }
+.jb-game .jb-seg > button.on:disabled { opacity: .8; }
+.jb-info { margin-top: 8px; font-size: 11.5px; line-height: 1.35; color: var(--cz-muted); text-align: center; }
+
+/* ---------- Action principale collante ---------- */
+.jb-cta { display: flex; gap: 8px; align-items: stretch; }
+.jb-cta > .cz-btn { flex: 1 1 0; min-width: 0; padding-left: 10px; padding-right: 10px; white-space: nowrap; }
+.jb-cta > .cz-btn--green { font-size: 16px; letter-spacing: .03em; text-shadow: 0 1px 2px rgba(0, 40, 20, .7), 0 0 1px rgba(0, 0, 0, .5); animation: jbCash 1.6s ease-in-out infinite; }
+.jb-cta > .jb-go { flex-grow: 1.15; }
+/* Aucune action possible (partie lancée, il faut toucher le jeu) : on dit quoi faire à la place */
+.jb-cta[data-hint]:not(:has(> button:not(.hidden)))::before {
+  content: attr(data-hint);
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  min-height: 56px; padding: 0 14px;
+  font: 700 15px/1.2 var(--cz-font); color: var(--cz-gold-1); letter-spacing: .02em;
+  animation: jbHint 1.4s ease-in-out infinite alternate;
+}
+@keyframes jbCash { 50% { filter: brightness(1.12); box-shadow: 0 4px 0 #064a2b, 0 0 0 4px rgba(62, 229, 154, .25), 0 10px 26px rgba(31, 195, 122, .45), inset 0 1px 0 rgba(255, 255, 255, .45); } }
+@keyframes jbHint { from { opacity: .65; } to { opacity: 1; } }
+@media (max-width: 380px) {
+  .jb-cta > .cz-btn--green { font-size: 15px; letter-spacing: .01em; }
+}
+
+/* Survol (souris) : on garde l'ombre propre à chaque bouton au lieu du halo vert générique de style.css */
+.jb-game button { --jb-sh: none; }
+.jb-game .cz-btn--gold { --jb-sh: 0 4px 0 #6b4510, 0 10px 24px rgba(242, 195, 91, .4), inset 0 1px 0 rgba(255, 255, 255, .7); }
+.jb-game .cz-btn--green { --jb-sh: 0 4px 0 #064a2b, 0 10px 24px rgba(31, 195, 122, .4), inset 0 1px 0 rgba(255, 255, 255, .45); }
+.jb-game .cz-chip { --jb-sh: inset 0 0 0 3px rgba(0, 0, 0, .25), 0 3px 0 rgba(0, 0, 0, .45), 0 6px 12px rgba(0, 0, 0, .35); }
+.jb-game .mn-cell { --jb-sh: inset 0 1px 0 rgba(255, 231, 168, .35), inset 0 -3px 0 rgba(0, 0, 0, .35), 0 3px 0 #0a0408, 0 0 14px rgba(242, 195, 91, .35); }
+.jb-game button:not(:disabled):hover { box-shadow: var(--jb-sh); transform: none; }
+.jb-game .cz-btn--ghost:not(:disabled):hover { border-color: var(--cz-line-strong); }
+
+/* ---------- Équité (repliée) et classement en bas ---------- */
+.jb-fair {
+  border: 1px dashed var(--cz-line); border-radius: var(--cz-r);
+  background: rgba(0, 0, 0, .3); padding: 0 12px; text-align: left;
+}
+.jb-fair summary {
+  display: flex; align-items: center; gap: 6px; min-height: 44px;
+  font-size: 13px; font-weight: 700; color: var(--cz-muted); cursor: pointer; list-style: none;
+}
+.jb-fair summary::-webkit-details-marker { display: none; }
+.jb-fair summary::after { content: "▸"; margin-left: auto; color: var(--cz-gold-2); transition: transform .2s; }
+.jb-fair[open] summary::after { transform: rotate(90deg); }
+.jb-proof { padding: 0 0 12px; font-size: 11px; line-height: 1.45; color: var(--cz-muted); word-break: break-all; }
+.jb-proof:empty::before { content: "Lance une partie : le hash de la graine s'affiche ici, la graine est révélée à la fin."; word-break: normal; }
+.jb-proof #crHash { color: var(--cz-sapphire); }
+.jb-game .jb-rank { margin: 0; text-align: left; }
+.jb-game .jb-rank h4 { margin-top: 0; }
+
+/* ---------- Bulle de message par-dessus la scène ---------- */
+.jb-game .ice-toast {
+  white-space: normal; width: max-content; max-width: 88%; text-align: center;
+  font-size: 15px; line-height: 1.3; color: var(--cz-gold-1);
+  background: rgba(10, 6, 14, .9); border: 1px solid var(--cz-line-strong); border-radius: var(--cz-r);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .6);
+}
+
+/* =====================================================================
+   MINES
+   ===================================================================== */
+#mn-screen .jb-mn-stage { padding: 10px; }
+#mn-screen .mn-grid { gap: 6px; max-width: 420px; margin: 0 auto; }
+#mn-screen .mn-cell {
+  position: relative; display: grid; place-items: center;
+  width: 100%; min-width: 0; margin: 0; padding: 0; aspect-ratio: 1;
+  border-radius: 12px; border: 1px solid rgba(242, 195, 91, .38);
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255, 255, 255, .12), transparent 58%),
+    linear-gradient(180deg, #55203f 0%, #321027 55%, #1d0817 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 231, 168, .35), inset 0 -3px 0 rgba(0, 0, 0, .35), 0 3px 0 #0a0408, 0 5px 10px rgba(0, 0, 0, .4);
+  color: #fff; font-size: clamp(26px, 8.4vw, 36px); line-height: 1;
+}
+/* Losange doré au centre des cases encore cachées */
+#mn-screen .mn-cell::before {
+  content: ""; width: 24%; aspect-ratio: 1; border-radius: 3px; transform: rotate(45deg);
+  border: 1.5px solid rgba(242, 195, 91, .4); background: rgba(242, 195, 91, .08);
+}
+#mn-screen .mn-cell.safe::before, #mn-screen .mn-cell.mine::before, #mn-screen .mn-cell.hit::before { display: none; }
+#mn-screen .mn-cell.live { border-color: rgba(255, 231, 168, .75); cursor: pointer; }
+#mn-screen .mn-cell.live::before { border-color: rgba(255, 231, 168, .75); background: rgba(242, 195, 91, .2); }
+#mn-screen .mn-cell.live:active { transform: translateY(2px) scale(.97); }
+#mn-screen .mn-cell.wait { opacity: .7; }
+#mn-screen .mn-cell.safe {
+  background: radial-gradient(circle at 50% 40%, #2fe08f 0%, #0f8a52 55%, #064a2b 100%);
+  border-color: #8af5c4;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 3px 0 #03301b, 0 0 16px rgba(31, 195, 122, .55);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, .45);
+}
+#mn-screen .mn-cell.mine {
+  background: radial-gradient(circle at 50% 40%, #5a1424 0%, #2a0711 70%);
+  border-color: rgba(209, 26, 67, .55); opacity: .85; font-size: clamp(20px, 6.4vw, 28px);
+}
+#mn-screen .mn-cell.hit {
+  background: radial-gradient(circle at 50% 40%, #ff6b7f 0%, #d11a43 50%, #6d0920 100%);
+  border-color: #ffb3c1; opacity: 1; font-size: clamp(26px, 8.4vw, 36px);
+  box-shadow: 0 0 0 2px rgba(255, 75, 110, .5), 0 0 24px rgba(209, 26, 67, .85);
+}
+#mn-screen .jb-step { margin: 0; }
+#mn-screen .mn-count input { width: 58px; margin: 0; }
+#mn-screen .mn-count button { width: 44px; padding: 0; margin: 0; }
+
+/* =====================================================================
+   ICEFIELD (plateau construit par jeux1.js : rives + 8 colonnes)
+   ===================================================================== */
+#icefield-screen .jb-ice { border-radius: var(--cz-r-lg); }
+#icefield-screen .ice-board {
+  --ice-bank: 48px; --ice-row: 46px;
+  margin: 0; padding: 10px 8px; gap: 5px;
+  border: 2px solid rgba(242, 195, 91, .45); border-radius: var(--cz-r-lg);
+}
+#icefield-screen .ice-mult { font-size: 11px; letter-spacing: -.02em; white-space: nowrap; padding: 2px 0 4px; }
+#icefield-screen .ice-mult .im-short { display: none; }
+#icefield-screen .ice-tile.live { cursor: pointer; }
+#icefield-screen .ice-tile.live:active { transform: scale(.95); }
+@media (max-width: 480px) {
+  #icefield-screen .ice-board { --ice-bank: 28px; padding: 8px 5px; gap: 4px; }
+  #icefield-screen .ice-bank { font-size: 17px; border-radius: 9px; }
+  #icefield-screen .ice-tile { border-radius: 8px; }
+  #icefield-screen .ice-mult { font-size: 9.5px; letter-spacing: -.04em; }
+  #icefield-screen .ice-mult .im-full { display: none; }
+  #icefield-screen .ice-mult .im-short { display: inline; }
+}
+
+/* =====================================================================
+   JUST MIXED (gobelets sur tapis vert)
+   ===================================================================== */
+#jm-screen .jm-stage { margin: 0; border: 2px solid var(--cz-gold-4); }
+#jm-screen .jm-stage .jm-bg { display: none; }
+#jm-screen .jm-stage:has(#jmSvg.pick) { box-shadow: 0 0 0 2px rgba(242, 195, 91, .6), 0 0 26px rgba(242, 195, 91, .35), inset 0 0 40px rgba(0, 0, 0, .55); }
+#jm-screen .jm-stage svg { display: block; width: 100%; height: auto; }
+#jm-screen:has(#jmSvg.pick) .jb-cta::before { content: "👆 Touche le gobelet de ton choix"; }
+
+/* =====================================================================
+   CHICKEN ROAD
+   ===================================================================== */
+#cr-screen .cr-stage { margin: 0; border: 2px solid rgba(242, 195, 91, .45); }
+#cr-screen .jb-hist { margin: 0; padding: 0; justify-content: center; }
+#cr-screen .jb-hist:empty { display: none; }
+#cr-screen .cr-modes { margin-bottom: 0; border-radius: 16px; }
+#cr-screen .cr-mode {
+  flex: 1; min-height: 50px; margin: 0; padding: 6px 4px; border: 0; border-radius: 12px;
+  background: transparent; color: var(--cz-muted); box-shadow: none;
+  font-size: 14px; line-height: 1.2;
+}
+#cr-screen .cr-mode small { font-size: 10px; font-weight: 600; opacity: .85; }
+#cr-screen .cr-mode.on { background: var(--cz-gold-grad); color: #2a1803; }
+
+/* Animations réduites */
+html.rm .jb-cta > .cz-btn--green, html.rm .jb-cta::before { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .jb-cta > .cz-btn--green, .jb-cta::before { animation: none; }
+}

@@ -12,12 +12,12 @@ function toast(msg) { const t = $('iceToast'); t.textContent = msg; t.classList.
 function buildIce(lanes) {
   const b = $('iceBoard'); S.iceLanes = lanes;
   b.querySelectorAll('.ice-cell, .ice-tile, .ice-mult, .ice-bank').forEach(e => e.remove()); // updateIce réécrit className des tuiles (perd 'ice-cell') : on cible aussi .ice-tile, sinon les anciennes rangées restent en fantômes
-  b.style.gridTemplateColumns = `56px repeat(${ICE_STEPS},minmax(0,1fr)) 56px`;
+  b.style.gridTemplateColumns = `var(--ice-bank,56px) repeat(${ICE_STEPS},minmax(0,1fr)) var(--ice-bank,56px)`; // largeur des rives réglable en CSS (jeux-b.css, téléphone)
   // ⚠️ Le plateau est une grille CSS dont les LIGNES sont auto-calibrées par le navigateur :
   // quand on diminue le nombre de rangées, d'anciennes lignes invisibles persistent et les nouvelles
   // tuiles se placent trop bas → "fantômes" sous le plateau. On épingle donc explicitement la hauteur
   // des lignes (42px par rangée + l'en-tête des multiplicateurs) pour que le board soit toujours pile à jour.
-  b.style.gridTemplateRows = `auto repeat(${lanes},42px)`;
+  b.style.gridTemplateRows = `auto repeat(${lanes},var(--ice-row,42px))`;
   const mk = (cls, html, col, row, span) => {
     const d = document.createElement('div'); d.className = 'ice-cell ' + cls; d.innerHTML = html;
     d.style.gridColumn = col; d.style.gridRow = span ? `${row} / span ${span}` : row; b.appendChild(d); return d;
@@ -25,7 +25,8 @@ function buildIce(lanes) {
   S.iceBank = mk('ice-bank', '🏔️', 1, 2, lanes); S.iceGoal = mk('ice-bank', '🏁', ICE_STEPS + 2, 2, lanes);
   S.iceMults = []; S.iceTiles = [];
   for (let c = 0; c < ICE_STEPS; c++) {
-    S.iceMults.push(mk('ice-mult', 'x' + calcMult(lanes, c + 1), c + 2, 1));
+    const m = calcMult(lanes, c + 1), short = m >= 100 ? Math.round(m) : m >= 10 ? m.toFixed(1) : m; // version courte pour les petits écrans (affichage seulement)
+    S.iceMults.push(mk('ice-mult', `<span class="im-full">x${m}</span><span class="im-short">x${short}</span>`, c + 2, 1));
     S.iceTiles.push([]);
     for (let r = 0; r < lanes; r++) {
       const t = mk('ice-tile dim', CRACK, c + 2, r + 2); t.onclick = () => iceClick(c, r); S.iceTiles[c].push(t);
@@ -109,13 +110,14 @@ function iceClick(c, r) {
 }
 function startIcefieldGame() {
   const amount = parseInt($('iceBetAmount').value), cols = parseInt($('iceColsInput').value);
-  if (!amount || amount <= 0) return alert('Entre une mise valide !');
-  if (!(cols >= 2 && cols <= 10)) return alert('Entre 2 et 10 blocs par colonne !');
+  if (!amount || amount <= 0) return (typeof czToast === 'function' ? czToast : alert)('Entre une mise valide !');
+  if (!(cols >= 2 && cols <= 10)) return (typeof czToast === 'function' ? czToast : alert)('Entre 2 et 10 blocs par colonne !');
   iceReset(); // relance immédiate : on coupe les animations de la partie précédente
   sound('bet'); socket.emit('icefield-start-game', { roomCode: S.code, amount, cols });
 }
 const cashoutIcefield = () => { if (!S.iceWait && S.iceState && S.iceState.active) socket.emit('icefield-cashout', { roomCode: S.code }); };
 const onColsChange = () => { if (!S.iceState || !S.iceState.active) updateIce(); };
+function iceColsStep(d) { const i = $('iceColsInput'); if (i.disabled) return; i.value = Math.min(10, Math.max(2, (parseInt(i.value) || 3) + d)); onColsChange(); } // boutons − / + (affichage)
 socket.on('icefield-result', d => {
   S.iceWait = false;
   const end = () => { if (S.iceState) S.iceState.active = false; iceControls(); }; // le bouton "Lancer" revient tout de suite
@@ -224,7 +226,7 @@ socket.on('jm-result', async d => {
 function startJm() {
   if (S.jmPhase !== 'idle') return;
   const amount = parseInt($('jmBetAmount').value);
-  if (!amount || amount <= 0) return alert('Entre une mise valide !');
+  if (!amount || amount <= 0) return (typeof czToast === 'function' ? czToast : alert)('Entre une mise valide !');
   sound('bet'); S.jmPhase = 'starting'; socket.emit('jm-start', { roomCode: S.code, amount });
 }
 
@@ -375,8 +377,10 @@ const crStop = () => { clearInterval(S.crTimer); S.crTimer = 0; };
 
 function crStart() {
   const amount = parseInt($('crBetAmount').value);
-  if (!amount || amount <= 0) return alert('Entre une mise valide !');
+  if (!amount || amount <= 0) return (typeof czToast === 'function' ? czToast : alert)('Entre une mise valide !');
   if (S.crState && S.crState.active) return;
+  if (S.crStarting && Date.now() - S.crStarting < 3000) return; // départ déjà demandé, on attend la confirmation
+  S.crStarting = Date.now();
   crReset(); S.crBet = amount; sound('bet');
   socket.emit('cr-start', { roomCode: S.code, amount, mode: S.crMode });
 }
@@ -391,6 +395,7 @@ function crGo() { // le clic part tout de suite au serveur et le poulet saute d�
 const crCash = () => { if (!S.crWait && S.crState && S.crState.active && S.crStep > 0) socket.emit('cr-cashout', { roomCode: S.code }); };
 
 socket.on('cr-started', d => {
+  S.crStarting = 0;
   S.crState = { active: true, bet: S.crBet, mode: S.crMode, step: 0 }; S.crStep = 0;
   $('crHash').textContent = d.hash; crMarks(); crControls();
 });
@@ -439,6 +444,7 @@ function mnPaint() {
   $('mnNext').textContent = active && left > 0 ? mnFmt(mnMult(m, k + 1)) : '—';
   show('mnStartBtn', !active); show('mnCashBtn', active && k > 0);
   $('mnMines').disabled = $('mnBetAmount').disabled = $('mnMinus').disabled = $('mnPlus').disabled = active;
+  $('mnMineQuick').querySelectorAll('button').forEach(q => { q.classList.toggle('on', +q.dataset.m === m); q.disabled = active; }); // raccourci actif en surbrillance (affichage)
   if (active && k > 0) $('mnCashBtn').textContent = 'ENCAISSER ' + Math.floor(st.bet * mnMult(m, k)) + ' 🪙 (' + mnFmt(mnMult(m, k)) + ')';
 }
 function mnInit() {
@@ -461,7 +467,7 @@ function mnInit() {
 }
 function mnStart() {
   const amount = parseInt($('mnBetAmount').value);
-  if (!amount || amount <= 0) return alert('Entre une mise valide !');
+  if (!amount || amount <= 0) return (typeof czToast === 'function' ? czToast : alert)('Entre une mise valide !');
   if (S.mnWait) return; S.mnWait = true; sound('bet');
   setTimeout(() => { S.mnWait = false; mnPaint(); }, 2500);
   S.mnBet = amount; S.mnEnd = null; $('mnProof').textContent = '';

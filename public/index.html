@@ -12,81 +12,96 @@
     <link rel="icon" href="/icons/icon-192.png">
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
     <title>Crash P2P - Aviator Pro Ultimate</title>
-    <link rel="stylesheet" href="/style.css?v=14">
+    <link rel="stylesheet" href="/style.css?v=20261118">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@500;700;800&display=swap">
+    <link rel="stylesheet" href="/css/casino.css?v=20261118">
+    <link rel="stylesheet" href="/css/shell.css?v=20261118">
+    <link rel="stylesheet" href="/css/jeux-a.css?v=20261118">
+    <link rel="stylesheet" href="/css/jeux-b.css?v=20261118">
+    <link rel="stylesheet" href="/css/jeux-c.css?v=20261118">
+    <link rel="stylesheet" href="/css/machine.css?v=20261118">
 </head>
 <body>
     <div class="container">
-        <h1>🚀 Crash P2P Arena</h1>
+        <h1 class="sh-logo"><span class="sh-logo-t">Crash P2P Arena</span><span class="sh-logo-s">Casino entre amis</span></h1>
 
         <!-- 1. AUTH SCREEN -->
         <div id="auth-screen">
-            <div class="card" id="loginCard">
-                <h3>Connexion</h3>
-                <p style="font-size:13px;color:#94a3b8;margin:0 0 6px">Ton compte garde ta partie : tu peux rafraîchir la page sans rien perdre.</p>
-                <input type="text" id="authUser" placeholder="Pseudo" maxlength="20" autocomplete="username">
-                <input type="password" id="authPass" placeholder="Mot de passe (6 caractères min.)" maxlength="100" autocomplete="current-password" onkeydown="if(event.key==='Enter')authSubmit('login')">
-                <button onclick="authSubmit('login')">Se connecter</button>
-                <button onclick="authSubmit('register')" style="background:#2b2036;box-shadow:none;border:1px solid rgba(212,162,76,.35)">Créer un compte</button>
+            <div class="sh-vip" id="loginCard">
+                <div class="sh-vip-top"><span class="sh-vip-emv" aria-hidden="true"></span><span class="sh-vip-brand">Carte membre<b>VIP</b></span></div>
+                <h3 class="sh-vip-title">Connexion</h3>
+                <p class="sh-note">Ton compte garde ta partie : tu peux rafraîchir la page sans rien perdre.</p>
+                <label class="sh-field"><span class="cz-label">Pseudo</span>
+                    <input type="text" id="authUser" placeholder="Ton pseudo" maxlength="20" autocomplete="username" autocapitalize="off" spellcheck="false"></label>
+                <label class="sh-field"><span class="cz-label">Mot de passe</span>
+                    <input type="password" id="authPass" placeholder="6 caractères minimum" maxlength="100" autocomplete="current-password" onkeydown="if(event.key==='Enter')authSubmit('login')"></label>
+                <button class="cz-btn cz-btn--gold cz-btn--xl cz-btn--block" onclick="authSubmit('login')">Se connecter</button>
+                <div class="sh-or"><span>pas encore membre ?</span></div>
+                <button class="cz-btn cz-btn--ghost cz-btn--block" onclick="authSubmit('register')">Créer un compte</button>
+                <div class="sh-vip-suits" aria-hidden="true">♠ ♥ ♣ ♦</div>
             </div>
             <div id="roomCards" class="hidden">
-            <p style="font-size:14px;color:#94a3b8;margin:0 0 8px">Connecté en tant que <b id="whoami" style="color:#f6dc9a"></b> · <a href="#" onclick="openMe();return false" style="color:#f6dc9a;font-weight:800">👤 Mon profil</a> · <a href="#" onclick="logout();return false" style="color:#38bdf8">Se déconnecter</a></p>
-            <div class="card">
-                <h3>💶 Ta mise d'entrée</h3>
-                <p style="font-size:13px;color:#94a3b8;margin:0 0 8px">Tu entres dans la room avec cette somme, que les autres joueurs voient. Elle est convertie en jetons, et à la fin le pot est redistribué selon la performance de chacun.</p>
-                <div class="quick-bet-row"><button class="quick-btn" onclick="setStake(5)">5 €</button><button class="quick-btn" onclick="setStake(10)">10 €</button><button class="quick-btn" onclick="setStake(20)">20 €</button><button class="quick-btn" onclick="setStake(50)">50 €</button></div>
-                <input type="number" id="stakeInput" value="10" min="0.1" step="0.1" inputmode="decimal" oninput="onStakeInput()" placeholder="Autre montant en €">
-                <p id="stakeInfo" style="font-size:13px;color:#22c55e;margin:4px 0 0"></p>
+            <div class="sh-user">
+                <span class="sh-user-hi"><span class="cz-label">Connecté</span><b id="whoami"></b></span>
+                <button class="cz-btn cz-btn--ghost" onclick="openMe()">👤 Profil</button>
+                <button class="cz-btn cz-btn--ghost sh-user-out" onclick="logout()">Déconnexion</button>
             </div>
-            <div class="card">
-                <h3>Créer une Room</h3>
-                <label style="font-size: 14px; color: #94a3b8; display: block; margin-top: 8px;">Durée de la session :</label>
-                <select id="duration">
-                    <option value="1">1 minute (Test rapide)</option>
-                    <option value="3">3 minutes</option>
-                    <option value="5" selected>5 minutes</option>
-                    <option value="10">10 minutes</option>
-                    <option value="15">15 minutes</option>
-                </select>
-                <button onclick="createRoom()">Créer la partie</button>
-            </div>
-            <div class="card">
-                <h3>Rejoindre une Room</h3>
-                <input type="text" id="roomCodeInput" placeholder="Code à 4 caractères (ex: K7M2)" maxlength="10" autocapitalize="characters" onkeydown="if(event.key==='Enter')joinRoom()">
-                <button onclick="joinRoom()">Rejoindre</button>
-            </div>
+            <section class="cz-panel sh-card sh-stake">
+                <h3 class="sh-h">Ta mise d'entrée</h3>
+                <p class="sh-note">Tu entres dans la room avec cette somme, que les autres joueurs voient. Elle est convertie en jetons, et à la fin le pot est redistribué selon la performance de chacun.</p>
+                <div class="sh-stake-chips"><button class="cz-chip cz-chip--50" data-v="5" onclick="setStake(5)">5 €</button><button class="cz-chip cz-chip--10" data-v="10" onclick="setStake(10)">10 €</button><button class="cz-chip cz-chip--100" data-v="20" onclick="setStake(20)">20 €</button><button class="cz-chip cz-chip--500" data-v="50" onclick="setStake(50)">50 €</button></div>
+                <label class="sh-stake-in"><span class="cz-label">Autre montant</span><input type="number" id="stakeInput" value="10" min="0.1" step="0.1" inputmode="decimal" oninput="onStakeInput()" placeholder="Montant en €"><i aria-hidden="true">€</i></label>
+                <p id="stakeInfo" class="sh-stake-info"></p>
+            </section>
+            <section class="cz-panel sh-card sh-create">
+                <h3 class="sh-h">Créer une room</h3>
+                <span class="cz-label">Durée de la session</span>
+                <div class="cz-seg sh-dur" role="group" aria-label="Durée de la session"><button type="button" data-v="1" onclick="setDuration(1)">1<small>min</small></button><button type="button" data-v="3" onclick="setDuration(3)">3<small>min</small></button><button type="button" data-v="5" class="on" onclick="setDuration(5)">5<small>min</small></button><button type="button" data-v="10" onclick="setDuration(10)">10<small>min</small></button><button type="button" data-v="15" onclick="setDuration(15)">15<small>min</small></button></div>
+                <input type="hidden" id="duration" value="5">
+                <button class="cz-btn cz-btn--gold cz-btn--xl cz-btn--block" onclick="createRoom()">Créer la partie</button>
+            </section>
+            <div class="sh-or"><span>ou</span></div>
+            <section class="cz-panel sh-card sh-join">
+                <h3 class="sh-h">Rejoindre une room</h3>
+                <input type="text" id="roomCodeInput" class="sh-code-in" placeholder="CODE" aria-label="Code de la room (4 caractères)" maxlength="10" autocapitalize="characters" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')joinRoom()">
+                <button class="cz-btn cz-btn--green cz-btn--xl cz-btn--block" onclick="joinRoom()">Rejoindre</button>
+            </section>
             </div>
         </div>
 
         <!-- 2. LOBBY PRINCIPAL -->
-        <div id="lobby" class="hidden card">
-            <h2>Salon d'attente</h2>
-            <p>Code de la room : <b id="displayCode" style="color: #38bdf8;"></b></p>
-            <p>Pot total : <b id="potTotal" style="color: #22c55e;">0 €</b></p>
-            <h4>Joueurs connectés :</h4>
-            <ul id="playersList"></ul>
+        <div id="lobby" class="hidden">
+            <div class="sh-table cz-felt">
+                <span class="cz-label">Salon d'attente</span>
+                <div class="sh-table-code"><small>Code de la room</small><b id="displayCode"></b></div>
+                <div class="sh-pot"><span class="sh-pot-chips" aria-hidden="true"><i></i><i></i><i></i></span><small>Pot total</small><b id="potTotal">0 €</b></div>
+            </div>
+            <section class="cz-panel sh-card sh-seats">
+                <h4 class="sh-h">Joueurs à la table</h4>
+                <ul id="playersList"></ul>
+            </section>
 
-            <div id="adminControls" class="hidden" style="margin-top: 20px;">
-                <p style="color: #eab308; font-weight: bold;">Espace Admin : lancer la session de jeux</p>
-                <div class="game-thumbnail" onclick="launchGame()">
-                    🎮 Lancer la session de jeux
-                </div>
+            <div id="adminControls" class="hidden">
+                <p class="sh-note sh-center">Tu es l'hôte : lance la session quand tout le monde est là.</p>
+                <button class="cz-btn cz-btn--gold cz-btn--xl cz-btn--block" onclick="launchGame()">🎰 Lancer la session</button>
             </div>
 
-            <div id="playerWaitingGame" class="hidden" style="margin-top: 20px; text-align: center; color: #94a3b8;">
-                <p>L'administrateur va bientôt lancer un jeu...</p>
+            <div id="playerWaitingGame" class="hidden">
+                <p><span class="sh-dots" aria-hidden="true"><i></i><i></i><i></i></span>L'hôte va bientôt lancer la session…</p>
             </div>
-            <button onclick="leaveRoom()" style="margin-top:16px;background:#2b2036;box-shadow:none;border:1px solid rgba(212,162,76,.35)">Quitter la room</button>
+            <button class="cz-btn cz-btn--ghost cz-btn--block sh-leave" onclick="leaveRoom()">Quitter la room</button>
         </div>
 
         <!-- 3. HUB CENTRAL DE SÉLECTION DES JEUX -->
-        <div id="game-hub" class="hidden card" style="text-align: center;">
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #334155;">
-                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
-                <button class="musicBtn btn-history-more" onclick="toggleMusic()" title="Musique on/off">🎵</button>
-                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+        <div id="game-hub" class="hidden">
+            <div class="cz-topbar">
+                <span class="cz-tb-timer">⏳ <span class="sessionTimerDisplay">--:--</span></span>
+                <span class="cz-tb-bal"><span class="playerBalance">1000</span> 🪙</span>
+                <button class="musicBtn cz-btn cz-btn--ghost cz-btn--icon" onclick="toggleMusic()" title="Musique on/off" aria-label="Musique on/off">🎵</button>
             </div>
-            <h2>🎮 Centre des Jeux</h2>
-            <p style="color: #94a3b8;">Choisis ton jeu pour participer à la compétition commune !</p>
+            <div class="sh-hub-head"><h2>Choisis ta table</h2><p class="sh-note">Tous les jeux comptent pour la compétition commune.</p></div>
             <div class="app-grid">
                 <div class="app-tile" role="button" tabindex="0" onclick="switchGame('Crash Out')" onkeydown="if(event.key==='Enter'||event.key===' ')switchGame('Crash Out')" title="Crash Out — style Aviator, RTP 98,5 %">
                     <div class="app-icon"><svg viewBox="0 0 120 120"><defs><linearGradient id="gC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1147"/><stop offset=".55" stop-color="#7a2a6a"/><stop offset="1" stop-color="#ff8a3c"/></linearGradient><linearGradient id="gCt" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#ffb347" stop-opacity="0"/><stop offset="1" stop-color="#ffd27a"/></linearGradient><radialGradient id="gCs" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff3c4"/><stop offset="1" stop-color="#ffb347" stop-opacity="0"/></radialGradient></defs>
@@ -192,30 +207,30 @@
 <g font-family="system-ui,sans-serif" font-weight="900"><rect x="8" y="8" width="46" height="19" rx="9" fill="#000" opacity=".4"/><text x="31" y="22" text-anchor="middle" font-size="12.5" fill="#fde68a">7500×</text></g></svg></div><span class="app-name">Machine à sous</span>
                 </div>
             </div>
-            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+            <div class="cz-panel rank-card sh-hub-rank"><h4>🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
         </div>
 
         <!-- 4. ÉCRAN DE JEU AVIATOR PRO -->
-        <div id="game-screen" class="hidden">
-            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
-                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
-                <button class="musicBtn btn-history-more" onclick="toggleMusic()" title="Musique on/off">🎵</button><span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+        <div id="game-screen" class="hidden cz-game ja-game">
+            <div class="cz-topbar">
+                <button class="cz-btn cz-btn--ghost cz-btn--icon cz-back" onclick="returnToHub()" aria-label="Retour aux jeux">‹</button>
+                <span class="cz-tb-timer">⏳ <span class="sessionTimerDisplay">--:--</span></span>
+                <span class="cz-tb-bal"><span class="playerBalance">1000</span> 🪙</span>
+                <button class="musicBtn cz-btn cz-btn--ghost cz-btn--icon" onclick="toggleMusic()" title="Musique on/off">🎵</button>
             </div>
 
-            <div class="history-container">
-                <div class="history-bar" id="historyBar"></div>
-                <button class="btn-history-more" onclick="openHistoryModal()">•••</button>
-            </div>
-
-            <div class="provably-fair-box" id="provablyFairBox">
-                🔒 <b>Provably Fair Hash (SHA-256) :</b> <span id="currentHashDisplay" style="color: #38bdf8;">En attente...</span>
-            </div>
-
-            <div class="game-canvas-container" id="stage">
-                <div class="rays"></div>
-                <div id="multiplierBox" class="multiplier-display">1.00x</div>
-                <svg class="game-svg" viewBox="0 0 500 260">
+            <section class="cz-stage ja-frame ja-crash">
+                <div class="ja-head history-container">
+                    <span class="ja-name">Crash</span>
+                    <div class="history-bar" id="historyBar"></div>
+                    <button class="btn-history-more ja-histmore" onclick="openHistoryModal()" aria-label="Tout l'historique">•••</button>
+                </div>
+                <div class="game-canvas-container" id="stage">
+                    <div class="rays"></div>
+                    <p id="gameStatusText" class="ja-crash-status">En attente de la prochaine manche...</p>
+                    <div id="multiplierBox" class="multiplier-display">1.00x</div>
+                    <div id="liveCashoutPreview" class="ja-live"></div>
+                    <svg class="game-svg" viewBox="0 0 500 260">
                     <defs>
                         <linearGradient id="gBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#dfe6f1"/><stop offset="1" stop-color="#7b8ba5"/></linearGradient>
                         <linearGradient id="gWing" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c3cfe2"/><stop offset="1" stop-color="#4d5f78"/></linearGradient>
@@ -252,17 +267,17 @@
                     </g>
                     <circle id="boom" cx="0" cy="0" r="30" fill="url(#gBoom)"/>
                 </svg>
+                </div>
+            </section>
+            <div class="provably-fair-box ja-hash" id="provablyFairBox" onclick="this.classList.toggle('open')" title="Toucher pour afficher le hash en entier">
+                🔒 <b>Hash SHA-256</b> <span id="currentHashDisplay">En attente...</span>
             </div>
 
-            <p id="gameStatusText" style="color: #94a3b8; margin: 10px 0; font-weight: bold;">En attente de la prochaine manche...</p>
+            <div id="betPanels" class="bet-grid ja-bets"></div>
 
-            <div id="betPanels" class="bet-grid"></div>
-            <div id="liveCashoutPreview" style="margin:10px 0 0;font-size:15px;color:#5cc8ff;font-weight:700;min-height:20px"></div>
-            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
-
-
-            <div class="card" style="margin-top: 15px; background: #0f172a;">
-                <h4 style="margin-top:0;">👥 Mises en direct :</h4>
+            <div class="card rank-card ja-rank"><h4>🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+            <div class="card ja-players">
+                <h4>👥 Mises en direct</h4>
                 <ul id="gamePlayersList"></ul>
                 <div class="stats-badge" id="myStatsBadge">
                     <span>📊 <b>Mes Stats :</b> 0 parties</span>
@@ -273,358 +288,544 @@
         </div>
 
         <!-- 5. ÉCRAN ICEFIELD -->
-        <div id="icefield-screen" class="hidden">
-            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
-                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
-                <button class="musicBtn btn-history-more" onclick="toggleMusic()" title="Musique on/off">🎵</button><span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+        <div id="icefield-screen" class="hidden cz-game jb-game">
+            <div class="cz-topbar">
+                <button class="cz-btn cz-btn--ghost cz-btn--icon cz-back" onclick="returnToHub()" aria-label="Retour aux jeux">‹</button>
+                <span class="cz-tb-timer">⏳ <span class="sessionTimerDisplay">--:--</span></span>
+                <span class="cz-tb-bal"><span class="playerBalance">1000</span> 🪙</span>
+                <button class="musicBtn cz-btn cz-btn--ghost cz-btn--icon" onclick="toggleMusic()" title="Musique on/off">🎵</button>
             </div>
-            <h3 style="margin: 5px 0; color: #7dd3fc;">🧊 Icefield - La Traversée du Yéti</h3>
-            <p id="iceStatusText" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;"></p>
-            <div class="bet-control-box" style="margin: 0 0 10px;">
-                <div style="display: flex; gap: 10px;">
-                    <div style="flex: 1;"><label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Blocs par colonne (2 - 10)</label>
-                        <input type="number" id="iceColsInput" value="3" min="2" max="10" oninput="onColsChange()" style="margin: 4px 0;"></div>
-                    <div style="flex: 1.5;"><label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
-                        <input type="number" id="iceBetAmount" value="50" min="1" style="margin: 4px 0;"></div>
+            <div class="jb-head">
+                <h3 class="jb-title">🧊 Icefield <small>La traversée du Yéti</small></h3>
+                <p id="iceStatusText" class="jb-status"></p>
+            </div>
+            <div class="cz-stage jb-stage jb-ice">
+                <div id="iceBoard" class="ice-board"><div id="yeti" class="yeti"><svg viewBox="0 0 64 72"><ellipse cx="32" cy="67" rx="16" ry="3.5" fill="rgba(0,0,0,.3)"/><ellipse cx="22" cy="60" rx="8" ry="6" fill="#e8f4ff"/><ellipse cx="42" cy="60" rx="8" ry="6" fill="#e8f4ff"/><path d="M14 56Q8 36 18 26Q32 18 46 26Q56 36 50 56Q32 64 14 56Z" fill="#f4faff" stroke="#bcd6ea" stroke-width="1.2"/><ellipse cx="11" cy="42" rx="6" ry="10" fill="#eaf4ff" stroke="#bcd6ea" transform="rotate(14 11 42)"/><ellipse cx="53" cy="42" rx="6" ry="10" fill="#eaf4ff" stroke="#bcd6ea" transform="rotate(-14 53 42)"/><ellipse cx="32" cy="26" rx="14" ry="13" fill="#f4faff" stroke="#bcd6ea"/><ellipse cx="32" cy="28" rx="10" ry="9" fill="#7ec8f0"/><circle cx="27.5" cy="25" r="3" fill="#fff"/><circle cx="36.5" cy="25" r="3" fill="#fff"/><circle cx="28" cy="25.5" r="1.5" fill="#12263a"/><circle cx="36" cy="25.5" r="1.5" fill="#12263a"/><path d="M26 32Q32 37 38 32Z" fill="#12263a"/><path d="M20 16Q15 8 22 5Q22 12 25 14ZM44 16Q49 8 42 5Q42 12 39 14Z" fill="#cfe3f3"/></svg></div><div id="iceToast" class="ice-toast"></div></div>
+            </div>
+            <div class="cz-controls">
+                <div class="cz-panel jb-panel" id="iceQuick">
+                    <div class="jb-panel-head"><span class="cz-label">Mise</span></div>
+                    <div class="jb-bet">
+                        <button type="button" class="cz-btn cz-btn--ghost" data-f=".5" aria-label="Diviser la mise par 2">÷2</button>
+                        <input type="number" id="iceBetAmount" value="50" min="1" inputmode="numeric" class="jb-amt" aria-label="Mise">
+                        <button type="button" class="cz-btn cz-btn--ghost" data-f="2" aria-label="Doubler la mise">×2</button>
+                        <button type="button" class="cz-btn cz-btn--ghost" data-f="max">Max</button>
+                    </div>
+                    <div class="jb-chips"><button type="button" class="cz-chip cz-chip--10" data-a="10">10</button><button type="button" class="cz-chip cz-chip--50" data-a="50">50</button><button type="button" class="cz-chip cz-chip--100" data-a="100">100</button><button type="button" class="cz-chip cz-chip--500" data-a="500">500</button></div>
                 </div>
-                <div class="quick-bet-row" id="iceQuick" style="margin:6px 0 0">
-                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
-                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+                <div class="cz-panel jb-panel jb-line">
+                    <span class="cz-label">Blocs par colonne<small>2 à 10 · plus de blocs = moins de risque</small></span>
+                    <div class="jb-step">
+                        <button type="button" class="cz-btn cz-btn--ghost cz-btn--icon" onclick="iceColsStep(-1)" aria-label="Moins de blocs">−</button>
+                        <input type="number" id="iceColsInput" value="3" min="2" max="10" inputmode="numeric" oninput="onColsChange()" aria-label="Blocs par colonne">
+                        <button type="button" class="cz-btn cz-btn--ghost cz-btn--icon" onclick="iceColsStep(1)" aria-label="Plus de blocs">+</button>
+                    </div>
                 </div>
             </div>
-            <div id="iceBoard" class="ice-board"><div id="yeti" class="yeti"><svg viewBox="0 0 64 72"><ellipse cx="32" cy="67" rx="16" ry="3.5" fill="rgba(0,0,0,.3)"/><ellipse cx="22" cy="60" rx="8" ry="6" fill="#e8f4ff"/><ellipse cx="42" cy="60" rx="8" ry="6" fill="#e8f4ff"/><path d="M14 56Q8 36 18 26Q32 18 46 26Q56 36 50 56Q32 64 14 56Z" fill="#f4faff" stroke="#bcd6ea" stroke-width="1.2"/><ellipse cx="11" cy="42" rx="6" ry="10" fill="#eaf4ff" stroke="#bcd6ea" transform="rotate(14 11 42)"/><ellipse cx="53" cy="42" rx="6" ry="10" fill="#eaf4ff" stroke="#bcd6ea" transform="rotate(-14 53 42)"/><ellipse cx="32" cy="26" rx="14" ry="13" fill="#f4faff" stroke="#bcd6ea"/><ellipse cx="32" cy="28" rx="10" ry="9" fill="#7ec8f0"/><circle cx="27.5" cy="25" r="3" fill="#fff"/><circle cx="36.5" cy="25" r="3" fill="#fff"/><circle cx="28" cy="25.5" r="1.5" fill="#12263a"/><circle cx="36" cy="25.5" r="1.5" fill="#12263a"/><path d="M26 32Q32 37 38 32Z" fill="#12263a"/><path d="M20 16Q15 8 22 5Q22 12 25 14ZM44 16Q49 8 42 5Q42 12 39 14Z" fill="#cfe3f3"/></svg></div><div id="iceToast" class="ice-toast"></div></div>
-            <div style="display: flex; gap: 10px;">
-                <button id="iceStartBtn" onclick="startIcefieldGame()">Lancer la traversée 🧊</button>
-                <button id="iceCashoutBtn" class="btn-cashout hidden" onclick="cashoutIcefield()">ENCAISSER</button>
+            <div class="card rank-card jb-rank"><h4>🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+            <div class="cz-cta jb-cta" data-hint="Touche un bloc de la 1re colonne">
+                <button id="iceStartBtn" class="cz-btn cz-btn--gold cz-btn--xl cz-btn--block" onclick="startIcefieldGame()">Lancer la traversée 🧊</button>
+                <button id="iceCashoutBtn" class="cz-btn cz-btn--green cz-btn--xl cz-btn--block hidden" onclick="cashoutIcefield()">ENCAISSER</button>
             </div>
-            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
         </div>
 
         <!-- 6. ÉCRAN JUST MIXED -->
-        <div id="jm-screen" class="hidden">
-            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
-                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
-                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+        <div id="jm-screen" class="hidden cz-game jb-game">
+            <div class="cz-topbar">
+                <button class="cz-btn cz-btn--ghost cz-btn--icon cz-back" onclick="returnToHub()" aria-label="Retour aux jeux">‹</button>
+                <span class="cz-tb-timer">⏳ <span class="sessionTimerDisplay">--:--</span></span>
+                <span class="cz-tb-bal"><span class="playerBalance">1000</span> 🪙</span>
+                <button class="musicBtn cz-btn cz-btn--ghost cz-btn--icon" onclick="toggleMusic()" title="Musique on/off">🎵</button>
             </div>
-            <h3 style="margin: 5px 0; color: #f6dc9a;">🥤 Just mixed</h3>
-            <p id="jmStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Mise, regarde le mélange, puis choisis le bon gobelet !</p>
-            <div class="bet-control-box" style="margin: 0 0 10px;">
-                <div style="display: flex; gap: 12px; align-items: center;">
-                    <div style="flex: 1.5;"><label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
-                        <input type="number" id="jmBetAmount" value="50" min="1" style="margin: 4px 0;"></div>
-                    <div style="flex: 1; text-align: center; font-size: 12px; color: #cdbf9f; line-height: 1.5;">Gain <b style="color:#ffc24d;font-size:16px">x1.478</b><br>2 chances sur 3<br>RTP 98,5 %</div>
-                </div>
-                <div class="quick-bet-row" id="jmQuick" style="margin:6px 0 0">
-                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
-                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
-                </div>
+            <div class="jb-head">
+                <h3 class="jb-title">🥤 Just mixed</h3>
+                <p id="jmStatus" class="jb-status">Mise, regarde le mélange, puis choisis le bon gobelet !</p>
             </div>
-            <div class="jm-stage"><svg id="jmSvg" viewBox="0 0 600 300"><defs>
+            <div class="jm-stage cz-stage cz-felt"><svg id="jmSvg" viewBox="90 26 420 238"><defs>
 <radialGradient id="jmFelt" cx="50%" cy="40%" r="75%"><stop offset="0" stop-color="#1f7a4d"/><stop offset="1" stop-color="#0b3a26"/></radialGradient>
 <linearGradient id="jmCup" x1="0" x2="1"><stop offset="0" stop-color="#9f1239"/><stop offset=".45" stop-color="#f43f5e"/><stop offset="1" stop-color="#7f0f2e"/></linearGradient>
 <linearGradient id="jmRim" x1="0" x2="1"><stop offset="0" stop-color="#b8892f"/><stop offset=".5" stop-color="#f6dc9a"/><stop offset="1" stop-color="#b8892f"/></linearGradient>
 <radialGradient id="jmBall" cx="35%" cy="30%"><stop offset="0" stop-color="#fff7c2"/><stop offset=".5" stop-color="#f5b82e"/><stop offset="1" stop-color="#a1620c"/></radialGradient>
 <radialGradient id="jmLight" cx="50%" cy="0" r="80%"><stop offset="0" stop-color="#ffe6aa" stop-opacity=".38"/><stop offset="1" stop-color="#ffe6aa" stop-opacity="0"/></radialGradient>
-</defs><rect width="600" height="300" fill="#120a1c"/>
-<rect x="14" y="14" width="572" height="272" rx="26" fill="url(#jmFelt)" stroke="#8a5a1c" stroke-width="8"/>
+</defs><rect class="jm-bg" width="600" height="300" fill="#120a1c"/>
+<rect class="jm-bg" x="14" y="14" width="572" height="272" rx="26" fill="url(#jmFelt)" stroke="#8a5a1c" stroke-width="8"/>
 <rect x="14" y="14" width="572" height="272" rx="26" fill="url(#jmLight)"/>
 <path d="M60 262Q300 214 540 262" fill="none" stroke="rgba(246,220,154,.35)" stroke-width="2"/>
 <g id="jmBalls"></g><g id="jmCups"></g><g id="jmFx"></g></svg><div id="jmToast" class="ice-toast"></div></div>
-            <button id="jmStartBtn" onclick="startJm()">Jouer 🥤</button>
-            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+            <div class="jb-stats">
+                <div class="cz-stat"><small>Gain</small><b>x1.478</b></div>
+                <div class="cz-stat"><small>Chances</small><b>2 sur 3</b></div>
+                <div class="cz-stat"><small>RTP</small><b>98,5 %</b></div>
+            </div>
+            <div class="cz-controls">
+                <div class="cz-panel jb-panel" id="jmQuick">
+                    <div class="jb-panel-head"><span class="cz-label">Mise</span></div>
+                    <div class="jb-bet">
+                        <button type="button" class="cz-btn cz-btn--ghost" data-f=".5" aria-label="Diviser la mise par 2">÷2</button>
+                        <input type="number" id="jmBetAmount" value="50" min="1" inputmode="numeric" class="jb-amt" aria-label="Mise">
+                        <button type="button" class="cz-btn cz-btn--ghost" data-f="2" aria-label="Doubler la mise">×2</button>
+                        <button type="button" class="cz-btn cz-btn--ghost" data-f="max">Max</button>
+                    </div>
+                    <div class="jb-chips"><button type="button" class="cz-chip cz-chip--10" data-a="10">10</button><button type="button" class="cz-chip cz-chip--50" data-a="50">50</button><button type="button" class="cz-chip cz-chip--100" data-a="100">100</button><button type="button" class="cz-chip cz-chip--500" data-a="500">500</button></div>
+                </div>
+            </div>
+            <div class="card rank-card jb-rank"><h4>🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+            <div class="cz-cta jb-cta" data-hint="Suis bien la bille des yeux…">
+                <button id="jmStartBtn" class="cz-btn cz-btn--gold cz-btn--xl cz-btn--block" onclick="startJm()">Jouer 🥤</button>
+            </div>
         </div>
 
         <!-- 7. ÉCRAN CHICKEN ROAD -->
-        <div id="pk-screen" class="hidden">
-            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
-                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
-                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+        <div id="pk-screen" class="hidden cz-game ja-game">
+            <div class="cz-topbar">
+                <button class="cz-btn cz-btn--ghost cz-btn--icon cz-back" onclick="returnToHub()" aria-label="Retour aux jeux">‹</button>
+                <span class="cz-tb-timer">⏳ <span class="sessionTimerDisplay">--:--</span></span>
+                <span class="cz-tb-bal"><span class="playerBalance">1000</span> 🪙</span>
+                <button class="musicBtn cz-btn cz-btn--ghost cz-btn--icon" onclick="toggleMusic()" title="Musique on/off">🎵</button>
             </div>
-            <h3 style="margin: 5px 0; color: #ffd45c;">🔴 Plinko</h3>
-            <p id="pkStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Choisis les rangées, le risque et le nombre de billes, puis lâche-les !</p>
-            <div class="bet-control-box" style="margin: 0 0 10px;">
-                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Risque</label>
-                <div class="cr-modes" id="pkRisks"></div>
-                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Rangées (8 à 16)</label>
-                <div class="mn-count"><button id="pkRowsMinus" type="button">−</button><input type="number" id="pkRows" value="12" min="8" max="16"><button id="pkRowsPlus" type="button">+</button></div>
-                <div class="quick-bet-row" id="pkRowQuick"><button class="quick-btn" data-n="8">8</button><button class="quick-btn" data-n="10">10</button><button class="quick-btn" data-n="12">12</button><button class="quick-btn" data-n="14">14</button><button class="quick-btn" data-n="16">16</button></div>
-                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Nombre de billes (1 à 20)</label>
-                <input type="number" id="pkBalls" value="1" min="1" max="20" style="margin: 4px 0 8px;">
-                <div class="quick-bet-row" id="pkBallQuick"><button class="quick-btn" data-n="1">1</button><button class="quick-btn" data-n="3">3</button><button class="quick-btn" data-n="5">5</button><button class="quick-btn" data-n="10">10</button><button class="quick-btn" data-n="20">20</button></div>
-                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise par bille</label>
-                <input type="number" id="pkBetAmount" value="50" min="1" style="margin: 4px 0 8px;">
-                <div class="quick-bet-row" id="pkQuick" style="margin-bottom:0">
-                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
-                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+
+            <section class="cz-stage ja-frame ja-pk">
+                <div class="ja-head"><span class="ja-name">Plinko</span><div class="history-bar" id="pkHist"></div></div>
+                <div class="pk-wrap"><canvas id="pkCanvas" width="680" height="560"></canvas></div>
+            </section>
+            <p id="pkStatus" class="ja-status">Choisis le risque, les rangées et le nombre de billes, puis lâche-les !</p>
+            <div class="cz-controls">
+            <div class="cz-panel ja-panel">
+                <div class="ja-bet" id="pkQuick">
+                    <div class="ja-amt-row">
+                        <label class="ja-amt"><small>Mise par bille</small><span class="ja-amt-in"><input type="number" id="pkBetAmount" value="50" min="1" inputmode="numeric"><i>🪙</i></span></label>
+                        <button type="button" class="cz-btn cz-btn--ghost" data-f=".5">÷2</button><button type="button" class="cz-btn cz-btn--ghost" data-f="2">×2</button><button type="button" class="cz-btn cz-btn--ghost" data-f="max">Max</button>
+                    </div>
+                    <div class="ja-chips"><button type="button" class="cz-chip cz-chip--10" data-a="10">10</button><button type="button" class="cz-chip cz-chip--50" data-a="50">50</button><button type="button" class="cz-chip cz-chip--100" data-a="100">100</button><button type="button" class="cz-chip cz-chip--500" data-a="500">500</button></div>
                 </div>
-                <div id="pkTotal" style="font-size:12px;color:#cdbf9f;margin-top:8px">Mise totale : —</div>
+                <div id="pkTotal" class="ja-total">Mise totale : —</div>
             </div>
-            <div class="pk-wrap"><canvas id="pkCanvas" width="680" height="560"></canvas></div>
-            <button id="pkStartBtn" onclick="pkStart()">Lâcher les billes 🔴</button>
-            <div class="history-bar" id="pkHist" style="margin-top: 10px;"></div>
-            <div id="pkProof" style="font-size:11px;color:#7c8aa5;word-break:break-all;margin-top:8px"></div>
-            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
-        </div>
-        <div id="mn-screen" class="hidden">
-            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
-                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
-                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
-            </div>
-            <h3 style="margin: 5px 0; color: #ffd45c;">💣 Mines</h3>
-            <p id="mnStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Choisis le nombre de mines et ta mise, puis dévoile les cases sûres. Encaisse quand tu veux !</p>
-            <div class="bet-control-box" style="margin: 0 0 10px;">
-                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Nombre de mines (1 à 24)</label>
-                <div class="mn-count"><button id="mnMinus" type="button">−</button><input type="number" id="mnMines" value="3" min="1" max="24"><button id="mnPlus" type="button">+</button></div>
-                <div class="quick-bet-row" id="mnMineQuick">
-                    <button class="quick-btn" data-m="1">1</button><button class="quick-btn" data-m="3">3</button><button class="quick-btn" data-m="5">5</button><button class="quick-btn" data-m="10">10</button><button class="quick-btn" data-m="15">15</button><button class="quick-btn" data-m="24">24</button>
+            <div class="cz-panel ja-panel">
+                <div class="cz-label">Risque</div>
+                <div class="cz-seg ja-seg ja-risk" id="pkRisks"></div>
+                <div class="ja-line"><span class="cz-label">Rangées</span>
+                    <div class="mn-count ja-step"><button id="pkRowsMinus" type="button" class="cz-btn cz-btn--ghost cz-btn--icon" aria-label="Une rangée de moins">−</button><input type="number" id="pkRows" value="12" min="8" max="16" inputmode="numeric"><button id="pkRowsPlus" type="button" class="cz-btn cz-btn--ghost cz-btn--icon" aria-label="Une rangée de plus">+</button></div>
                 </div>
-                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
-                <input type="number" id="mnBetAmount" value="50" min="1" style="margin: 4px 0 8px;">
-                <div class="quick-bet-row" id="mnQuick" style="margin-bottom:0">
-                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
-                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+                <div class="cz-seg ja-seg ja-mini" id="pkRowQuick"><button type="button" data-n="8">8</button><button type="button" data-n="10">10</button><button type="button" data-n="12">12</button><button type="button" data-n="14">14</button><button type="button" data-n="16">16</button></div>
+                <div class="ja-line"><span class="cz-label">Billes</span>
+                    <input type="number" id="pkBalls" value="1" min="1" max="20" inputmode="numeric" class="ja-num">
+                </div>
+                <div class="cz-seg ja-seg ja-mini" id="pkBallQuick"><button type="button" data-n="1">1</button><button type="button" data-n="3">3</button><button type="button" data-n="5">5</button><button type="button" data-n="10">10</button><button type="button" data-n="20">20</button></div>
+            </div>
+            </div>
+            <div class="cz-cta"><button id="pkStartBtn" class="cz-btn cz-btn--gold cz-btn--xl cz-btn--block" onclick="pkStart()">Lâcher les billes</button></div>
+            <details class="ja-fair"><summary>🔒 Équité prouvable (hash SHA-256)</summary><div id="pkProof" class="ja-proof"></div></details>
+            <div class="card rank-card ja-rank"><h4>🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+        <div id="mn-screen" class="hidden cz-game jb-game">
+            <div class="cz-topbar">
+                <button class="cz-btn cz-btn--ghost cz-btn--icon cz-back" onclick="returnToHub()" aria-label="Retour aux jeux">‹</button>
+                <span class="cz-tb-timer">⏳ <span class="sessionTimerDisplay">--:--</span></span>
+                <span class="cz-tb-bal"><span class="playerBalance">1000</span> 🪙</span>
+                <button class="musicBtn cz-btn cz-btn--ghost cz-btn--icon" onclick="toggleMusic()" title="Musique on/off">🎵</button>
+            </div>
+            <div class="jb-head">
+                <h3 class="jb-title">💣 Mines</h3>
+                <p id="mnStatus" class="jb-status">Choisis le nombre de mines et ta mise, puis dévoile les cases sûres. Encaisse quand tu veux !</p>
+            </div>
+            <div class="cz-stage cz-felt jb-mn-stage"><div class="mn-grid" id="mnGrid"></div></div>
+            <div class="jb-stats">
+                <div class="cz-stat"><small>Multiplicateur</small><b id="mnMult">x1.00</b></div>
+                <div class="cz-stat"><small>Gain actuel</small><b id="mnGain">0 🪙</b></div>
+                <div class="cz-stat"><small>Case suivante</small><b id="mnNext">—</b></div>
+            </div>
+            <div class="cz-controls">
+                <div class="cz-panel jb-panel" id="mnQuick">
+                    <div class="jb-panel-head"><span class="cz-label">Mise</span></div>
+                    <div class="jb-bet">
+                        <button type="button" class="cz-btn cz-btn--ghost" data-f=".5" aria-label="Diviser la mise par 2">÷2</button>
+                        <input type="number" id="mnBetAmount" value="50" min="1" inputmode="numeric" class="jb-amt" aria-label="Mise">
+                        <button type="button" class="cz-btn cz-btn--ghost" data-f="2" aria-label="Doubler la mise">×2</button>
+                        <button type="button" class="cz-btn cz-btn--ghost" data-f="max">Max</button>
+                    </div>
+                    <div class="jb-chips"><button type="button" class="cz-chip cz-chip--10" data-a="10">10</button><button type="button" class="cz-chip cz-chip--50" data-a="50">50</button><button type="button" class="cz-chip cz-chip--100" data-a="100">100</button><button type="button" class="cz-chip cz-chip--500" data-a="500">500</button></div>
+                </div>
+                <div class="cz-panel jb-panel">
+                    <div class="jb-line">
+                        <span class="cz-label">Nombre de mines<small>1 à 24 · plus de mines = gains plus gros</small></span>
+                        <div class="mn-count jb-step"><button id="mnMinus" type="button" class="cz-btn cz-btn--ghost cz-btn--icon" aria-label="Moins de mines">−</button><input type="number" id="mnMines" value="3" min="1" max="24" inputmode="numeric" aria-label="Nombre de mines"><button id="mnPlus" type="button" class="cz-btn cz-btn--ghost cz-btn--icon" aria-label="Plus de mines">+</button></div>
+                    </div>
+                    <div class="cz-seg jb-seg" id="mnMineQuick"><button type="button" data-m="1">1</button><button type="button" data-m="3">3</button><button type="button" data-m="5">5</button><button type="button" data-m="10">10</button><button type="button" data-m="15">15</button><button type="button" data-m="24">24</button></div>
                 </div>
             </div>
-            <div class="cr-hud">
-                <div>Multiplicateur<b id="mnMult">x1.00</b></div>
-                <div>Gain actuel<b id="mnGain">0 🪙</b></div>
-                <div>Prochaine case<b id="mnNext">—</b></div>
+            <details class="jb-fair"><summary>🔒 Équité de la partie (hash)</summary><div id="mnProof" class="jb-proof"></div></details>
+            <div class="card rank-card jb-rank"><h4>🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+            <div class="cz-cta jb-cta" data-hint="Touche une case pour la dévoiler">
+                <button id="mnStartBtn" class="cz-btn cz-btn--gold cz-btn--xl cz-btn--block" onclick="mnStart()">Lancer la partie 💣</button>
+                <button id="mnCashBtn" class="cz-btn cz-btn--green cz-btn--xl cz-btn--block hidden" onclick="mnCash()">ENCAISSER</button>
             </div>
-            <div class="mn-grid" id="mnGrid"></div>
-            <button id="mnStartBtn" onclick="mnStart()">Lancer la partie 💣</button>
-            <button id="mnCashBtn" class="btn-cashout hidden" onclick="mnCash()">ENCAISSER</button>
-            <div id="mnProof" style="font-size:11px;color:#7c8aa5;word-break:break-all;margin-top:8px"></div>
-            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
         </div>
-        <div id="dc-screen" class="hidden">
-            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
-                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
-                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+        <div id="dc-screen" class="hidden cz-game ja-game">
+            <div class="cz-topbar">
+                <button class="cz-btn cz-btn--ghost cz-btn--icon cz-back" onclick="returnToHub()" aria-label="Retour aux jeux">‹</button>
+                <span class="cz-tb-timer">⏳ <span class="sessionTimerDisplay">--:--</span></span>
+                <span class="cz-tb-bal"><span class="playerBalance">1000</span> 🪙</span>
+                <button class="musicBtn cz-btn cz-btn--ghost cz-btn--icon" onclick="toggleMusic()" title="Musique on/off">🎵</button>
             </div>
-            <h3 style="margin: 5px 0; color: #ffd45c;">🎲 Dés</h3>
-            <p id="dcStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Choisis « moins que » ou « plus que », règle ta chance, lance !</p>
-            <div class="dc-box">
-                <div class="dc-num" id="dcNum">50.00</div>
-                <div class="dc-bar"><div class="dc-zone" id="dcZone"></div><div class="dc-mark" id="dcMark" style="left:50%"></div></div>
-                <div class="dc-scale"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+
+            <section class="cz-stage ja-frame cz-felt ja-dc">
+                <div class="ja-head"><span class="ja-name">Dés</span><div class="history-bar" id="dcHist"></div></div>
+                <div class="dc-box">
+                    <div class="dc-num" id="dcNum">50.00</div>
+                    <div class="dc-bar"><div class="dc-zone" id="dcZone"></div><div class="dc-mark" id="dcMark" style="left:50%"></div></div>
+                    <div class="dc-scale"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+                </div>
+            </section>
+            <p id="dcStatus" class="ja-status">Choisis « moins que » ou « plus que », règle ta chance, lance !</p>
+            <div class="ja-stats"><div class="cz-stat"><small>Multiplicateur</small><b id="dcMult">x2.00</b></div><div class="cz-stat"><small>Gain si gagné</small><b id="dcGain">0 🪙</b></div><div class="cz-stat" id="dcCondBox"><small>Condition</small><b id="dcCond">&lt; 49.50</b></div></div>
+            <div class="cz-controls">
+            <div class="cz-panel ja-panel">
+                <div class="ja-bet" id="dcQuick">
+                    <div class="ja-amt-row">
+                        <label class="ja-amt"><small>Mise</small><span class="ja-amt-in"><input type="number" id="dcBet" value="50" min="1" inputmode="numeric"><i>🪙</i></span></label>
+                        <button type="button" class="cz-btn cz-btn--ghost" data-f=".5">÷2</button><button type="button" class="cz-btn cz-btn--ghost" data-f="2">×2</button><button type="button" class="cz-btn cz-btn--ghost" data-f="max">Max</button>
+                    </div>
+                    <div class="ja-chips"><button type="button" class="cz-chip cz-chip--10" data-a="10">10</button><button type="button" class="cz-chip cz-chip--50" data-a="50">50</button><button type="button" class="cz-chip cz-chip--100" data-a="100">100</button><button type="button" class="cz-chip cz-chip--500" data-a="500">500</button></div>
+                </div>
             </div>
-            <div class="dc-tog"><button id="dcUnder" class="on">⬇️ Moins que</button><button id="dcOver">⬆️ Plus que</button></div>
-            <div class="bet-control-box" style="margin:0 0 10px">
-                <div class="dc-row"><div><label>Chance de gagner (%)</label><input type="number" id="dcChance" value="49.5" min="0.01" max="98" step="0.01" style="margin:4px 0"></div><div><label>Mise</label><input type="number" id="dcBet" value="50" min="1" style="margin:4px 0"></div></div>
-                <input type="range" class="dc-slider" id="dcSlider" min="1" max="98" step="1" value="49.5">
-                <div class="quick-bet-row" id="dcQuick" style="margin-bottom:0"><button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button><button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button></div>
+            <div class="cz-panel ja-panel">
+                <div class="cz-seg ja-seg"><button id="dcUnder" class="on" type="button">⬇ Moins que</button><button id="dcOver" type="button">⬆ Plus que</button></div>
+                <div class="ja-line"><span class="cz-label">Chance de gagner</span><label class="ja-unit"><input type="number" id="dcChance" value="49.5" min="0.01" max="98" step="0.01" inputmode="decimal"><i>%</i></label></div>
+                <input type="range" class="dc-slider" id="dcSlider" min="1" max="98" step="1" value="49.5" aria-label="Chance de gagner">
             </div>
-            <div class="cr-hud"><div>Multiplicateur<b id="dcMult">x2.00</b></div><div>Gain si gagné<b id="dcGain">0 🪙</b></div><div id="dcCondBox">Condition<b id="dcCond">&lt; 49.50</b></div></div>
-            <button id="dcRollBtn" onclick="dcRoll()">Lancer les dés 🎲</button>
-            <div class="history-bar" id="dcHist" style="margin-top: 10px;"></div>
-            <div id="dcProof" style="font-size:11px;color:#7c8aa5;word-break:break-all;margin-top:8px"></div>
-            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+            </div>
+            <div class="cz-cta"><button id="dcRollBtn" class="cz-btn cz-btn--gold cz-btn--xl cz-btn--block" onclick="dcRoll()">Lancer les dés 🎲</button></div>
+            <details class="ja-fair"><summary>🔒 Équité prouvable (hash SHA-256)</summary><div id="dcProof" class="ja-proof"></div></details>
+            <div class="card rank-card ja-rank"><h4>🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
         </div>
-        <div id="sl-screen" class="hidden">
-            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
-                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
-                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+        <div id="sl-screen" class="hidden cz-game">
+            <div class="cz-topbar">
+                <button class="cz-btn cz-btn--ghost cz-btn--icon cz-back" onclick="returnToHub()" aria-label="Retour aux jeux">‹</button>
+                <span class="cz-tb-timer">⏳ <span class="sessionTimerDisplay">--:--</span></span>
+                <span class="cz-tb-bal"><span class="playerBalance">1000</span> 🪙</span>
+                <button class="musicBtn cz-btn cz-btn--ghost cz-btn--icon" onclick="toggleMusic()" title="Musique on/off">🎵</button>
             </div>
-            <div class="sl-box" id="slBox">
-                <div class="sl-moon"></div>
-                <h3 class="sl-title">LA NUIT DU LOUP</h3>
+            <div class="sl-box cz-stage" id="slBox">
+                <div class="sl-marquee">
+                    <div class="sl-moon" aria-hidden="true"></div>
+                    <div class="sl-mq-txt"><h3 class="sl-title">LA NUIT DU LOUP</h3><span class="sl-sub">243 façons de gagner · jusqu’à ×7500</span></div>
+                </div>
                 <div class="sl-jp" id="slJp"></div>
                 <div class="sl-cab" id="slCab">
-                    <div class="sl-hud hidden" id="slHud"><span>🏮 Tours : <b id="slLeft">6</b></span><span id="slHudMid"></span><span>Gain bonus : <b id="slBonusWin">0</b> 🪙</span></div>
+                    <div class="sl-hud hidden" id="slHud"><span class="sl-hud-l">🏮 Tours <b id="slLeft">6</b></span><span class="sl-hud-r">Gain <b id="slBonusWin">0</b> 🪙</span><span class="sl-hud-m" id="slHudMid"></span></div>
                     <div class="sl-grid" id="slGrid"></div>
                     <div class="sl-banner" id="slBanner"></div>
                     <div class="sl-wheel hidden" id="slWheel"><div class="swh-t" id="swhTitle"></div><div class="swh-w"><div class="swh-ptr"></div><div id="swhWrap"></div></div><div class="swh-r" id="swhRes"></div></div>
-                    <button class="sl-skip hidden" id="slSkip" onclick="slSkip()">⏭️ Passer</button>
                 </div>
-                <div class="sl-win" id="slWin">Choisis ta mise et lance les rouleaux… 🌕</div>
+                <div class="sl-win" id="slWin" aria-live="polite">Choisis ta mise et lance les rouleaux… 🌕</div>
                 <div class="sl-gamble hidden" id="slGamble">
-                    <div class="slg-top"><div>Gain en attente<b id="slGpend">0 🪙</b></div><div class="slg-card" id="slGcard">?</div><div>Si rouge/noir juste<b id="slGnext">0 🪙</b></div></div>
+                    <div class="slg-head">Quitte ou double</div>
+                    <div class="slg-top"><div>Gain en attente<b id="slGpend">0 🪙</b></div><div class="slg-card" id="slGcard">?</div><div>Si couleur juste<b id="slGnext">0 🪙</b></div></div>
                     <div class="slg-ladder" id="slGladder"></div>
                     <div class="slg-btns"><button class="slg-red" onclick="slGamble('red')">♥ Rouge ♦</button><button class="slg-black" onclick="slGamble('black')">♠ Noir ♣</button><button class="slg-take" onclick="slCollect()">💰 Encaisser</button></div>
                     <small id="slGnote"></small>
                 </div>
             </div>
-            <div class="bet-control-box" style="margin:10px 0">
-                <div class="dc-row"><div><label>Mise par tour</label><input type="number" id="slBet" value="50" min="1" style="margin:4px 0"></div><div><label>Options</label><div class="sl-opts"><button id="slTurbo" class="quick-btn" onclick="slTurboToggle()">⚡ Turbo : non</button></div></div></div>
-                <div class="quick-bet-row" id="slQuick" style="margin-bottom:0"><button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button><button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button></div>
+            <div class="sl-deck cz-controls">
+                <div class="sl-bet" id="slQuick">
+                    <label class="cz-label" for="slBet">Mise par tour</label>
+                    <div class="sl-betrow">
+                        <button class="cz-btn cz-btn--ghost sl-adj" data-f=".5" aria-label="Diviser la mise par deux">÷2</button>
+                        <div class="sl-amt"><input type="number" id="slBet" value="50" min="1" inputmode="numeric"><span aria-hidden="true">🪙</span></div>
+                        <button class="cz-btn cz-btn--ghost sl-adj" data-f="2" aria-label="Doubler la mise">×2</button>
+                        <button class="cz-btn cz-btn--ghost sl-adj" data-f="max">Max</button>
+                    </div>
+                    <div class="sl-chips"><button class="cz-chip cz-chip--10" data-a="10">10</button><button class="cz-chip cz-chip--50" data-a="50">50</button><button class="cz-chip cz-chip--100" data-a="100">100</button><button class="cz-chip cz-chip--500" data-a="500">500</button></div>
+                </div>
+                <button class="cz-btn cz-btn--ghost cz-btn--block sl-buy" onclick="slBuyOpen()">🎡 Acheter un bonus</button>
             </div>
-            <div class="sl-autopanel hidden" id="slAutoPanel"><span>Nombre de tours automatiques :</span><div><button onclick="slAutoStart(10)">10</button><button onclick="slAutoStart(25)">25</button><button onclick="slAutoStart(50)">50</button><button onclick="slAutoStart(100)">100</button><button onclick="slAutoStart(500)">500</button><button class="inf" onclick="slAutoStart(Infinity)">∞ Infini</button></div><small>Les gains en attente sont encaissés tout seuls. Appuie sur « Stop auto » pour arrêter à tout moment.</small></div>
-            <div class="sl-btnrow"><button id="slSpinBtn" class="sl-spin" onclick="slSpin()">🌕 TOURNER</button><button id="slAutoBtn" class="sl-auto" onclick="slAutoToggle()">🔁 Auto</button><button class="sl-buy" onclick="slBuyOpen()">🎡 Acheter un bonus</button></div>
-            <div class="history-bar" id="slHist" style="margin-top: 10px;"></div>
-            <div id="slRules" class="sl-rules"><b>Comment ça marche ?</b> 5 rouleaux × 3 lignes, <b>243 façons de gagner</b> (3 symboles identiques ou plus, de gauche à droite). 🌕 Wild sur les rouleaux 2-3-4. <b>🏮 6 lanternes ou plus</b> = <b>Tours gratuits</b> : 6 tours, chaque lanterne pose un cadre Paille, ou améliore un cadre (Paille → Bois → Brique) ; 3 lanternes dans un tour = +1 tour ; une lanterne sur une Brique améliore une autre case ; toutes les cases en Brique = 10×. À la fin, <b>le loup souffle</b> : chaque maison révèle son prix (Tombe 0,5–2×, Crypte 2–8× ou Mini/Minor, Manoir 10–250× ou Mini/Minor/Major/Grand, et dans les Tours gratuits une Brique peut offrir un tour de roue). <b>3 scies ou plus</b> (rouleaux 1 à 5) = <b>La Roue</b> ; avec <b>une scie dorée</b> (rouleau 5) = <b>Roue améliorée</b> (Super bonus 5×6, Major, Grand, SUPER 7500×). La roue donne : La Scie (les scies avancent et posent des lanternes), Mega Chapeau (blocs de lanternes), Manoir (cadres Brique), Tours gratuits, Mini 20×, Minor 100×, Major 1000×, Grand 5000×, ou Amélioration. Gain maximum : 7500× la mise. Rendement visé : 99 %. Le « double ou rien » rouge/noir est un petit bonus en plus.</div>
-            <div id="slProof" style="font-size:11px;color:#7c8aa5;word-break:break-all;margin-top:8px"></div>
+            <div class="cz-cta sl-cta">
+                <div class="sl-autopanel hidden" id="slAutoPanel"><span>Nombre de tours automatiques</span><div><button onclick="slAutoStart(10)">10</button><button onclick="slAutoStart(25)">25</button><button onclick="slAutoStart(50)">50</button><button onclick="slAutoStart(100)">100</button><button onclick="slAutoStart(500)">500</button><button class="inf" onclick="slAutoStart(Infinity)">∞</button></div><small>Les gains en attente sont encaissés tout seuls. Touche ⏹ pour arrêter à tout moment.</small></div>
+                <button id="slTurbo" class="sl-side" onclick="slTurboToggle()" aria-pressed="false"><i>⚡</i><small>Turbo</small></button>
+                <button id="slSpinBtn" class="sl-spin cz-btn cz-btn--gold cz-btn--xl" onclick="slSpin()">🌕 Tourner</button>
+                <button class="sl-skip hidden cz-btn cz-btn--xl" id="slSkip" onclick="slSkip()">⏭️ Passer</button>
+                <button id="slAutoBtn" class="sl-side sl-auto" onclick="slAutoToggle()" aria-pressed="false"><i>🔁</i><small>Auto</small></button>
+            </div>
+            <div class="history-bar sl-hist" id="slHist"></div>
+            <details class="sl-more">
+                <summary>📜 Règles et équité</summary>
+                <div id="slRules" class="sl-rules"><b>Comment ça marche ?</b> 5 rouleaux × 3 lignes, <b>243 façons de gagner</b> (3 symboles identiques ou plus, de gauche à droite). 🌕 Wild sur les rouleaux 2-3-4. <b>🏮 6 lanternes ou plus</b> = <b>Tours gratuits</b> : 6 tours, chaque lanterne pose un cadre Paille, ou améliore un cadre (Paille → Bois → Brique) ; 3 lanternes dans un tour = +1 tour ; une lanterne sur une Brique améliore une autre case ; toutes les cases en Brique = 10×. À la fin, <b>le loup souffle</b> : chaque maison révèle son prix (Tombe 0,5–2×, Crypte 2–8× ou Mini/Minor, Manoir 10–250× ou Mini/Minor/Major/Grand, et dans les Tours gratuits une Brique peut offrir un tour de roue). <b>3 scies ou plus</b> (rouleaux 1 à 5) = <b>La Roue</b> ; avec <b>une scie dorée</b> (rouleau 5) = <b>Roue améliorée</b> (Super bonus 5×6, Major, Grand, SUPER 7500×). La roue donne : La Scie (les scies avancent et posent des lanternes), Mega Chapeau (blocs de lanternes), Manoir (cadres Brique), Tours gratuits, Mini 20×, Minor 100×, Major 1000×, Grand 5000×, ou Amélioration. Gain maximum : 7500× la mise. Rendement visé : 99 %. Le « double ou rien » rouge/noir est un petit bonus en plus.</div>
+                <div id="slProof" class="sl-proof"></div>
+            </details>
             <div class="sl-buyback hidden" id="slBuyBack" onclick="if(event.target===this)slBuyClose()"><div class="sl-buymodal" id="slBuyModal"></div></div>
             <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
         </div>
-        <div id="hl-screen" class="hidden">
-            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
-                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
-                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+        <div id="hl-screen" class="hidden cz-game ja-game">
+            <div class="cz-topbar">
+                <button class="cz-btn cz-btn--ghost cz-btn--icon cz-back" onclick="returnToHub()" aria-label="Retour aux jeux">‹</button>
+                <span class="cz-tb-timer">⏳ <span class="sessionTimerDisplay">--:--</span></span>
+                <span class="cz-tb-bal"><span class="playerBalance">1000</span> 🪙</span>
+                <button class="musicBtn cz-btn cz-btn--ghost cz-btn--icon" onclick="toggleMusic()" title="Musique on/off">🎵</button>
             </div>
-            <h3 style="margin: 5px 0; color: #ffd45c;">⬆️ Hi-Lo</h3>
-            <p id="hlStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Devine si la prochaine carte sera plus haute ou plus basse. Égalité = perdu. Encaisse quand tu veux !</p>
-            <div class="bet-control-box" style="margin: 0 0 10px;"><label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label><input type="number" id="hlBet" value="50" min="1" style="margin: 4px 0 8px;"><div class="quick-bet-row" id="hlQuick" style="margin-bottom:0"><button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button><button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button></div></div>
-            <div class="cr-hud"><div>Multiplicateur<b id="hlMult">—</b></div><div>Gain actuel<b id="hlGain">0 🪙</b></div><div>Série<b id="hlSteps">0</b></div></div>
-            <div class="hl-trail" id="hlTrail"></div>
-            <div class="hl-table" id="hlTable"><div class="pcard back"></div></div>
-            <div class="hl-btns" id="hlBtns"><button id="hlHi">⬆️ Plus haut<small id="hlHiS"></small></button><button id="hlLo">⬇️ Plus bas<small id="hlLoS"></small></button></div>
-            <button id="hlSkip" style="background:#475569;margin:0 0 8px">⏭️ Passer cette carte (gratuit)</button>
-            <button id="hlStartBtn" onclick="hlStart()">Distribuer 🃏</button>
-            <button id="hlCashBtn" class="btn-cashout hidden" onclick="hlCash()">ENCAISSER</button>
-            <div id="hlProof" style="font-size:11px;color:#7c8aa5;word-break:break-all;margin-top:8px"></div>
-            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
-        </div>
-        <div id="cf-screen" class="hidden">
-            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
-                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
-                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
-            </div>
-            <h3 style="margin: 5px 0; color: #ffd45c;">🪙 Pile ou Face</h3>
-            <p id="cfStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">50 / 50, gain ×1,97. Choisis ton côté et lance la pièce !</p>
-            <div class="cf-stage"><div class="cf-coin" id="cfCoin"><div class="cf-face">€</div><div class="cf-face back">👑</div></div></div>
-            <div class="cf-side"><button id="cfPile" class="on">€ Pile</button><button id="cfFace">👑 Face</button></div>
-            <div class="bet-control-box" style="margin:0 0 10px"><label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label><input type="number" id="cfBet" value="50" min="1" style="margin: 4px 0 8px;"><div class="quick-bet-row" id="cfQuick" style="margin-bottom:0"><button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button><button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button></div></div>
-            <div class="cr-hud"><div>Multiplicateur<b>x1.97</b></div><div>Gain si gagné<b id="cfGain">0 🪙</b></div><div>Série<b id="cfStreak">0</b></div></div>
-            <button id="cfFlipBtn" onclick="cfFlip()">Lancer la pièce 🪙</button>
-            <div class="history-bar" id="cfHist" style="margin-top: 10px;"></div>
-            <div id="cfProof" style="font-size:11px;color:#7c8aa5;word-break:break-all;margin-top:8px"></div>
-            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
-        </div>
-        <div id="cr-screen" class="hidden">
-            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
-                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
-                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
-            </div>
-            <h3 style="margin: 5px 0; color: #ffd45c;">🐔 Chicken Road</h3>
-            <p id="crStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Choisis un mode, mise, puis fais traverser le poulet. Encaisse avant la prochaine voiture !</p>
-            <div class="bet-control-box" style="margin: 0 0 10px;">
-                <div class="cr-modes" id="crModes"></div>
-                <div class="cr-info" id="crInfo"></div>
-                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
-                <input type="number" id="crBetAmount" value="50" min="1" style="margin: 4px 0 8px;">
-                <div class="quick-bet-row" id="crQuick" style="margin-bottom:0">
-                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
-                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+
+            <section class="cz-stage ja-frame cz-felt ja-hl">
+                <div class="ja-head"><span class="ja-name">Hi-Lo</span><div class="hl-trail" id="hlTrail"></div></div>
+                <div class="ja-hl-table">
+                    <div class="ja-deck" aria-hidden="true"><div class="pcard back"></div><div class="pcard back"></div><div class="pcard back"></div></div>
+                    <div class="hl-table" id="hlTable"><div class="pcard back"></div></div>
+                </div>
+                <button id="hlSkip" type="button" class="cz-btn cz-btn--ghost ja-skip" style="display:none">⏭️ Passer (gratuit)</button>
+            </section>
+            <p id="hlStatus" class="ja-status">Devine si la prochaine carte sera plus haute ou plus basse. Égalité = perdu. Encaisse quand tu veux !</p>
+            <div class="ja-stats"><div class="cz-stat"><small>Multiplicateur</small><b id="hlMult">—</b></div><div class="cz-stat"><small>Gain actuel</small><b id="hlGain">0 🪙</b></div><div class="cz-stat"><small>Série</small><b id="hlSteps">0</b></div></div>
+            <div class="cz-controls">
+            <div class="cz-panel ja-panel">
+                <div class="ja-bet" id="hlQuick">
+                    <div class="ja-amt-row">
+                        <label class="ja-amt"><small>Mise</small><span class="ja-amt-in"><input type="number" id="hlBet" value="50" min="1" inputmode="numeric"><i>🪙</i></span></label>
+                        <button type="button" class="cz-btn cz-btn--ghost" data-f=".5">÷2</button><button type="button" class="cz-btn cz-btn--ghost" data-f="2">×2</button><button type="button" class="cz-btn cz-btn--ghost" data-f="max">Max</button>
+                    </div>
+                    <div class="ja-chips"><button type="button" class="cz-chip cz-chip--10" data-a="10">10</button><button type="button" class="cz-chip cz-chip--50" data-a="50">50</button><button type="button" class="cz-chip cz-chip--100" data-a="100">100</button><button type="button" class="cz-chip cz-chip--500" data-a="500">500</button></div>
                 </div>
             </div>
-            <div class="provably-fair-box">🔒 <b>Hash SHA-256 de la partie :</b> <span id="crHash" style="color: #38bdf8;">—</span><br><span id="crProof"></span></div>
-            <div class="cr-hud"><div>Multiplicateur<b id="crMult">x1.00</b></div><div>Gain actuel<b id="crGain">0 🪙</b></div><div>Prochain pas<b id="crNext">—</b></div></div>
-            <div class="cr-stage" id="crStage"><div class="cr-world" id="crWorld"></div><div id="crToast" class="ice-toast"></div></div>
-            <div style="display: flex; gap: 10px;">
-                <button id="crStartBtn" onclick="crStart()">Lancer la traversée 🐔</button>
-                <button id="crGoBtn" class="hidden" onclick="crGo()" style="background: linear-gradient(180deg,#3b82f6,#1d4ed8);">AVANCER ➜</button>
-                <button id="crCashBtn" class="btn-cashout hidden" onclick="crCash()">ENCAISSER</button>
             </div>
-            <div class="history-bar" id="crHist" style="margin-top: 10px;"></div>
-            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+            <div class="cz-cta ja-hl-cta">
+                <button id="hlStartBtn" class="cz-btn cz-btn--gold cz-btn--xl cz-btn--block" onclick="hlStart()">Distribuer 🃏</button>
+                <div class="hl-btns ja-hl-btns" id="hlBtns" style="display:none"><button id="hlHi" type="button" class="cz-btn cz-btn--gold ja-hl-btn">⬆ Plus haut<small id="hlHiS"></small></button><button id="hlLo" type="button" class="cz-btn cz-btn--gold ja-hl-btn">⬇ Plus bas<small id="hlLoS"></small></button></div>
+                <button id="hlCashBtn" class="cz-btn cz-btn--green cz-btn--xl cz-btn--block hidden" onclick="hlCash()">ENCAISSER</button>
+            </div>
+            <details class="ja-fair"><summary>🔒 Équité prouvable (hash SHA-256)</summary><div id="hlProof" class="ja-proof"></div></details>
+            <div class="card rank-card ja-rank"><h4>🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+        <div id="cf-screen" class="hidden cz-game ja-game">
+            <div class="cz-topbar">
+                <button class="cz-btn cz-btn--ghost cz-btn--icon cz-back" onclick="returnToHub()" aria-label="Retour aux jeux">‹</button>
+                <span class="cz-tb-timer">⏳ <span class="sessionTimerDisplay">--:--</span></span>
+                <span class="cz-tb-bal"><span class="playerBalance">1000</span> 🪙</span>
+                <button class="musicBtn cz-btn cz-btn--ghost cz-btn--icon" onclick="toggleMusic()" title="Musique on/off">🎵</button>
+            </div>
+
+            <section class="cz-stage ja-frame cz-felt ja-cf">
+                <div class="ja-head"><span class="ja-name">Pile ou Face</span><div class="history-bar" id="cfHist"></div></div>
+                <div class="cf-stage"><div class="cf-coin" id="cfCoin"><div class="cf-face">€</div><div class="cf-face back">👑</div></div></div>
+            </section>
+            <p id="cfStatus" class="ja-status">50 / 50, gain ×1,97. Choisis ton côté et lance la pièce !</p>
+            <div class="ja-stats"><div class="cz-stat"><small>Multiplicateur</small><b>x1.97</b></div><div class="cz-stat"><small>Gain si gagné</small><b id="cfGain">0 🪙</b></div><div class="cz-stat"><small>Série</small><b id="cfStreak">0</b></div></div>
+            <div class="cz-controls">
+            <div class="cz-panel ja-panel">
+                <div class="ja-bet" id="cfQuick">
+                    <div class="ja-amt-row">
+                        <label class="ja-amt"><small>Mise</small><span class="ja-amt-in"><input type="number" id="cfBet" value="50" min="1" inputmode="numeric"><i>🪙</i></span></label>
+                        <button type="button" class="cz-btn cz-btn--ghost" data-f=".5">÷2</button><button type="button" class="cz-btn cz-btn--ghost" data-f="2">×2</button><button type="button" class="cz-btn cz-btn--ghost" data-f="max">Max</button>
+                    </div>
+                    <div class="ja-chips"><button type="button" class="cz-chip cz-chip--10" data-a="10">10</button><button type="button" class="cz-chip cz-chip--50" data-a="50">50</button><button type="button" class="cz-chip cz-chip--100" data-a="100">100</button><button type="button" class="cz-chip cz-chip--500" data-a="500">500</button></div>
+                </div>
+            </div>
+            <div class="cz-seg ja-seg ja-side"><button id="cfPile" class="on" type="button">€ Pile</button><button id="cfFace" type="button">👑 Face</button></div>
+            </div>
+            <div class="cz-cta"><button id="cfFlipBtn" class="cz-btn cz-btn--gold cz-btn--xl cz-btn--block" onclick="cfFlip()">Lancer la pièce 🪙</button></div>
+            <details class="ja-fair"><summary>🔒 Équité prouvable (hash SHA-256)</summary><div id="cfProof" class="ja-proof"></div></details>
+            <div class="card rank-card ja-rank"><h4>🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+        </div>
+        <div id="cr-screen" class="hidden cz-game jb-game">
+            <div class="cz-topbar">
+                <button class="cz-btn cz-btn--ghost cz-btn--icon cz-back" onclick="returnToHub()" aria-label="Retour aux jeux">‹</button>
+                <span class="cz-tb-timer">⏳ <span class="sessionTimerDisplay">--:--</span></span>
+                <span class="cz-tb-bal"><span class="playerBalance">1000</span> 🪙</span>
+                <button class="musicBtn cz-btn cz-btn--ghost cz-btn--icon" onclick="toggleMusic()" title="Musique on/off">🎵</button>
+            </div>
+            <div class="jb-head">
+                <h3 class="jb-title">🐔 Chicken Road</h3>
+                <p id="crStatus" class="jb-status">Choisis un mode, mise, puis fais traverser le poulet. Encaisse avant la prochaine voiture !</p>
+            </div>
+            <div class="cr-stage cz-stage" id="crStage"><div class="cr-world" id="crWorld"></div><div id="crToast" class="ice-toast"></div></div>
+            <div class="jb-stats">
+                <div class="cz-stat"><small>Multiplicateur</small><b id="crMult">x1.00</b></div>
+                <div class="cz-stat"><small>Gain actuel</small><b id="crGain">0 🪙</b></div>
+                <div class="cz-stat"><small>Voie suivante</small><b id="crNext">—</b></div>
+            </div>
+            <div class="history-bar jb-hist" id="crHist"></div>
+            <div class="cz-controls">
+                <div class="cz-panel jb-panel" id="crQuick">
+                    <div class="jb-panel-head"><span class="cz-label">Mise</span></div>
+                    <div class="jb-bet">
+                        <button type="button" class="cz-btn cz-btn--ghost" data-f=".5" aria-label="Diviser la mise par 2">÷2</button>
+                        <input type="number" id="crBetAmount" value="50" min="1" inputmode="numeric" class="jb-amt" aria-label="Mise">
+                        <button type="button" class="cz-btn cz-btn--ghost" data-f="2" aria-label="Doubler la mise">×2</button>
+                        <button type="button" class="cz-btn cz-btn--ghost" data-f="max">Max</button>
+                    </div>
+                    <div class="jb-chips"><button type="button" class="cz-chip cz-chip--10" data-a="10">10</button><button type="button" class="cz-chip cz-chip--50" data-a="50">50</button><button type="button" class="cz-chip cz-chip--100" data-a="100">100</button><button type="button" class="cz-chip cz-chip--500" data-a="500">500</button></div>
+                </div>
+                <div class="cz-panel jb-panel">
+                    <div class="jb-panel-head"><span class="cz-label">Difficulté</span></div>
+                    <div class="cr-modes cz-seg jb-seg" id="crModes"></div>
+                    <div class="cr-info jb-info" id="crInfo"></div>
+                </div>
+            </div>
+            <details class="jb-fair"><summary>🔒 Équité de la partie (hash)</summary><div class="jb-proof">Hash SHA-256 de la partie : <span id="crHash">—</span><br><span id="crProof"></span></div></details>
+            <div class="card rank-card jb-rank"><h4>🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+            <div class="cz-cta jb-cta">
+                <button id="crStartBtn" class="cz-btn cz-btn--gold cz-btn--xl cz-btn--block" onclick="crStart()">Lancer la traversée 🐔</button>
+                <button id="crCashBtn" class="cz-btn cz-btn--green cz-btn--xl cz-btn--block hidden" onclick="crCash()">ENCAISSER</button>
+                <button id="crGoBtn" data-garde="non" class="cz-btn cz-btn--gold cz-btn--xl cz-btn--block hidden jb-go" onclick="crGo()">Avancer ➜</button>
+            </div>
         </div>
 
         <!-- 8. ÉCRAN ARROWS X -->
-        <div id="ar-screen" class="hidden">
-            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
-                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
-                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+        <div id="ar-screen" class="hidden cz-game">
+            <div class="cz-topbar">
+                <button class="cz-btn cz-btn--ghost cz-btn--icon cz-back" onclick="returnToHub()" aria-label="Retour aux jeux">‹</button>
+                <span class="cz-tb-timer">⏳ <span class="sessionTimerDisplay">--:--</span></span>
+                <span class="cz-tb-bal"><span class="playerBalance">1000</span> 🪙</span>
+                <button class="musicBtn cz-btn cz-btn--ghost cz-btn--icon" onclick="toggleMusic()" title="Musique on/off">🎵</button>
             </div>
-            <h3 style="margin: 5px 0; color: #ffd45c;">🎯 Arrows X</h3>
-            <p id="arStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Choisis un mode, mise, puis lance ta fléchette. Plus le mode est difficile, plus les anneaux rapportent… et plus la cible est petite !</p>
-            <div class="bet-control-box" style="margin: 0 0 10px;">
-                <div class="cr-modes" id="arModes"></div>
-                <div class="cr-info" id="arInfo"></div>
-                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Fléchettes d'affilée (1 à 20)</label>
-                <input type="number" id="arDarts" value="1" min="1" max="20" style="margin: 4px 0 8px;">
-                <div class="quick-bet-row" id="arDartQuick"><button class="quick-btn" data-n="1">1</button><button class="quick-btn" data-n="3">3</button><button class="quick-btn" data-n="5">5</button><button class="quick-btn" data-n="10">10</button><button class="quick-btn" data-n="20">20</button></div>
-                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise par fléchette</label>
-                <input type="number" id="arBetAmount" value="50" min="1" style="margin: 4px 0 8px;">
-                <div class="quick-bet-row" id="arQuick" style="margin-bottom:0">
-                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
-                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+            <div class="cz-stage czc-ar-frame">
+                <div class="czc-stage-title">🎯 Arrows X</div>
+                <div class="ar-stage" id="arStage"><svg id="arSvg" viewBox="0 0 640 320" preserveAspectRatio="xMidYMid meet"></svg><div id="arToast" class="ice-toast"></div><div id="arPop" class="ar-pop"></div></div>
+            </div>
+            <div class="ar-hud czc-stats">
+                <div class="cz-stat"><small>Mode</small><b id="arModeName">Facile</b></div>
+                <div class="cz-stat"><small>Touche</small><b id="arHitPct">61,9 %</b></div>
+                <div class="cz-stat"><small>Gain max</small><b id="arMax">x20</b></div>
+            </div>
+            <p id="arStatus" class="czc-status">Choisis un mode, mise, puis lance ta fléchette. Plus le mode est difficile, plus les anneaux rapportent… et plus la cible est petite !</p>
+            <div class="history-bar czc-hist" id="arHist"></div>
+            <div class="cz-controls">
+                <div class="cz-panel czc-bet">
+                    <div class="czc-bet-head"><label class="cz-label" for="arBetAmount">Mise par fléchette</label></div>
+                    <div class="czc-quick" id="arQuick">
+                        <div class="czc-amt">
+                            <input type="number" id="arBetAmount" value="50" min="1" inputmode="numeric">
+                            <button class="cz-btn cz-btn--ghost" data-f=".5">÷2</button><button class="cz-btn cz-btn--ghost" data-f="2">×2</button><button class="cz-btn cz-btn--ghost" data-f="max">Max</button>
+                        </div>
+                        <div class="czc-chips">
+                            <button class="cz-chip cz-chip--10" data-a="10">10</button><button class="cz-chip cz-chip--50" data-a="50">50</button><button class="cz-chip cz-chip--100" data-a="100">100</button><button class="cz-chip cz-chip--500" data-a="500">500</button>
+                        </div>
+                    </div>
+                    <div class="czc-darts">
+                        <label class="cz-label" for="arDarts">Fléchettes d'affilée</label>
+                        <div class="czc-darts-row">
+                            <div class="cz-seg czc-seg-n" id="arDartQuick"><button data-n="1">1</button><button data-n="3">3</button><button data-n="5">5</button><button data-n="10">10</button><button data-n="20">20</button></div>
+                            <input type="number" id="arDarts" value="1" min="1" max="20" inputmode="numeric" aria-label="Nombre de fléchettes (1 à 20)">
+                        </div>
+                    </div>
+                    <div id="arTotal" class="czc-sum">Mise totale : —</div>
                 </div>
+                <div class="cz-seg czc-modes" id="arModes"></div>
+                <div class="cr-info czc-info" id="arInfo"></div>
             </div>
-            <div id="arTotal" style="font-size:12px;color:#cdbf9f;margin:-4px 0 8px">Mise totale : —</div>
-            <div class="provably-fair-box">🔒 <b>Hash SHA-256 de la partie :</b> <span id="arHash" style="color: #38bdf8;">—</span><br><span id="arProof"></span></div>
-            <div class="ar-hud"><div>Mode<b id="arModeName">Facile</b></div><div>Chance de toucher<b id="arHitPct">61,9 %</b></div><div>Gain max<b id="arMax">x20</b></div></div>
-            <div class="ar-stage" id="arStage"><svg id="arSvg" viewBox="0 0 640 320" preserveAspectRatio="xMidYMid meet"></svg><div id="arToast" class="ice-toast"></div><div id="arPop" class="ar-pop"></div></div>
-            <div style="display: flex; gap: 10px;">
-                <button id="arStartBtn" onclick="arStart()">Armer la fléchette 🏹</button>
-                <button id="arThrowBtn" class="hidden" onclick="arThrow()" style="background: linear-gradient(180deg,#a21caf,#701a85);">LANCER 🎯</button>
+            <div class="cz-cta">
+                <button id="arStartBtn" class="cz-btn cz-btn--gold cz-btn--xl cz-btn--block" onclick="arStart()">Armer la fléchette 🏹</button>
+                <button id="arThrowBtn" class="hidden cz-btn cz-btn--ruby cz-btn--xl cz-btn--block czc-hot" onclick="arThrow()">Lancer 🎯</button>
             </div>
-            <p style="font-size:11.5px;color:#7d7494;margin:8px 0 0;">💡 Mode « mitralette » : tant que la partie est armée, retape simplement sur LANCER — une nouvelle mise est débitée et la fléchette repart aussitôt, sans temps mort.</p>
-            <div class="history-bar" id="arHist" style="margin-top: 10px;"></div>
-            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+            <details class="czc-fold">
+                <summary>🔒 Équité de la partie (hash SHA-256)</summary>
+                <div class="provably-fair-box"><b>Hash SHA-256 de la partie :</b> <span id="arHash" class="czc-hash">—</span><br><span id="arProof"></span></div>
+                <p class="czc-note">💡 Mode « mitraillette » : tant que la partie est armée, retape simplement sur LANCER — une nouvelle mise est débitée et la fléchette repart aussitôt, sans temps mort.</p>
+            </details>
+            <div class="card rank-card czc-rank"><h4>🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
         </div>
 
         <!-- 9. ÉCRAN ROULETTE -->
-        <div id="rl-screen" class="hidden">
-            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
-                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
-                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+        <div id="rl-screen" class="hidden cz-game">
+            <div class="cz-topbar">
+                <button class="cz-btn cz-btn--ghost cz-btn--icon cz-back" onclick="returnToHub()" aria-label="Retour aux jeux">‹</button>
+                <span class="cz-tb-timer">⏳ <span class="sessionTimerDisplay">--:--</span></span>
+                <span class="cz-tb-bal"><span class="playerBalance">1000</span> 🪙</span>
+                <button class="musicBtn cz-btn cz-btn--ghost cz-btn--icon" onclick="toggleMusic()" title="Musique on/off">🎵</button>
             </div>
-            <h3 style="margin: 5px 0; color: #ffd45c;">🎡 Roulette européenne</h3>
-            <p id="rlStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Roue classique 0-36, un seul zéro. Clique une case du tapis pour miser (le montant du jeton est pris dans la boîte). Simple chance x2, douzaine/colonne x3, plein x36.</p>
-            <div class="rl-wheel-wrap">
-                <div id="rlWheelBox" style="position:relative;flex:none;width:230px;height:230px">
-                    <svg id="rlWheelSvg" viewBox="0 0 100 100" width="230" height="230"></svg>
+            <div class="cz-stage cz-felt czc-rl-stage">
+                <div class="rl-wheel-wrap czc-rl-wheelrow">
+                    <div id="rlWheelBox" class="czc-rl-wheel">
+                        <svg id="rlWheelSvg" viewBox="0 0 100 100" width="230" height="230"></svg>
                     </div>
-                <div style="flex:1">
-                    <div class="rl-res" id="rlRes" style="background:#0f7a44;display:inline-block">?</div>
-                    <div style="font-size:12px;color:#9a90ad;margin:6px 0;">Derniers numéros</div>
-                    <div class="history-bar" id="rlHist" style="margin:0;"></div>
-                    <div class="provably-fair-box" style="margin-top:8px;">🔒 <b>Hash :</b> <span id="rlHash" style="color: #38bdf8;">—</span><br><span id="rlProof"></span></div>
+                    <div class="czc-rl-side">
+                        <div class="czc-rl-name">Roulette<small>européenne</small></div>
+                        <div class="rl-res" id="rlRes">?</div>
+                        <div class="cz-label czc-rl-side-lbl">Résultat</div>
+                    </div>
+                </div>
+                <div class="czc-rl-histrow"><span class="cz-label">Derniers</span><div class="history-bar" id="rlHist"></div></div>
+                <p id="rlStatus" class="czc-status czc-status--felt">Roue classique 0-36, un seul zéro. Touche une case du tapis pour y poser ton jeton. Simple chance x2, douzaine/colonne x3, plein x36.</p>
+            </div>
+            <div class="rl-total czc-stats czc-stats--rl">
+                <div class="cz-stat"><small>Sur la table</small><b><span id="rlTotalVal">0</span> 🪙</b></div>
+                <div class="cz-stat"><small>Paris</small><b id="rlBetsCount">0 pari</b></div>
+                <button class="cz-btn cz-btn--ghost czc-repeat" onclick="rlRepeat()" title="Rejouer les mêmes paris que le tour précédent">↻ Rejouer</button>
+            </div>
+            <div class="cz-controls">
+                <div class="cz-panel czc-bet">
+                    <div class="czc-bet-head"><label class="cz-label" for="rlBetAmount">Valeur du jeton</label><span class="czc-total">Touche une case pour miser</span></div>
+                    <div class="czc-quick" id="rlQuick">
+                        <div class="czc-amt">
+                            <input type="number" id="rlBetAmount" value="25" min="1" inputmode="numeric">
+                            <button class="cz-btn cz-btn--ghost" data-f=".5">÷2</button><button class="cz-btn cz-btn--ghost" data-f="2">×2</button><button class="cz-btn cz-btn--ghost" data-f="max">Max</button>
+                        </div>
+                        <div class="czc-chips">
+                            <button class="cz-chip cz-chip--10" data-a="10">10</button><button class="cz-chip czc-chip--25" data-a="25">25</button><button class="cz-chip cz-chip--50" data-a="50">50</button><button class="cz-chip cz-chip--100" data-a="100">100</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="rl-felt cz-felt czc-rl-felt">
+                    <div class="rl-scroll" id="rlScroll">
+                        <div id="rlTable"></div>
+                        <div id="rlOut"></div>
+                    </div>
                 </div>
             </div>
-            <div class="rl-betrow">
-                <label style="font-size:12px;color:#94a3b8;white-space:nowrap;">Jeton</label>
-                <input type="number" id="rlBetAmount" value="25" min="1">
-                <div class="quick-bet-row" id="rlQuick" style="margin:0;">
-                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="25">25</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
-                </div>
-                <button id="rlUndoBtn" onclick="rlUndo()" style="width:auto;margin:0;padding:8px 12px;background:#475569;" title="Annuler le dernier jeton posé">↩︎</button>
+            <div class="cz-cta czc-cta-row">
+                <button id="rlUndoBtn" class="cz-btn cz-btn--ghost czc-cta-side" onclick="rlUndo()" title="Annuler le dernier jeton posé" aria-label="Annuler le dernier jeton"><span>↩︎</span><small>Annuler</small></button>
+                <button id="rlSpinBtn" class="cz-btn cz-btn--gold cz-btn--xl czc-cta-main" onclick="rlSpin()">Tourner 🎡</button>
+                <button class="cz-btn cz-btn--ghost czc-cta-side" onclick="rlClear()" title="Retirer tous les jetons" aria-label="Effacer tous les jetons"><span>✕</span><small>Effacer</small></button>
             </div>
-            <div class="rl-total"><span>Mise sur la table : <b id="rlTotalVal">0</b> 🪙</span><span id="rlBetsCount">0 pari</span></div>
-            <div class="rl-felt">
-                <div class="rl-hint">↔ Fais glisser le tapis pour voir toutes les cases</div>
-                <div class="rl-scroll" id="rlScroll">
-                    <div id="rlTable"></div>
-                    <div id="rlOut"></div>
-                </div>
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <button id="rlSpinBtn" onclick="rlSpin()" style="background: linear-gradient(180deg,#b91c1c,#7f1d1d);">TOURNER 🎡</button>
-                <button onclick="rlClear()" style="background:#475569;">Effacer</button>
-                <button onclick="rlRepeat()" style="background:#475569;">Rejouer</button>
-            </div>
-            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+            <details class="czc-fold">
+                <summary>🔒 Équité du tirage (hash)</summary>
+                <div class="provably-fair-box"><b>Hash :</b> <span id="rlHash" class="czc-hash">—</span><br><span id="rlProof"></span></div>
+            </details>
+            <div class="card rank-card czc-rank"><h4>🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
         </div>
 
         <!-- 10. ÉCRAN BLACKJACK -->
-        <div id="bj-screen" class="hidden">
-            <button onclick="returnToHub()" style="background: #475569; width: auto; padding: 6px 14px; border-radius: 999px; margin-bottom: 10px;">⬅️ Retour au Hub</button>
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155;">
-                <span style="font-size: 14px; font-weight: bold; color: #eab308;">⏳ Temps restant : <span class="sessionTimerDisplay">--:--</span></span>
-                <span style="font-size: 14px; color: #22c55e; font-weight: bold;">Solde : <span class="playerBalance">1000</span> 🪙</span>
+        <div id="bj-screen" class="hidden cz-game">
+            <div class="cz-topbar">
+                <button class="cz-btn cz-btn--ghost cz-btn--icon cz-back" onclick="returnToHub()" aria-label="Retour aux jeux">‹</button>
+                <span class="cz-tb-timer">⏳ <span class="sessionTimerDisplay">--:--</span></span>
+                <span class="cz-tb-bal"><span class="playerBalance">1000</span> 🪙</span>
+                <button class="musicBtn cz-btn cz-btn--ghost cz-btn--icon" onclick="toggleMusic()" title="Musique on/off">🎵</button>
             </div>
-            <h3 style="margin: 5px 0; color: #ffd45c;">🃏 Blackjack</h3>
-            <p id="bjStatus" style="font-size: 14px; color: #94a3b8; margin: 5px 0 10px;">Blackjack classique : 52 cartes, mélangées à chaque main. Approche 21 sans le dépasser et bats le croupier.</p>
-            <div class="bet-control-box" id="bjBetBox" style="margin: 0 0 10px;">
-                <label style="font-size: 12px; color: #94a3b8; display: block; text-align: left;">Mise</label>
-                <input type="number" id="bjBetAmount" value="50" min="1" style="margin: 4px 0 8px;">
-                <div class="quick-bet-row" id="bjQuick" style="margin-bottom:0">
-                    <button class="quick-btn" data-a="10">10</button><button class="quick-btn" data-a="50">50</button><button class="quick-btn" data-a="100">100</button><button class="quick-btn" data-a="500">500</button>
-                    <button class="quick-btn" data-f=".5">÷2</button><button class="quick-btn" data-f="2">×2</button><button class="quick-btn" data-f="max">Max</button>
+            <div class="cz-stage bj-felt cz-felt czc-bj-table">
+                <div class="bj-zone czc-bj-dealer">
+                    <div class="czc-bj-zonehead"><span class="bj-label">Croupier</span><div class="bj-scorebox" id="bjDealerScore"></div></div>
+                    <div class="bj-cards" id="bjDealer"></div>
+                </div>
+                <div class="bj-banner"><b>Blackjack paye 3 contre 2</b><span>Le croupier tire à 16 et reste sur 17 · Égalité = mise rendue</span></div>
+                <div class="bj-zone czc-bj-player">
+                    <div class="bj-hands" id="bjPlayer"></div>
+                    <div class="bj-label czc-bj-you">Toi</div>
+                </div>
+                <div id="bjMsg" class="czc-bj-msg"></div>
+            </div>
+            <p id="bjStatus" class="czc-status">Blackjack classique : 52 cartes, mélangées à chaque main. Approche 21 sans le dépasser et bats le croupier.</p>
+            <div class="history-bar czc-hist" id="bjHist"></div>
+            <div class="cz-controls">
+                <div class="cz-panel czc-bet" id="bjBetBox">
+                    <div class="czc-bet-head"><label class="cz-label" for="bjBetAmount">Mise</label></div>
+                    <div class="czc-quick" id="bjQuick">
+                        <div class="czc-amt">
+                            <input type="number" id="bjBetAmount" value="50" min="1" inputmode="numeric">
+                            <button class="cz-btn cz-btn--ghost" data-f=".5">÷2</button><button class="cz-btn cz-btn--ghost" data-f="2">×2</button><button class="cz-btn cz-btn--ghost" data-f="max">Max</button>
+                        </div>
+                        <div class="czc-chips">
+                            <button class="cz-chip cz-chip--10" data-a="10">10</button><button class="cz-chip cz-chip--50" data-a="50">50</button><button class="cz-chip cz-chip--100" data-a="100">100</button><button class="cz-chip cz-chip--500" data-a="500">500</button>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <details class="bj-rules"><summary>📖 Règles du blackjack</summary><ul>
+            <div class="cz-cta bj-actions czc-bj-actions">
+                <button id="bjDealBtn" class="cz-btn cz-btn--gold cz-btn--xl cz-btn--block" onclick="bjDeal()">Distribuer 🂠</button>
+                <button id="bjHitBtn" class="hidden cz-btn cz-btn--green czc-act" onclick="bjHit()"><span class="czc-ico">➕</span>Tirer</button>
+                <button id="bjStandBtn" class="hidden cz-btn cz-btn--ruby czc-act" onclick="bjStand()"><span class="czc-ico">✋</span>Rester</button>
+                <button id="bjDoubleBtn" class="hidden cz-btn cz-btn--gold czc-act" onclick="bjDouble()"><span class="czc-ico">×2</span>Doubler</button>
+                <button id="bjSplitBtn" class="hidden cz-btn czc-act czc-act--blue" onclick="bjSplit()"><span class="czc-ico">✂️</span>Séparer</button>
+                <button id="bjInsBtn" class="hidden cz-btn cz-btn--green czc-act czc-act--wide" onclick="bjInsurance(true)">Assurance 🛡️</button>
+                <button id="bjNoInsBtn" class="hidden cz-btn cz-btn--ghost czc-act czc-act--wide" onclick="bjInsurance(false)">Non merci</button>
+            </div>
+            <details class="bj-rules czc-fold"><summary>📖 Règles du blackjack</summary><ul>
                 <li><b>But :</b> avoir un total plus proche de 21 que le croupier, sans dépasser 21 (sinon tu « sautes » et tu perds).</li>
                 <li><b>Cartes :</b> 2 à 10 = leur valeur, Valet/Dame/Roi = 10, <b>As = 11 ou 1</b> (le meilleur choix pour toi). « 7/17 » = main souple (l'As vaut 1 ou 11).</li>
                 <li><b>Blackjack :</b> As + carte de 10 sur les 2 premières cartes → payé <b>3 pour 2</b> (mise 100 → +150).</li>
@@ -633,67 +834,54 @@
                 <li><b>Séparer :</b> 2 cartes de même valeur (ex. 8+8, ou Roi+10) → 2 mains, 1 mise chacune. Tu peux re-séparer jusqu'à 4 mains et doubler après un split. Un As séparé ne reçoit qu'une carte et ne se re-sépare pas ; 21 après split = paiement 1:1 (pas un blackjack).</li>
                 <li><b>Assurance :</b> si le croupier montre un As, tu peux miser la moitié de ta mise : payée 2:1 s'il a blackjack.</li>
                 <li><b>Égalité :</b> mise rendue. Paiements : victoire 1:1, blackjack 3:2.</li></ul></details>
-            <div class="provably-fair-box">🔒 <b>Graine de mélange (révélée en fin de main) :</b> <span id="bjSeed" style="color: #38bdf8;">—</span></div>
-            <div class="bj-felt">
-                <div class="bj-zone">
-                    <div class="bj-label">Croupier</div>
-                    <div class="bj-cards" id="bjDealer"></div>
-                    <div class="bj-scorebox" id="bjDealerScore"></div>
-                </div>
-                <div class="bj-banner">BLACKJACK PAYÉ 3:2 · LE CROUPIER TIRE À 16 ET RESTE SUR 17 · ÉGALITÉ = MISE RENDUE</div>
-                <div class="bj-zone">
-                    <div class="bj-label">Toi</div>
-                    <div class="bj-hands" id="bjPlayer"></div>
-                </div>
-                <div id="bjMsg" style="text-align:center;font-size:15px;font-weight:800;color:#ffe9a8;min-height:22px;"></div>
-            </div>
-            <div class="bj-actions">
-                <button id="bjDealBtn" onclick="bjDeal()">Distribuer 🂠</button>
-                <button id="bjHitBtn" class="hidden" onclick="bjHit()" style="background: linear-gradient(180deg,#3b82f6,#1d4ed8);">Tirer ➕</button>
-                <button id="bjStandBtn" class="hidden" onclick="bjStand()" style="background: linear-gradient(180deg,#eab308,#a16207);color:#241202;">Rester ✋</button>
-                <button id="bjDoubleBtn" class="hidden" onclick="bjDouble()" style="background: linear-gradient(180deg,#22c55e,#15803d);">Doubler 💰</button>
-                <button id="bjSplitBtn" class="hidden" onclick="bjSplit()" style="background: linear-gradient(180deg,#a855f7,#7e22ce);">Séparer ✂️</button>
-                <button id="bjInsBtn" class="hidden" onclick="bjInsurance(true)" style="background: linear-gradient(180deg,#22c55e,#15803d);">Assurance 🛡️</button>
-                <button id="bjNoInsBtn" class="hidden" onclick="bjInsurance(false)" style="background: #475569;">Non merci</button>
-            </div>
-            <div class="history-bar" id="bjHist" style="margin-top: 10px;"></div>
-            <div class="card rank-card" style="margin-top:15px;background:#0f172a"><h4 style="margin-top:0">🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
+            <details class="czc-fold">
+                <summary>🔒 Équité de la main (graine de mélange)</summary>
+                <div class="provably-fair-box"><b>Graine de mélange (révélée en fin de main) :</b> <span id="bjSeed" class="czc-hash">—</span></div>
+            </details>
+            <div class="card rank-card czc-rank"><h4>🏆 Classement en direct <small class="rankMe"></small></h4><div class="rankList"></div></div>
         </div>
     </div>
 
-    <div id="stopBar" class="hidden"><span id="stopMsg"></span><button id="stopBtn" onclick="voteStop()">🛑 Arrêter la partie</button></div>
+    <div id="stopBar" class="hidden"><span id="stopMsg"></span><button id="stopBtn" onclick="voteStop()">🛑 Arrêter</button></div>
 
     <!-- MODALE HISTORIQUE COMPLET -->
-    <div id="historyModal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3 style="margin-top:0; color: #38bdf8;">📜 Historique Complet des Tours</h3>
-            <p style="font-size: 13px; color: #94a3b8; margin-bottom: 15px;">Clique sur une pastille pour voir la preuve Provably Fair.</p>
-            <div class="full-history-grid" id="fullHistoryGrid"></div>
-            <button onclick="closeHistoryModal()" style="background: #ef4444; margin-top: 20px;">Fermer</button>
+    <div id="historyModal" class="modal-overlay hidden sh-modal">
+        <div class="modal-content sh-modal-box">
+            <div class="sh-modal-body">
+                <h3 class="sh-h">📜 Historique des tours</h3>
+                <p class="sh-note">Touche une pastille pour voir la preuve Provably Fair.</p>
+                <div class="full-history-grid" id="fullHistoryGrid"></div>
+                <div id="hmProof" class="sh-proof-box hidden"></div>
+            </div>
+            <div class="sh-modal-foot"><button class="cz-btn cz-btn--ghost cz-btn--xl cz-btn--block" onclick="closeHistoryModal()">Fermer</button></div>
         </div>
     </div>
 
     <!-- MODALE RÉSULTATS DE FIN DE SESSION -->
-    <div id="gameOverModal" class="modal-overlay hidden">
-        <div class="modal-content" id="endBox" style="border: 2px solid #eab308;max-width:560px;max-height:90vh">
-            <h2 style="margin-top:0; color: #eab308;">🏁 Fin de la Session !</h2>
-            <p style="color: #94a3b8; font-size: 14px;">Le temps est écoulé. Pot total à redistribuer : <b id="finalPot" style="color:#22c55e"></b></p>
-            <div id="finalCharts" style="text-align:left;margin:12px 0"></div>
-            <h4 style="margin:10px 0 6px;text-align:left">🏆 Classement final</h4>
-            <div id="finalLeaderboardList" style="text-align: left; margin: 8px 0;"></div>
-            <h4 style="margin:10px 0 6px;text-align:left">💸 Qui paie qui</h4>
-            <div id="finalTransfers" style="text-align:left;font-size:14px;color:#cbd5e1"></div>
-            <div id="endBadges" style="margin-top:14px"></div>
-            <div id="rematchInfo" style="margin-top:16px;font-size:13px;color:#cdbf9f"></div>
-            <button id="rematchBtn" onclick="rematch()" style="background:linear-gradient(180deg,#d4562a,#8a1c3c);margin-top:8px">🔁 Continuer : nouvelle partie avec les mêmes joueurs</button>
-            <button onclick="leaveRoom()" style="background: #22c55e; margin-top: 10px;">Retour à l'accueil</button>
+    <div id="gameOverModal" class="modal-overlay hidden sh-modal">
+        <div class="modal-content sh-modal-box sh-end" id="endBox">
+            <div class="sh-modal-body">
+                <h2 class="sh-end-title">Fin de la session</h2>
+                <div class="sh-end-pot"><small>Le temps est écoulé. Pot total à redistribuer</small><b id="finalPot"></b></div>
+                <div id="finalCharts"></div>
+                <h4 class="sh-h">🏆 Classement final</h4>
+                <div id="finalLeaderboardList"></div>
+                <h4 class="sh-h">💸 Qui paie qui</h4>
+                <div id="finalTransfers"></div>
+                <div id="endBadges"></div>
+            </div>
+            <div class="sh-modal-foot">
+                <div id="rematchInfo"></div>
+                <button id="rematchBtn" class="cz-btn cz-btn--gold cz-btn--block" onclick="rematch()">🔁 Continuer : nouvelle partie avec les mêmes joueurs</button>
+                <button class="cz-btn cz-btn--ghost cz-btn--block" onclick="leaveRoom()">Retour à l'accueil</button>
+            </div>
         </div>
     </div>
 
     <!-- PANNEAU LATÉRAL : HISTORIQUE DES PARIS EN DIRECT (rétractable) -->
     <button id="admGear" onclick="admToggle()" aria-label="zone secrète">⚙️</button>
 <div id="admPanel"><div id="admLock"><div style="margin-bottom:6px">🔒 Zone secrète</div><input type="password" id="admCode" placeholder="Code" autocomplete="off" onkeydown="if(event.key==='Enter')admUnlock()"><div id="admErr" style="color:#f87171;margin-top:4px"></div></div><div id="admBody" style="display:none"></div></div>
-<div id="roomChip" onclick="copyRoomCode()" title="Clique pour copier le code">🔑 <span class="rc-l">Code de la room</span> <b id="roomChipCode">----</b></div>
+<div id="roomChip" role="button" tabindex="0" onclick="copyRoomCode()" onkeydown="if(event.key==='Enter')copyRoomCode()" title="Touche pour copier le code" aria-label="Code de la room, touche pour copier">🔑 <span class="rc-l">Code</span> <b id="roomChipCode">----</b></div>
 <div id="sideTabs" class="hidden"><button class="sb" data-t="charts" title="Graphiques des joueurs">📈</button><button class="sb" data-t="chat" title="Chat de la room">💬<b id="chatBadge" class="hidden">0</b></button><button class="sb" data-t="gen" title="Profils et classement général">🌍</button><button class="sb" data-t="set" title="Réglages">🎚️</button><button class="sb" id="meBtn" data-me="1" title="Mon profil, quêtes, niveau">👤<b id="meLv">1</b></button></div>
 <div id="bdToast"></div>
 <div id="chartPanel" aria-hidden="true">
@@ -712,8 +900,8 @@
   </div>
 </div>
 <div id="feedPanel" class="hidden">
-        <div class="feed-head" onclick="toggleFeed()">
-            <span class="feed-title"><span class="live-dot"></span>📡 Paris en direct</span>
+        <div class="feed-head" role="button" tabindex="0" aria-label="Paris en direct (ouvrir / fermer)" onclick="toggleFeed()" onkeydown="if(event.key==='Enter'||event.key===' ')toggleFeed()">
+            <span class="feed-title"><span class="live-dot"></span>📡 <span class="feed-tl">Paris en direct</span></span>
             <span class="feed-chev">▼</span>
         </div>
         <div class="feed-stats"><span id="feedCount">0 pari récent</span><span id="feedVol">volume : 0 🪙</span></div>
@@ -722,24 +910,25 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="/plinko-tables.js"></script>
-    <script src="/js/core.js?v=4"></script>
-    <script src="/js/app.js?v=4"></script>
-    <script src="/js/jeux1.js?v=1"></script>
-    <script src="/js/jeux2.js?v=1"></script>
-    <script src="/js/jeux3.js?v=2"></script>
-    <script src="/js/panneaux.js?v=3"></script>
-    <script src="/js/profil-chat.js?v=2"></script>
-    <script src="/js/moi.js?v=6"></script>
-    <script src="/js/cadres.js?v=6"></script>
-    <script src="/js/cadres-extra.js?v=3"></script>
-    <script src="/js/sons-slot.js?v=2"></script>
-    <script src="/js/machine.js?v=4"></script>
+    <script src="/js/core.js?v=20261118"></script>
+    <script src="/js/app.js?v=20261118"></script>
+    <script src="/js/jeux1.js?v=20261118"></script>
+    <script src="/js/jeux2.js?v=20261118"></script>
+    <script src="/js/jeux3.js?v=20261118"></script>
+    <script src="/js/panneaux.js?v=20261118"></script>
+    <script src="/js/profil-chat.js?v=20261118"></script>
+    <script src="/js/moi.js?v=20261118"></script>
+    <script src="/js/cadres.js?v=20261118"></script>
+    <script src="/js/cadres-extra.js?v=20261118"></script>
+    <script src="/js/sons-slot.js?v=20261118"></script>
+    <script src="/js/machine.js?v=20261118"></script>
+    <script src="/js/garde-tap.js?v=20261118"></script>
 <script>
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 let _ip = null; window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); _ip = e; const b = document.getElementById('installApp'); if (b) b.classList.remove('hidden'); });
 function installApp() { if (!_ip) return; _ip.prompt(); _ip.userChoice.finally(() => { _ip = null; const b = document.getElementById('installApp'); if (b) b.classList.add('hidden'); }); }
 window.addEventListener('appinstalled', () => { const b = document.getElementById('installApp'); if (b) b.classList.add('hidden'); });
 </script>
-<button id="installApp" class="hidden" onclick="installApp()" style="position:fixed;right:12px;bottom:12px;z-index:9999;padding:10px 16px;border-radius:999px;border:1px solid #e8c27a99;background:linear-gradient(135deg,#3a1530,#150d22);color:#ffe9b0;font-weight:700;box-shadow:0 4px 18px rgba(0,0,0,.5)">📲 Installer l'appli</button>
+<button id="installApp" class="hidden cz-btn cz-btn--ghost" onclick="installApp()">📲 Installer l'appli</button>
 </body>
 </html>

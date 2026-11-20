@@ -1,0 +1,241 @@
+/* =====================================================================
+   CASINO.CSS — socle visuel commun (chargé APRÈS style.css)
+   Tokens, typographie, correctifs mobiles et composants réutilisables.
+   Chaque partie de l'interface a son propre fichier dans /css/ :
+   shell.css, jeux-a.css, jeux-b.css, jeux-c.css, machine.css.
+   ===================================================================== */
+
+:root {
+  /* Fonds : velours noir et bordeaux */
+  --cz-bg-0: #060409;
+  --cz-bg-1: #0f0914;
+  --cz-bg-2: #1a0f1f;
+  --cz-velvet: #2a0d1c;
+  /* Tapis de jeu */
+  --cz-felt-1: #0e4a33;
+  --cz-felt-2: #06291c;
+  /* Or */
+  --cz-gold-1: #ffe7a8;
+  --cz-gold-2: #f2c35b;
+  --cz-gold-3: #c8902e;
+  --cz-gold-4: #7a5212;
+  --cz-gold-grad: linear-gradient(180deg, #ffe9a9 0%, #f2c35b 42%, #c8902e 78%, #9a6a1c 100%);
+  --cz-gold-text: linear-gradient(180deg, #fff3cf 0%, #f2c35b 55%, #b98222 100%);
+  /* Accents */
+  --cz-ruby: #d11a43;
+  --cz-ruby-2: #8c0c29;
+  --cz-emerald: #1fc37a;
+  --cz-emerald-2: #0b7a47;
+  --cz-sapphire: #3aa8ff;
+  /* Texte */
+  --cz-text: #f6eedb;
+  --cz-muted: #a99c84;
+  --cz-dim: #6f6556;
+  /* Lignes, rayons, ombres */
+  --cz-line: rgba(242, 195, 91, .22);
+  --cz-line-strong: rgba(242, 195, 91, .5);
+  --cz-r-sm: 10px;
+  --cz-r: 14px;
+  --cz-r-lg: 20px;
+  --cz-shadow: 0 10px 30px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .06);
+  --cz-glow-gold: 0 0 0 1px rgba(242, 195, 91, .55), 0 8px 26px rgba(242, 195, 91, .28);
+  /* Typo */
+  --cz-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --cz-display: 'Cinzel', 'Trajan Pro', Georgia, serif;
+  --cz-num: 'Inter', system-ui, sans-serif;
+  /* Zones sûres (encoche, barre d'accueil iOS) */
+  --cz-safe-t: env(safe-area-inset-top, 0px);
+  --cz-safe-b: env(safe-area-inset-bottom, 0px);
+  --cz-safe-l: env(safe-area-inset-left, 0px);
+  --cz-safe-r: env(safe-area-inset-right, 0px);
+  /* Hauteur de la barre d'action collante en bas (les jeux réservent cet espace) */
+  --cz-cta-h: 64px;
+}
+
+/* ---------------------------------------------------------------------
+   CORRECTIFS MOBILES
+   - touch-action:manipulation sur <html> : plus de zoom au double appui
+     (les appuis rapides répétés sur un bouton ne zooment plus), le
+     pincement pour zoomer reste possible (accessibilité).
+   - plus de flash bleu/gris au toucher, plus de menu « copier » au
+     appui long sur les éléments de jeu.
+   --------------------------------------------------------------------- */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation;
+  background: var(--cz-bg-0);
+}
+* { -webkit-tap-highlight-color: transparent; }
+button, [role="button"], .app-tile, .quick-btn, a, label, select, summary {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+svg, img { -webkit-user-drag: none; }
+input, textarea { -webkit-user-select: text; user-select: text; }
+
+body {
+  font-family: var(--cz-font);
+  color: var(--cz-text);
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: calc(12px + var(--cz-safe-t)) calc(12px + var(--cz-safe-r)) calc(16px + var(--cz-safe-b)) calc(12px + var(--cz-safe-l));
+  overscroll-behavior-y: none;
+  background:
+    radial-gradient(900px 480px at 50% -10%, rgba(209, 26, 67, .28), transparent 60%),
+    radial-gradient(700px 520px at 50% 110%, rgba(242, 195, 91, .10), transparent 60%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .012) 0 2px, transparent 2px 9px),
+    linear-gradient(180deg, var(--cz-bg-1), var(--cz-bg-0)) fixed;
+  background-attachment: fixed;
+}
+@media (max-width: 700px) { body { background-attachment: scroll; } }
+
+/* Les nombres ne « dansent » pas quand ils changent */
+.playerBalance, .sessionTimerDisplay, .multiplier-display, .cz-num { font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------------
+   TYPO
+   --------------------------------------------------------------------- */
+.cz-title, h1 {
+  font-family: var(--cz-display);
+  font-weight: 900;
+  letter-spacing: .06em;
+  background: var(--cz-gold-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, .6));
+}
+h2, h3 { font-family: var(--cz-display); letter-spacing: .04em; color: var(--cz-gold-1); }
+.cz-label { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--cz-muted); }
+
+/* ---------------------------------------------------------------------
+   COMPOSANTS RÉUTILISABLES (préfixe cz-)
+   --------------------------------------------------------------------- */
+
+/* Panneau velours bordé d'or */
+.cz-panel {
+  background: linear-gradient(165deg, rgba(42, 13, 28, .92), rgba(15, 9, 20, .96));
+  border: 1px solid var(--cz-line);
+  border-radius: var(--cz-r-lg);
+  box-shadow: var(--cz-shadow);
+  padding: 14px;
+}
+/* Tapis de jeu vert */
+.cz-felt {
+  background:
+    radial-gradient(120% 90% at 50% 20%, rgba(255, 255, 255, .07), transparent 60%),
+    radial-gradient(100% 100% at 50% 50%, var(--cz-felt-1), var(--cz-felt-2));
+  border: 2px solid var(--cz-gold-4);
+  box-shadow: inset 0 0 0 3px rgba(0, 0, 0, .35), inset 0 0 40px rgba(0, 0, 0, .55), var(--cz-shadow);
+  border-radius: var(--cz-r-lg);
+}
+
+/* Boutons */
+.cz-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  width: auto; margin: 0; min-height: 44px; padding: 10px 16px;
+  border-radius: 999px; border: 1px solid var(--cz-line);
+  background: rgba(255, 255, 255, .04); color: var(--cz-text);
+  font: 700 15px/1 var(--cz-font); letter-spacing: .02em;
+  box-shadow: none; cursor: pointer;
+  transition: transform .1s, filter .15s, box-shadow .15s;
+}
+.cz-btn:active { transform: translateY(1px) scale(.98); }
+.cz-btn--gold {
+  background: var(--cz-gold-grad); color: #2a1803; border-color: #ffe7a8;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .45);
+  box-shadow: 0 4px 0 #6b4510, 0 10px 24px rgba(242, 195, 91, .3), inset 0 1px 0 rgba(255, 255, 255, .7);
+}
+.cz-btn--gold:active { box-shadow: 0 1px 0 #6b4510, 0 6px 16px rgba(242, 195, 91, .3), inset 0 1px 0 rgba(255, 255, 255, .7); transform: translateY(3px); }
+.cz-btn--green {
+  background: linear-gradient(180deg, #3ee59a, #12a862 60%, #0a7444); color: #fff; border-color: #6cf3b6;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .35);
+  box-shadow: 0 4px 0 #064a2b, 0 10px 24px rgba(31, 195, 122, .3), inset 0 1px 0 rgba(255, 255, 255, .45);
+}
+.cz-btn--green:active { box-shadow: 0 1px 0 #064a2b; transform: translateY(3px); }
+.cz-btn--ruby {
+  background: linear-gradient(180deg, #ff4b6e, #d11a43 55%, #8c0c29); color: #fff; border-color: #ff8aa2;
+  box-shadow: 0 4px 0 #5a0718, 0 10px 24px rgba(209, 26, 67, .3), inset 0 1px 0 rgba(255, 255, 255, .35);
+}
+.cz-btn--ghost { background: rgba(0, 0, 0, .35); border-color: var(--cz-line); color: var(--cz-gold-1); }
+.cz-btn--block { display: flex; width: 100%; }
+.cz-btn--xl { min-height: 56px; font-size: 18px; letter-spacing: .08em; text-transform: uppercase; }
+.cz-btn--icon { width: 44px; min-width: 44px; padding: 0; }
+
+/* Jeton de casino (boutons de mise rapide) */
+.cz-chip {
+  --c: #c8902e;
+  position: relative; display: inline-grid; place-items: center;
+  width: 46px; height: 46px; min-width: 46px; margin: 0; padding: 0;
+  border-radius: 50%; border: 0; color: #fff;
+  font: 800 12px/1 var(--cz-font); text-shadow: 0 1px 2px rgba(0, 0, 0, .6);
+  background:
+    radial-gradient(circle at 50% 50%, var(--c) 0 52%, transparent 53%),
+    repeating-conic-gradient(#fff 0 15deg, var(--c) 15deg 45deg);
+  box-shadow: inset 0 0 0 3px rgba(0, 0, 0, .25), 0 3px 0 rgba(0, 0, 0, .45), 0 6px 12px rgba(0, 0, 0, .35);
+}
+.cz-chip::after { content: ""; position: absolute; inset: 9px; border-radius: 50%; border: 1.5px dashed rgba(255, 255, 255, .55); pointer-events: none; }
+.cz-chip:active { transform: translateY(2px); box-shadow: inset 0 0 0 3px rgba(0, 0, 0, .25), 0 1px 0 rgba(0, 0, 0, .45); }
+.cz-chip--1 { --c: #8e9aaf; } .cz-chip--10 { --c: #2f6fd6; } .cz-chip--50 { --c: #c0263f; }
+.cz-chip--100 { --c: #16804d; } .cz-chip--500 { --c: #6b2bb5; } .cz-chip--1k { --c: #d68b12; }
+
+/* Petite tuile chiffrée (multiplicateur, gain, série…) */
+.cz-stat { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 6px; border-radius: var(--cz-r-sm); background: rgba(0, 0, 0, .35); border: 1px solid rgba(242, 195, 91, .14); }
+.cz-stat b { font: 800 17px/1.1 var(--cz-num); color: var(--cz-gold-1); font-variant-numeric: tabular-nums; }
+.cz-stat small { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--cz-muted); }
+
+/* Segmenté (Facile / Moyen / Difficile…) */
+.cz-seg { display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(0, 0, 0, .4); border: 1px solid var(--cz-line); }
+.cz-seg > * { flex: 1; margin: 0; min-height: 38px; border-radius: 999px; background: transparent; box-shadow: none; color: var(--cz-muted); font-weight: 700; }
+.cz-seg > .on, .cz-seg > [aria-pressed="true"] { background: var(--cz-gold-grad); color: #2a1803; }
+
+/* Mise en page d'un écran de jeu sur téléphone :
+   [ barre d'infos ] → [ scène du jeu ] → [ réglages de mise ] → [ action principale collante ] */
+.cz-game { display: flex; flex-direction: column; gap: 10px; padding-bottom: calc(var(--cz-cta-h) + 16px + var(--cz-safe-b)); }
+.cz-stage { position: relative; border-radius: var(--cz-r-lg); overflow: hidden; }
+.cz-controls { display: flex; flex-direction: column; gap: 10px; }
+.cz-cta {
+  position: sticky; bottom: calc(8px + var(--cz-safe-b)); z-index: 40;
+  padding: 8px; margin: 0 -4px; border-radius: 999px;
+  background: rgba(6, 4, 9, .78); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--cz-line);
+}
+
+/* Écrans très étroits (iPhone SE, 360 px Android) */
+@media (max-width: 380px) {
+  .cz-chip { width: 40px; height: 40px; min-width: 40px; font-size: 11px; }
+  .cz-btn--xl { min-height: 52px; font-size: 16px; }
+}
+
+/* ---------------------------------------------------------------------
+   BARRE D'INFOS D'UN ÉCRAN (retour · temps · solde · musique)
+   Même gabarit en haut du hub et de chaque jeu :
+   <div class="cz-topbar">
+     <button class="cz-btn cz-btn--ghost cz-btn--icon cz-back" onclick="returnToHub()" aria-label="Retour aux jeux">‹</button>
+     <span class="cz-tb-timer">⏳ <span class="sessionTimerDisplay">--:--</span></span>
+     <span class="cz-tb-bal"><span class="playerBalance">1000</span> 🪙</span>
+     <button class="musicBtn cz-btn cz-btn--ghost cz-btn--icon" onclick="toggleMusic()" title="Musique on/off">🎵</button>
+   </div>
+   (sur le hub, pas de bouton retour)
+   --------------------------------------------------------------------- */
+.cz-topbar {
+  position: sticky; top: calc(4px + var(--cz-safe-t)); z-index: 45;
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 0 10px; padding: 6px;
+  border-radius: 999px; border: 1px solid var(--cz-line);
+  background: rgba(10, 6, 14, .82); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .45);
+}
+.cz-topbar .cz-btn--icon { min-height: 44px; width: 44px; min-width: 44px; font-size: 18px; }
+.cz-topbar .cz-back { font-size: 26px; line-height: 1; padding-bottom: 3px; }
+.cz-tb-timer, .cz-tb-bal { display: inline-flex; align-items: center; gap: 5px; font: 800 15px/1 var(--cz-num); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cz-tb-timer { color: var(--cz-gold-1); }
+.cz-tb-bal { margin-left: auto; padding: 8px 12px; border-radius: 999px; background: rgba(0, 0, 0, .45); border: 1px solid var(--cz-line-strong); color: #fff; }
+
+/* L'animation d'entrée des écrans (scrIn, style.css) gardait un transform après coup :
+   les éléments position:fixed de l'écran (fenêtres, menus) se retrouvaient coincés dedans. */
+#game-hub:not(.hidden), [id$="-screen"]:not(.hidden) { animation-fill-mode: backwards !important; }
