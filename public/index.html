@@ -12,16 +12,16 @@
     <link rel="icon" href="/icons/icon-192.png">
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
     <title>Crash P2P - Aviator Pro Ultimate</title>
-    <link rel="stylesheet" href="/style.css?v=20261118">
+    <link rel="stylesheet" href="/style.css?v=20261122">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@500;700;800&display=swap">
-    <link rel="stylesheet" href="/css/casino.css?v=20261118">
-    <link rel="stylesheet" href="/css/shell.css?v=20261118">
-    <link rel="stylesheet" href="/css/jeux-a.css?v=20261118">
-    <link rel="stylesheet" href="/css/jeux-b.css?v=20261118">
-    <link rel="stylesheet" href="/css/jeux-c.css?v=20261118">
-    <link rel="stylesheet" href="/css/machine.css?v=20261118">
+    <link rel="stylesheet" href="/css/casino.css?v=20261122">
+    <link rel="stylesheet" href="/css/shell.css?v=20261122">
+    <link rel="stylesheet" href="/css/jeux-a.css?v=20261122">
+    <link rel="stylesheet" href="/css/jeux-b.css?v=20261122">
+    <link rel="stylesheet" href="/css/jeux-c.css?v=20261122">
+    <link rel="stylesheet" href="/css/machine.css?v=20261122">
 </head>
 <body>
     <div class="container">
@@ -789,6 +789,7 @@
                 <button class="musicBtn cz-btn cz-btn--ghost cz-btn--icon" onclick="toggleMusic()" title="Musique on/off">🎵</button>
             </div>
             <div class="cz-stage bj-felt cz-felt czc-bj-table">
+                <div class="bj-shoe" id="bjShoe" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
                 <div class="bj-zone czc-bj-dealer">
                     <div class="czc-bj-zonehead"><span class="bj-label">Croupier</span><div class="bj-scorebox" id="bjDealerScore"></div></div>
                     <div class="bj-cards" id="bjDealer"></div>
@@ -910,19 +911,19 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="/plinko-tables.js"></script>
-    <script src="/js/core.js?v=20261118"></script>
-    <script src="/js/app.js?v=20261118"></script>
-    <script src="/js/jeux1.js?v=20261118"></script>
-    <script src="/js/jeux2.js?v=20261118"></script>
-    <script src="/js/jeux3.js?v=20261118"></script>
-    <script src="/js/panneaux.js?v=20261118"></script>
-    <script src="/js/profil-chat.js?v=20261118"></script>
-    <script src="/js/moi.js?v=20261118"></script>
-    <script src="/js/cadres.js?v=20261118"></script>
-    <script src="/js/cadres-extra.js?v=20261118"></script>
-    <script src="/js/sons-slot.js?v=20261118"></script>
-    <script src="/js/machine.js?v=20261118"></script>
-    <script src="/js/garde-tap.js?v=20261118"></script>
+    <script src="/js/core.js?v=20261122"></script>
+    <script src="/js/app.js?v=20261122"></script>
+    <script src="/js/jeux1.js?v=20261122"></script>
+    <script src="/js/jeux2.js?v=20261122"></script>
+    <script src="/js/jeux3.js?v=20261122"></script>
+    <script src="/js/panneaux.js?v=20261122"></script>
+    <script src="/js/profil-chat.js?v=20261122"></script>
+    <script src="/js/moi.js?v=20261122"></script>
+    <script src="/js/cadres.js?v=20261122"></script>
+    <script src="/js/cadres-extra.js?v=20261122"></script>
+    <script src="/js/sons-slot.js?v=20261122"></script>
+    <script src="/js/machine.js?v=20261122"></script>
+    <script src="/js/garde-tap.js?v=20261122"></script>
 <script>
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 let _ip = null; window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); _ip = e; const b = document.getElementById('installApp'); if (b) b.classList.remove('hidden'); });

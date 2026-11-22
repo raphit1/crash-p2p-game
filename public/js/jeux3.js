@@ -563,9 +563,10 @@ socket.on('rl-result', d => {
 const BJ_NAMES = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']; // r : 0 = As … 12 = Roi
 const BJ_SUITS = ['♠', '♥', '♦', '♣']; // 0=pique, 1=cœur, 2=carreau, 3=trèfle
 let bjNewN = 0; // ordre d'arrivée des nouvelles cartes : elles glissent l'une après l'autre depuis le sabot
-const bjDly = cls => / new\b|^new\b/.test(' ' + cls) ? ` style="animation-delay:${(bjNewN++ * 0.22).toFixed(2)}s"` : '';
-const bjCardHtml = (c, cls = '') => c === null ? `<div class="bj-card bj-back ${cls}"${bjDly(cls)}></div>`
-  : `<div class="bj-card ${c.s === 1 || c.s === 2 ? 'red' : 'blk'} ${cls}"${bjDly(cls)}><span class="bj-ix">${BJ_NAMES[c.r]}<em>${BJ_SUITS[c.s]}</em></span><b class="bj-pip">${BJ_SUITS[c.s]}</b><i class="bj-ix">${BJ_NAMES[c.r]}<em>${BJ_SUITS[c.s]}</em></i></div>`;
+const bjDly = () => ''; // (l'ancien décalage CSS est remplacé par bjAnimate)
+const bjCls = (...a) => a.join(' ').split(/\s+/).filter(Boolean).join(' '); // classes propres, sans espaces en trop
+const bjCardHtml = (c, cls = '') => c === null ? `<div class="${bjCls('bj-card bj-back', cls)}"></div>`
+  : `<div class="${bjCls('bj-card', c.s === 1 || c.s === 2 ? 'red' : 'blk', cls)}"><span class="bj-ix">${BJ_NAMES[c.r]}<em>${BJ_SUITS[c.s]}</em></span><b class="bj-pip">${BJ_SUITS[c.s]}</b><i class="bj-ix">${BJ_NAMES[c.r]}<em>${BJ_SUITS[c.s]}</em></i></div>`;
 // total affiché : "7/17" pour une main souple (l'As vaut 1 ou 11), "BLACKJACK" pour un naturel
 const bjTotalText = h => h.bj ? 'BJ' : (h.soft && h.total < 21 ? `${h.total - 10}/${h.total}` : String(h.total));
 const BJ_TAG = { blackjack: 'Blackjack !', win: 'Gagné', push: 'Égalité', lose: 'Perdu', bust: 'Sauté' };
@@ -590,6 +591,7 @@ function bjPaint(st) {
     prev.d = d.cards.length + (d.hidden ? 1 : 0); prev.dHidden = d.hidden;
     $('bjDealerScore').className = 'bj-scorebox' + (d.total > 21 ? ' bust' : d.bj ? ' bj' : '');
     setH($('bjDealerScore'), `<small>${d.hidden ? 'VISIBLE' : 'TOTAL'}</small>${d.bj ? 'BJ' : d.total > 21 ? d.total : bjTotalText({ total: d.total, soft: d.soft })}`);
+    S.bjFlipNow = flip;
   }
   // --- joueur (1 ou 2 mains)
   const hands = st ? st.hands : [];
@@ -604,6 +606,7 @@ function bjPaint(st) {
       + (h.outcome ? `<span class="bj-tag ${h.outcome}">${BJ_TAG[h.outcome]}</span>` : '') + `</div>`;
   }).join(''));
   // --- boutons
+  bjAnimate(); // vol des cartes depuis le sabot (affichage seulement)
   show('bjDealBtn', !playing);
   show('bjHitBtn', phase === 'player'); show('bjStandBtn', phase === 'player');
   show('bjDoubleBtn', phase === 'player' && !!st.can.double);
@@ -614,6 +617,60 @@ function bjPaint(st) {
   $('bjStatus').textContent = phase === 'insurance' ? 'Le croupier montre un As : veux-tu t\'assurer contre son blackjack ?'
     : phase === 'player' ? (hands.length > 1 ? `Main ${st.active + 1} sur ${hands.length} : tirer, rester, doubler` + (st.can.split ? ' ou séparer.' : '.') : 'À toi : tirer, rester, doubler' + (st.can.split ? ' ou séparer.' : '.'))
     : 'Mise, puis distribue !';
+}
+/* ---- Animation des cartes (affichage seulement) -------------------------------------------------
+   Chaque NOUVELLE carte part du sabot (en haut à droite de la table), vole en tournant jusqu'à sa place,
+   se retourne en arrivant, puis rebondit légèrement ; le tout avec un bruit de glissement, un petit "toc" à
+   l'arrivée et un claquement au retournement. Distribution dans l'ordre d'un vrai croupier :
+   toi, croupier, toi, croupier (carte cachée). Le croupier retourne sa carte puis tire les suivantes.
+   Les totaux et les étiquettes (Gagné / Perdu…) n'apparaissent qu'une fois les cartes posées. */
+const BJ_STEP = 380, BJ_FLY = 560;
+function bjAnimate() {
+  const root = $('bj-screen'); if (!root) return;
+  const shoe = $('bjShoe'), table = root.querySelector('.czc-bj-table');
+  const flip = S.bjFlipNow; S.bjFlipNow = false;
+  const dCards = [...$('bjDealer').querySelectorAll('.bj-card.new')];
+  const pCards = [...$('bjPlayer').querySelectorAll('.bj-card.new')];
+  const flipEl = flip ? $('bjDealer').querySelector('.bj-flipface') : null;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // ordre de distribution
+  const order = [];
+  if (dCards.length && pCards.length) { // distribution initiale : joueur, croupier, joueur, croupier…
+    const n = Math.max(dCards.length, pCards.length);
+    for (let i = 0; i < n; i++) { if (pCards[i]) order.push(pCards[i]); if (dCards[i]) order.push(dCards[i]); }
+  } else order.push(...pCards, ...dCards);
+  let t0 = 0;
+  if (flipEl) { // le croupier retourne sa carte cachée avant de tirer
+    flipEl.classList.remove('bj-flipface'); t0 = 520;
+    if (!reduce) { flipEl.animate([{ transform: 'perspective(500px) rotateY(90deg) translateY(-6px) scale(1.06)', filter: 'brightness(1.4)' }, { transform: 'perspective(500px) rotateY(-10deg) translateY(-8px) scale(1.08)', offset: .6 }, { transform: 'none', filter: 'none' }], { duration: 480, easing: 'cubic-bezier(.3,.7,.3,1)' }); setTimeout(() => sound('cardFlip'), 30); setTimeout(() => sound('cardLand'), 420); }
+  }
+  const tr = shoe && table ? shoe.getBoundingClientRect() : null;
+  order.forEach((el, k) => {
+    el.classList.remove('new');
+    if (reduce || !tr) return;
+    const r = el.getBoundingClientRect(), dx = tr.left + tr.width / 2 - (r.left + r.width / 2), dy = tr.top + tr.height / 2 - (r.top + r.height / 2);
+    const delay = t0 + k * BJ_STEP, faceUp = !el.classList.contains('bj-back'), rot = 18 + (k % 3) * 7;
+    let bk = null;
+    if (faceUp) { bk = document.createElement('s'); bk.className = 'bj-bk'; el.appendChild(bk); // dos de la carte pendant le vol : disparaît à mi-course (retournement)
+      bk.animate([{ opacity: 1 }, { opacity: 1, offset: .46 }, { opacity: 0, offset: .52 }, { opacity: 0 }], { duration: BJ_FLY, delay, fill: 'both' }).onfinish = () => bk.remove(); }
+    const fa = el.animate([
+      { transform: `translate(${dx}px,${dy}px) rotate(${rot}deg) scale(.5)`, opacity: 0, offset: 0 },
+      { opacity: 1, offset: .1 },
+      { transform: `translate(${dx * .5}px,${dy * .5}px) rotate(${rot * .4}deg) scale(.82)`, offset: .3 },
+      { transform: `translate(${dx * .27}px,${dy * .27}px) rotate(${rot * .15}deg) scaleX(${faceUp ? .1 : .8}) scaleY(.96)`, offset: .46 },
+      { transform: `translate(${dx * .13}px,${dy * .13}px) rotate(${-rot * .06}deg) scale(1)`, offset: .62 },
+      { transform: 'translate(0,-7px) rotate(-2deg) scale(1.07)', offset: .82 },
+      { transform: 'none', offset: 1 }
+    ], { duration: BJ_FLY, delay, easing: 'cubic-bezier(.25,.7,.3,1)', fill: 'both' });
+    fa.onfinish = () => fa.cancel(); // la carte reprend son style normal une fois posée
+    setTimeout(() => sound('cardDeal'), delay + 20);
+    if (faceUp) setTimeout(() => sound('cardFlip'), delay + BJ_FLY * .48);
+    setTimeout(() => sound('cardLand'), delay + BJ_FLY * .82);
+  });
+  [$('bjDealer'), $('bjPlayer')].forEach(e => { if (e._h) e._h = e._h.replace(/ (new|bj-flipface)\b/g, ''); }); // les repeints suivants (identiques) ne détruisent pas l'animation en cours
+  // totaux, mises et résultats : on attend que la dernière carte soit posée
+  const end = (order.length ? t0 + (order.length - 1) * BJ_STEP + BJ_FLY : t0 ? t0 + 480 : 0);
+  if (end && !reduce) root.querySelectorAll('.bj-scorebox, .bj-tag').forEach(el => el.animate([{ opacity: 0, transform: 'scale(.85)' }, { opacity: 0, transform: 'scale(.85)', offset: .01 }, { opacity: 1, transform: 'none' }], { duration: 260, delay: end - 80, fill: 'backwards' }));
 }
 function bjHistPush(net, outcomes) {
   const bj = outcomes.includes('blackjack');
